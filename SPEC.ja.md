@@ -1,4 +1,4 @@
-# ESP32IRPulseCodec 仕様（ユーザー公開API版）
+# ESP32IRPulseCodec 仕様
 
 ## 0. 前提
 - ライブラリ名：**ESP32IRPulseCodec**
