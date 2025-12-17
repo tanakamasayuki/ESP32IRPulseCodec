@@ -29,9 +29,9 @@
 - **Frame**：Mark/Spaceの区間列（ITPSFrame）。ギャップを含めるかは分割ポリシー依存。
 - **ITPS**：正規化済み中間フォーマット（`SPEC_ITPS.ja.md`）
 - **ITPSFrame / ITPSBuffer**：ITPSのフレーム／フレーム配列
-- **ProtocolPacket**：プロトコル固有データを汎用フォーマットで表したもの
+- **ProtocolMessage**：プロトコル共通の論理メッセージ（`Protocol` + 生データバイト列）
 - **Protocol**：`esp32ir::Protocol`（NEC/SONY等）
-- **Payload構造体**：`esp32ir::payload::<Protocol>`（デコード結果/送信パラメータ）
+- **ProtocolPayload構造体**：`esp32ir::payload::<Protocol>`（デコード結果/送信パラメータ）
 - **HAL**：ESP32固有層（RMT、GPIO、キャリア、反転）
 - **Codec**：プロトコル固有のデコード/エンコード処理
 
@@ -80,7 +80,7 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロト
   - `esp32ir::Transmitter`
 - データ型
   - `esp32ir::RxResult`
-  - `esp32ir::ProtocolPacket`
+  - `esp32ir::ProtocolMessage`
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
   - `esp32ir::Protocol`
@@ -137,7 +137,7 @@ bool poll(esp32ir::RxResult& out);
   if (rx.poll(r)) {  // 取得があるときだけ分岐
     switch (r.status) {
       case esp32ir::RxStatus::DECODED:
-        // r.packet を処理
+        // r.message を処理
         break;
       case esp32ir::RxStatus::RAW_ONLY:
       case esp32ir::RxStatus::OVERFLOW:
@@ -154,22 +154,22 @@ bool poll(esp32ir::RxResult& out);
 struct RxResult {
   esp32ir::RxStatus status;
   esp32ir::Protocol protocol;
-  esp32ir::ProtocolPacket packet;
+  esp32ir::ProtocolMessage message;
   esp32ir::ITPSBuffer raw;
 };
 ```
 
 - RAW_PLUS 時は DECODED でも raw を必ず含む
-- RAW_ONLY 時は protocol/packet は未使用
+- RAW_ONLY 時は protocol/message は未使用
 - OVERFLOW 時も取得できた範囲の raw を返す
 - NEC などのデコードヘルパは RxResult 受け取り版を用意し、`status==DECODED` かつ対象プロトコルのときだけ true を返す（例：`bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::payload::NEC& out);`）。
 - デコード結果構造体を送信ヘルパでも受け取れるようにし、バラ引数版は構造体版に委譲して実装重複を避ける。
 
 ---
 
-## 9. ProtocolPacket
+## 9. ProtocolMessage
 ```cpp
-struct ProtocolPacket {
+struct ProtocolMessage {
   esp32ir::Protocol protocol;
   const uint8_t* data;
   uint16_t length;
@@ -177,8 +177,8 @@ struct ProtocolPacket {
 };
 ```
 
-- プロトコル固有構造体は公開しない
-- NEC 等はヘルパーで解釈
+- プロトコル固有のPayload構造体は公開せず、ProtocolMessageは汎用コンテナ（Protocol + 生データ）として扱う
+- NEC 等の解釈はヘルパー（`decodeNEC` 等）経由で `esp32ir::payload::<Protocol>` に変換する
 
 ---
 
@@ -239,7 +239,7 @@ void end();
 ### 11.4 send（ブロッキング）
 ```cpp
 bool send(const esp32ir::ITPSBuffer& raw);
-bool send(const esp32ir::ProtocolPacket& p);
+bool send(const esp32ir::ProtocolMessage& p);
 ```
 - プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）はセクション12を参照。
 
