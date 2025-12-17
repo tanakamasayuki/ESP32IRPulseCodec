@@ -193,6 +193,8 @@ struct ProtocolMessage {
 
 ## 10. ITPS
 
+ITPS は Mark/Space の正規化済み中間フォーマット。詳細は `SPEC_ITPS.ja.md` を参照。
+
 ### 10.1 ITPSFrame
 ```cpp
 struct ITPSFrame {
@@ -217,7 +219,7 @@ public:
   - `T_us` はフレーム配列全体で共通。0や欠落、不一致は無効。
   - `seq` は読み取り専用で `seq[0] > 0`、`seq[i] != 0`、`1 <= abs(seq[i]) <= 127`。長区間は ±127 分割し、127 未満同士の不要分割はマージ済み。
   - 量子化（`T_us` 決定）と微小ノイズ除去は ITPS 化前段で完了している。
-  - flags は拡張用。反転の有無は ITPS に持たせず HAL で吸収し、時間計算（`totalTimeUs` 等）は 32bit 以上で扱う。
+  - flags は拡張用（現状は未使用）。反転の有無は ITPS に持たせず HAL で吸収し、時間計算（`totalTimeUs` 等）は 32bit 以上で扱う。
 
 ---
 
