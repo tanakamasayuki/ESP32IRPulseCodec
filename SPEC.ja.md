@@ -56,7 +56,12 @@ Payload（`esp32ir::payload::<Protocol>`） → 送信ヘルパ → ProtocolMess
 再送：保存した ITPSBuffer → `send(raw)` → HAL(RMT)送信  
 AC学習や未知プロトコルの再送に利用する。反転が必要なら送信側の `invertOutput` で吸収。
 
-### 3.4 レイヤ構造
+### 3.4 プリセット
+- **ALL_KNOWN（デフォルト）**：既知プロトコルすべて（AC含む）をデコード対象にする。
+- **KNOWN_WITHOUT_AC**：`useKnownWithoutAC()` で AC を除外した既知プロトコルのみを対象にする。
+- **RAW_ONLY / RAW_PLUS_KNOWN**：RAW取得重視のプリセット（前述のモード参照）。
+
+### 3.5 レイヤ構造
 1) **Core（機種非依存）**  
    - ITPSFrame/Normalize、ProtocolCodecインタフェース  
    - ProtocolMessage / payload::<Protocol> の変換ヘルパ（decode/send系）
@@ -138,12 +143,13 @@ bool addProtocol(esp32ir::Protocol protocol);
 bool clearProtocols();
 bool useRawOnly();
 bool useRawPlusKnown();
+bool useKnownWithoutAC();  // AC系を除外した既知プロトコルプリセット
 ```
 
 - プロトコル未指定 → ALL_KNOWN
 - 指定あり → ONLY
 - RAW系指定が最優先
-- ALL_KNOWN には AC 系（DaikinAC 等）も含まれる。ACを除外したい場合は対象プロトコルを `addProtocol` で限定する。
+- ALL_KNOWN には AC 系（DaikinAC 等）も含まれる。ACを除外したい場合は `useKnownWithoutAC()` または `addProtocol` で限定する。
 - プロトコル推奨パラメータを begin 時にマージして受信デフォルトを決定（詳細は「受信モードと分割ポリシー」）
 
 ---
