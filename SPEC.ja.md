@@ -268,7 +268,7 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 12. 対応プロトコルとヘルパー
-- 方針：プロトコルごとにデコード/送信ヘルパを用意し、構造体版＋バラ引数版を揃える。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
+- 方針：プロトコルごとにデコード/送信ヘルパを用意し、基本は構造体版＋バラ引数版を揃える（AC系は構造体版のみ）。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
 - 対応状況（○=ヘルパ実装、△=枠のみ/予定、RAWはITPS直扱い）
 
 | プロトコル                 | フレーム構造体                    | デコードヘルパ                   | 送信ヘルパ                                  | 状態 |
@@ -289,13 +289,13 @@ bool send(const esp32ir::ProtocolMessage& message);
 | Toshiba                   | `esp32ir::payload::Toshiba`      | `esp32ir::decodeToshiba`        | `esp32ir::sendToshiba(struct/args)`        | △   |
 | Mitsubishi                | `esp32ir::payload::Mitsubishi`   | `esp32ir::decodeMitsubishi`     | `esp32ir::sendMitsubishi(struct/args)`     | △   |
 | Hitachi                   | `esp32ir::payload::Hitachi`      | `esp32ir::decodeHitachi`        | `esp32ir::sendHitachi(struct/args)`        | △   |
-| Daikin AC                 | `esp32ir::payload::DaikinAC`     | `esp32ir::decodeDaikinAC`       | `esp32ir::sendDaikinAC(struct/args)`       | △   |
-| Panasonic AC              | `esp32ir::payload::PanasonicAC`  | `esp32ir::decodePanasonicAC`    | `esp32ir::sendPanasonicAC(struct/args)`    | △   |
-| Mitsubishi AC             | `esp32ir::payload::MitsubishiAC` | `esp32ir::decodeMitsubishiAC`   | `esp32ir::sendMitsubishiAC(struct/args)`   | △   |
-| Toshiba AC                | `esp32ir::payload::ToshibaAC`    | `esp32ir::decodeToshibaAC`      | `esp32ir::sendToshibaAC(struct/args)`      | △   |
-| Fujitsu AC                | `esp32ir::payload::FujitsuAC`    | `esp32ir::decodeFujitsuAC`      | `esp32ir::sendFujitsuAC(struct/args)`      | △   |
+| Daikin AC                 | `esp32ir::payload::DaikinAC`     | `esp32ir::decodeDaikinAC`       | `esp32ir::sendDaikinAC(struct)`            | △   |
+| Panasonic AC              | `esp32ir::payload::PanasonicAC`  | `esp32ir::decodePanasonicAC`    | `esp32ir::sendPanasonicAC(struct)`         | △   |
+| Mitsubishi AC             | `esp32ir::payload::MitsubishiAC` | `esp32ir::decodeMitsubishiAC`   | `esp32ir::sendMitsubishiAC(struct)`        | △   |
+| Toshiba AC                | `esp32ir::payload::ToshibaAC`    | `esp32ir::decodeToshibaAC`      | `esp32ir::sendToshibaAC(struct)`           | △   |
+| Fujitsu AC                | `esp32ir::payload::FujitsuAC`    | `esp32ir::decodeFujitsuAC`      | `esp32ir::sendFujitsuAC(struct)`           | △   |
 
-- 構造体とヘルパー詳細（フラットに列挙）
+- 構造体とヘルパー詳細
   - RAW  
     - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。  
     - `send(const esp32ir::ITPSBuffer& raw);` で再送可能。
@@ -360,15 +360,15 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::payload::Hitachi&);`  
     - `bool esp32ir::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Daikin AC  
-    - 構造体は未定義（長尺/可変要素が多いため）。関数名のみ予約：`bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendDaikinAC(/* payload TBD */);`
+    - 構造体名のみ予約：`esp32ir::payload::DaikinAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);`
   - Panasonic AC  
-    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendPanasonicAC(/* payload TBD */);`
+    - 構造体名のみ予約：`esp32ir::payload::PanasonicAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);`
   - Mitsubishi AC  
-    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendMitsubishiAC(/* payload TBD */);`
+    - 構造体名のみ予約：`esp32ir::payload::MitsubishiAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);`
   - Toshiba AC  
-    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendToshibaAC(/* payload TBD */);`
+    - 構造体名のみ予約：`esp32ir::payload::ToshibaAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);`
   - Fujitsu AC  
-    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendFujitsuAC(/* payload TBD */);`
+    - 構造体名のみ予約：`esp32ir::payload::FujitsuAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);`
 
 ## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
 - 例外は使わず、公開APIの成否は `bool` で返す。失敗時は適切なログを出し、false を返して終了する（不正利用含む）。動作は継続し、アサート/abort は行わない。
