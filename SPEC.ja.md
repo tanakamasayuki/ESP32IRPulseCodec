@@ -393,9 +393,9 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 16. 互換性・拡張性ポリシー
-- ITPSFrameの `flags` は予約ビットを持ち、将来拡張しても旧版が無視できること
-- 新規プロトコルはCodec登録のみで追加可能とする
-- Arduino APIは破壊的変更を避け、設定項目は追加方向で拡張する
+- ITPSFrame の `flags` は予約ビットとして拡張を許容し、旧版が無視できる互換性を維持する。
+- 新規プロトコルは Codec の追加登録（decode/sendヘルパ＋推奨パラメータ）で拡張できる枠組みとする。
+- Arduino API は破壊的変更を避け、設定項目を追加する方向で拡張する（既存シグネチャは維持）。
 
 ---
 
