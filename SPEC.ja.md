@@ -84,6 +84,9 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロト
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
   - `esp32ir::Protocol`
+- フレーム構造体（プロトコルごと）
+  - `esp32ir::frame::NEC` / `SONY` / `AEHA` / `Panasonic` / `JVC` / `Samsung` / `LG` / `Denon` / `RC5` / `RC6` / `Apple` / `Pioneer` / `Toshiba` / `Mitsubishi` / `Hitachi`
+  - AC系: `esp32ir::frame::DaikinAC` / `PanasonicAC` / `MitsubishiAC` / `ToshibaAC` / `FujitsuAC`
 
 ---
 
