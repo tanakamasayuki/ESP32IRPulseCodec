@@ -12,6 +12,7 @@
 - 受信側の量子化（`T_us` 決定）とノイズ処理は前段で済ませ、ITPSには正規化済みデータを渡す
 - 仕様記述はユーザーの使い方（API/期待挙動）を中心とし、実装詳細は最小限に留める
 - `using namespace` は使わず、常に `esp32ir::` で完全修飾する（ネームスペースのネストは最小限）
+  - 受信後のプロトコル別デコードヘルパ（例：`esp32ir::decodeNEC`）はセクション12を参照（受信API自体は共通で `poll`、デコードはヘルパで行う）
 
 ## 1. 目的と非目的
 
@@ -240,11 +241,8 @@ void end();
 ```cpp
 bool send(const esp32ir::ITPSBuffer& raw);
 bool send(const esp32ir::LogicalPacket& p);
-bool sendNEC(const esp32ir::frame::NEC& p);
-bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);
-bool sendSONY(const esp32ir::frame::SONY& p);
-bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 ```
+- プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）はセクション12を参照。
 
 ---
 
