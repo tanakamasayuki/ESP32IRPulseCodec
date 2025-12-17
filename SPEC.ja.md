@@ -68,9 +68,10 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロト
   - `frameCountMax` 超過時は `OVERFLOW` として通知し、取得できたRAWを返す。
   - ITPS 化では SPEC_ITPS 準拠で正規化（Mark開始・`seq[i]` は0禁止かつ `1..127/-1..-127` の範囲、長区間は ±127 分割、不要分割は除去）し、反転は扱わない。
 - `T_us` は全フレーム共通の量子化値とし、既定は 5us を想定（前段で調整）。
-- 推奨プリセット（参考値）
-  - デコード優先（KNOWN_ONLY 想定）：`frameGapUs=20000`, `hardGapUs=50000`, `minEdges=10`, `minFrameUs=3000`, `maxFrameUs=120000`, `splitPolicy=DROP_GAP`
-  - RAW重視（AC学習など）：`frameGapUs=30000`, `hardGapUs=80000`, `minEdges=6`, `minFrameUs=2000`, `maxFrameUs=450000`, `splitPolicy=KEEP_GAP_IN_FRAME`, `frameCountMax=8`
+- パラメータの決め方
+  - 各プロトコルは推奨値（例：`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`）を持ち、受信開始時に有効プロトコルから自動マージしてデフォルトを生成する。
+  - マージ例：`frameGapUs`/`hardGapUs`/`maxFrameUs` は有効プロトコル中の最大値を採用し、`minFrameUs`/`minEdges` は最大値（最も厳しい値）を採用してノイズ誤検出を避ける。`splitPolicy` はRAWモードなら `KEEP_GAP_IN_FRAME`、KNOWN系は `DROP_GAP` を優先。ユーザーが明示設定すればそれを上書き。
+  - `useRawOnly`/`useRawPlusKnown` のときはRAW向けプリセット（例：ギャップ広め、`KEEP_GAP_IN_FRAME`、`frameCountMax` など）を優先し、プロトコル推奨値は無視してもよい。
 
 ---
 
