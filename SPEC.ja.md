@@ -11,6 +11,7 @@
 - 送信：ブロッキング送信
 - 受信側の量子化（`T_us` 決定）とノイズ処理は前段で済ませ、ITPSには正規化済みデータを渡す
 - 仕様記述はユーザーの使い方（API/期待挙動）を中心とし、実装詳細は最小限に留める
+- `using namespace` は使わず、常に `esp32ir::` で完全修飾する（ネームスペースのネストは最小限）
 
 ## 1. 目的と非目的
 
@@ -82,7 +83,7 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロト
   - `esp32ir::LogicalPacket`
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
-  - `esp32ir::ProtocolId`
+  - `esp32ir::Protocol`
 
 ---
 
@@ -105,7 +106,7 @@ bool setQuantizeT(uint16_t T_us_rx);
 
 ### 6.3 プロトコル指定（begin前のみ）
 ```cpp
-bool addProtocol(esp32ir::ProtocolId id);
+bool addProtocol(esp32ir::Protocol id);
 bool clearProtocols();
 bool useRawOnly();
 bool useRawPlusKnown();
@@ -127,19 +128,29 @@ bool poll(esp32ir::RxResult& out);
 - 内部 FIFO キュー（上限あり）
 - 溢れた場合は古いデータを破棄し OVERFLOW 通知
 - ノイズ判定で破棄した場合は RxResult を発行しない
+- 戻り値はポーリング成功/失敗のみ。シンプルな利用例（ネスト抑制）：
+  ```cpp
+  esp32ir::RxResult r;
+  if (rx.poll(r)) {  // 取得があるときだけ分岐
+    switch (r.status) {
+      case esp32ir::RxStatus::DECODED:
+        // r.logical を処理
+        break;
+      case esp32ir::RxStatus::RAW_ONLY:
+      case esp32ir::RxStatus::OVERFLOW:
+        // r.raw を処理（必要なら保存/再送）
+        break;
+    }
+  }
+  ```
 
 ---
 
 ## 8. RxResult
 ```cpp
 struct RxResult {
-  enum class Status {
-    DECODED,
-    RAW_ONLY,
-    OVERFLOW
-  } status;
-
-  esp32ir::ProtocolId protocol;
+  esp32ir::RxStatus status;
+  esp32ir::Protocol protocol;
   esp32ir::LogicalPacket logical;
   esp32ir::ITPSBuffer raw;
 };
@@ -154,7 +165,7 @@ struct RxResult {
 ## 9. LogicalPacket
 ```cpp
 struct LogicalPacket {
-  esp32ir::ProtocolId protocol;
+  esp32ir::Protocol protocol;
   const uint8_t* data;
   uint16_t length;
   uint32_t flags;
