@@ -251,7 +251,7 @@ bool setCarrierHz(uint32_t hz);
 bool setDutyPercent(uint8_t dutyPercent);
 bool setGapUs(uint32_t gapUs);
 ```
-- デフォルト値（想定）：`invert=false`、`hz=38000`Hz、`dutyPercent` は一般的な50%近辺、`gapUs=40000`us（送信ギャップ既定）
+- デフォルト値（想定）：`invert=false`、`hz=38000`Hz、`dutyPercent` は一般的な50%近辺、`gapUs=40000`us（送信ギャップ既定）。プロトコル別ヘルパは推奨ギャップを持つ場合があり、`setGapUs` で上書きされていなければそれを優先する。
 
 ### 11.3 begin/end
 ```cpp
@@ -266,7 +266,7 @@ void end();
 bool send(const esp32ir::ITPSBuffer& itps);
 bool send(const esp32ir::ProtocolMessage& message);
 ```
-- プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）は「対応プロトコルとヘルパー」を参照。
+- プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）は「対応プロトコルとヘルパー」を参照。`gapUs` はユーザー設定があればそれを、なければヘルパが持つ推奨値（なければ既定40ms）を適用する。
 
 ---
 
@@ -382,8 +382,9 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 14. 送信ギャップ
-- デフォルト 40ms（`gapUs`）、送信する全プロトコル/RAWに共通で適用
-- フレーム末尾の Space を最低 `gapUs` 確保してから送信完了とみなす
+- 基本値は 40ms（`gapUs`）だが、プロトコル別送信ヘルパは各プロトコルの推奨ギャップを優先する（ユーザーが `setGapUs` で上書きした場合はその値を使う）。
+- フレーム末尾の Space を最低 `gapUs` 確保してから送信完了とみなす。
+- RAW/ProtocolMessage を直接 `send` する場合は、現在設定されている `gapUs` を適用する。
 
 ---
 
