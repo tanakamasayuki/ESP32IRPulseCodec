@@ -61,7 +61,11 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
 - **KNOWN_WITHOUT_AC**：`useKnownWithoutAC()` で AC を除外した既知プロトコルのみを対象にする。
 - **RAW_ONLY / RAW_PLUS_KNOWN**：RAW取得重視のプリセット（前述のモード参照）。
 
-### 3.5 レイヤ構造
+### 3.5 payload と ProtocolMessage の使い分け
+- 基本はプロトコル別の `esp32ir::payload::<Protocol>` とヘルパ（`decodeX` / `sendX`）を使う。
+- `ProtocolMessage` を直接組み立てるのは、独自プロトコルやテストなど低レベル用途のみを想定する。
+
+### 3.6 レイヤ構造
 1) **Core（機種非依存）**  
    - ITPSFrame/Normalize、ProtocolCodecインタフェース  
    - ProtocolMessage / payload::<Protocol> の変換ヘルパ（decode/send系）
