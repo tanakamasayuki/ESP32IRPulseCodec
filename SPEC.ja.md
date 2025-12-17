@@ -39,9 +39,10 @@
 
 ### 3.1 データフロー（受信）
 Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロトコル） → 論理データ  
-- `useRawOnly()` 指定時はデコードをスキップし、ITPSをRAWとして返す。  
-- `useRawPlusKnown()` 指定時はデコード成功でもITPSを添付する。  
-- プロトコル集合は `addProtocol/clearProtocols/useRawOnly/useRawPlusKnown` により決定する。  
+- `useRawOnly()`：デコードせず ITPS を RAW として返す。  
+- `useRawPlusKnown()`：デコードを試み、成功しても ITPS を添付する。  
+- `clearProtocols()`：プロトコル設定をクリア。`addProtocol()` を1回も呼ばなければ既知プロトコル全対応＋RAW。  
+- `addProtocol()`：受信対象プロトコルを限定（指定があれば ONLY）。RAW系指定があれば RAW を優先。  
 
 ### 3.2 データフロー（送信）
 論理データ → Encode → **ITPSFrame配列** → HAL(RMT)送信  
