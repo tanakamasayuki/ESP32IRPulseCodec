@@ -320,7 +320,7 @@ bool send(const esp32ir::ProtocolMessage& message);
   - NEC  
     - `struct esp32ir::payload::NEC { uint16_t address; uint8_t command; bool repeat; };`  
     - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::payload::NEC& out);`  
-    - `bool esp32ir::sendNEC(const esp32ir::payload::NEC& p);` / `bool esp32ir::sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ40ms既定）
+    - `bool esp32ir::sendNEC(const esp32ir::payload::NEC& p);` / `bool esp32ir::sendNEC(uint16_t address, uint8_t command, bool repeat=false);`
   - SONY（SIRC 12/15/20bit）  
     - `struct esp32ir::payload::SONY { uint16_t address; uint16_t command; uint8_t bits; };`  
     - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::payload::SONY& out);`（`bits`は12/15/20のみ）  
