@@ -151,15 +151,15 @@ bool poll(esp32ir::RxResult& out);
 - RxResult は呼び出し側が所有し、次回 poll でも破壊されない。内部はFIFOキュー（上限あり）で管理し、溢れた場合は古いデータを破棄して OVERFLOW を通知する。ノイズ判定で破棄した場合は RxResult を発行しない。
 - 戻り値は「取得できたかどうか」の bool のみ。シンプルな利用例：
   ```cpp
-  esp32ir::RxResult r;
-  if (rx.poll(r)) {  // 取得があるときだけ分岐
-    switch (r.status) {
+  esp32ir::RxResult rxResult;
+  if (rx.poll(rxResult)) {  // 取得があるときだけ分岐
+    switch (rxResult.status) {
       case esp32ir::RxStatus::DECODED:
-        // r.message を処理
+        // rxResult.message を処理
         break;
       case esp32ir::RxStatus::RAW_ONLY:
       case esp32ir::RxStatus::OVERFLOW:
-        // r.raw を処理（必要なら保存/再送）
+        // rxResult.raw を処理（必要なら保存/再送）
         break;
     }
   }
@@ -402,30 +402,41 @@ bool send(const esp32ir::ProtocolMessage& message);
 ## 17. サンプルと期待挙動
 
 ### 17.1 コード例（完全修飾）
-受信
-```cpp
-esp32ir::Receiver rx(23);
-rx.begin();
-```
 
-NEC 送信
+NEC 送信（最小スケッチ）
 ```cpp
+#include <ESP32IRPulseCodec.h>
+
 esp32ir::Transmitter tx(25);
-tx.begin();
-tx.sendNEC(0x00FF, 0xA2);
+
+void setup() {
+  tx.begin();
+  // 例: アドレス0x00FF, コマンド0xA2 を1回送信
+  tx.sendNEC(0x00FF, 0xA2);
+}
+
+void loop() {
+  // 送信のみ。必要ならdelay等で間隔調整。
+  delay(1);
+}
 ```
 
 NEC 受信（デコードヘルパ使用例）
 ```cpp
+#include <ESP32IRPulseCodec.h>
+
 esp32ir::Receiver rx(23);
-rx.addProtocol(esp32ir::Protocol::NEC);
-rx.begin();
+
+void setup() {
+  rx.addProtocol(esp32ir::Protocol::NEC);  // NECのみを対象にする例
+  rx.begin();
+}
 
 void loop() {
-  esp32ir::RxResult r;
-  if (rx.poll(r)) {
+  esp32ir::RxResult rxResult;
+  if (rx.poll(rxResult)) {
     esp32ir::payload::NEC nec;
-    if (esp32ir::decodeNEC(r, nec)) {
+    if (esp32ir::decodeNEC(rxResult, nec)) {
       printf("addr=0x%04X cmd=0x%02X repeat=%s\n",
              nec.address, nec.command, nec.repeat ? "true" : "false");
     }
