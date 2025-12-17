@@ -180,8 +180,8 @@ struct ProtocolMessage {
 };
 ```
 
-- プロトコル固有のPayload構造体は公開せず、ProtocolMessageは汎用コンテナ（Protocol + 生データ）として扱う
-- NEC 等の解釈はヘルパー（`decodeNEC` 等）経由で `esp32ir::payload::<Protocol>` に変換する
+- ProtocolMessage はプロトコルID + 生データの汎用コンテナ。通常はプロトコル別ヘルパが生成し、直接組み立てるのはカスタム/テストなど低レベル用途に限る。
+- プロトコル固有のPayload構造体は `esp32ir::payload::<Protocol>` に用意する（例：`payload::NEC`）。受信時はデコードヘルパ（`decodeNEC` 等）で `ProtocolMessage` から `payload::<Protocol>` へ変換し、送信時は送信ヘルパ（`sendNEC` 等）が `payload::<Protocol>` から `ProtocolMessage`（→ITPS）を組み立てる。
 
 ---
 
