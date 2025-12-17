@@ -40,19 +40,23 @@
 ## 3. 全体アーキテクチャ
 
 ### 3.1 データフロー（受信）
-Raw(RMT) → Split/Quantize → **ITPSBuffer（ITPSFrame配列）** → Decode（有効プロトコル） → ProtocolMessage（論理メッセージ）  
+Raw(RMT) → Split/Quantize → **ITPSBuffer（ITPSFrame配列）** → Decode（有効プロトコル） → ProtocolMessage（論理メッセージ） → Payload（`esp32ir::payload::<Protocol>`、デコードヘルパ使用）  
 - `useRawOnly()`：デコードせず ITPS を RAW として返す。  
 - `useRawPlusKnown()`：デコードを試み、成功しても ITPS を添付する。  
 - `clearProtocols()`：プロトコル設定をクリア。`addProtocol()` を1回も呼ばなければ既知プロトコル全対応＋RAW。  
 - `addProtocol()`：受信対象プロトコルを限定（指定があれば ONLY）。RAW系指定があれば RAW を優先。  
-- ProtocolMessage はプロトコル共通コンテナで、必要に応じてデコードヘルパ（例：`decodeNEC`）で `esp32ir::payload::<Protocol>` へ変換できる。
+- ProtocolMessage はプロトコル共通コンテナで、通常はデコードヘルパ（例：`decodeNEC`）で `esp32ir::payload::<Protocol>` に変換して使う。
 
 ### 3.2 データフロー（送信）
-ProtocolMessage（論理メッセージ） → Encode → **ITPSBuffer（ITPSFrame配列）** → HAL(RMT)送信  
-反転はHALで吸収する（ITPSは変更しない）。
-- ProtocolMessage の生成は、プロトコル別送信ヘルパ（例：`esp32ir::sendNEC`）で `esp32ir::payload::<Protocol>` から自動変換してもよいし、直接組み立ててもよい。
+Payload（`esp32ir::payload::<Protocol>`） → 送信ヘルパ → ProtocolMessage → Encode → **ITPSBuffer（ITPSFrame配列）** → HAL(RMT)送信  
+反転はHALで吸収する（ITPSは変更しない）。Payloadを渡さず、自前で組んだProtocolMessageを直接送ってもよい。
 
-### 3.3 レイヤ構造
+### 3.3 学習→再送のフロー（RAW系）
+受信Raw：Raw(RMT) → ITPSBuffer（RAW Only/RAW Plus） → 保存  
+再送：保存した ITPSBuffer → `send(raw)` → HAL(RMT)送信  
+AC学習や未知プロトコルの再送に利用する。反転が必要なら送信側の `invertOutput` で吸収。
+
+### 3.4 レイヤ構造
 1) **Core（機種非依存）**  
    - ITPSFrame/Normalize、ProtocolCodecインタフェース  
    - ProtocolMessage / payload::<Protocol> の変換ヘルパ（decode/send系）
