@@ -65,7 +65,15 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
 - Typically use protocol-specific `esp32ir::payload::<Protocol>` with helpers (`decodeX` / `sendX`).
 - Build `ProtocolMessage` directly only for low-level/custom cases (your own protocol, tests, etc.).
 
-### 3.6 Layering
+### 3.6 File layout (implementation guideline)
+- Keep translation units small and focused:
+  - `src/core/` for ITPSBuffer, ProtocolMessage, shared utilities
+  - `src/hal/` for RMT/GPIO, carrier, inversion handling
+  - `src/protocols/` per-protocol helpers (e.g., `nec.cpp`, `sony.cpp`, `aeha.cpp`; AC variants separated)
+  - `src/receiver.cpp` / `src/transmitter.cpp` for class implementations
+- Public umbrella header: `ESP32IRPulseCodec.h` includes protocol/helper declarations needed by users.
+
+### 3.7 Layering
 1) **Core (platform-agnostic)**  
    - ITPSFrame/Normalize, ProtocolCodec interfaces  
    - Helpers to convert between ProtocolMessage and payload::<Protocol> (decode/send)

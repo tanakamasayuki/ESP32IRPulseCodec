@@ -65,7 +65,15 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
 - 基本はプロトコル別の `esp32ir::payload::<Protocol>` とヘルパ（`decodeX` / `sendX`）を使う。
 - `ProtocolMessage` を直接組み立てるのは、独自プロトコルやテストなど低レベル用途のみを想定する。
 
-### 3.6 レイヤ構造
+### 3.6 ファイル配置（実装ガイドライン）
+- 翻訳単位は小さく分割する：
+  - `src/core/`：ITPSBuffer, ProtocolMessage, 共通ユーティリティ
+  - `src/hal/`：RMT/GPIO、キャリア、反転処理
+  - `src/protocols/`：プロトコル別ヘルパ（例 `nec.cpp`, `sony.cpp`, `aeha.cpp`、AC系も別ファイル）
+  - `src/receiver.cpp` / `src/transmitter.cpp`：クラス本体
+- パブリックの傘ヘッダ `ESP32IRPulseCodec.h` から必要なプロトコル/ヘルパ宣言を提供する。
+
+### 3.7 レイヤ構造
 1) **Core（機種非依存）**  
    - ITPSFrame/Normalize、ProtocolCodecインタフェース  
    - ProtocolMessage / payload::<Protocol> の変換ヘルパ（decode/send系）
