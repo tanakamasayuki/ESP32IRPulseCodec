@@ -1,18 +1,14 @@
 # ESP32IRPulseCodec 仕様
 
 ## 0. 前提
-- ライブラリ名：**ESP32IRPulseCodec**
-- namespace：`esp32ir`
-- Arduino環境でESP32（RMT利用）のハードウェア支援を使い、安定したIR送受信を提供する
-- 対象：ESP32（RMT利用）
-- 中間フォーマット：ITPS（正規化済み、詳細は `SPEC_ITPS.ja.md`）
-- 反転（INVERT）は送受信直前（HAL）で吸収
-- 受信：ポーリングのみ
-- 送信：ブロッキング送信
-- 受信側の量子化（`T_us` 決定）とノイズ処理は前段で済ませ、ITPSには正規化済みデータを渡す
-- 仕様記述はユーザーの使い方（API/期待挙動）を中心とし、実装詳細は最小限に留める
-- `using namespace` は使わず、常に `esp32ir::` で完全修飾する（ネームスペースのネストは最小限）
-  - 受信後のプロトコル別デコードヘルパ（例：`esp32ir::decodeNEC`）はセクション12を参照（受信API自体は共通で `poll`、デコードはヘルパで行う）
+- ライブラリ名：**ESP32IRPulseCodec**、namespace：`esp32ir`
+- 対象：Arduino環境のESP32（RMT利用、Arduino-ESP32 v3以降のRMT変更に対応）
+- ITPS（正規化済み中間フォーマット、詳細は `SPEC_ITPS.ja.md`）を入出力に使用
+- 反転（INVERT）はHALで吸収し、ITPSは常に正のMark/負のSpace
+- 受信：ポーリングのみ／送信：ブロッキング送信
+- 量子化（`T_us` 決定）とノイズ処理は前段で済ませ、ITPSには正規化済みデータを渡す
+- 仕様はユーザーの使い方（API/期待挙動）を中心に記述
+- `using namespace` は使わず、常に `esp32ir::` で完全修飾する（ネストは最小限）
 
 ## 1. 目的と非目的
 
