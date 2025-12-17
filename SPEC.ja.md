@@ -271,30 +271,29 @@ bool send(const esp32ir::ProtocolMessage& message);
 - 方針：プロトコルごとにデコード/送信ヘルパを用意し、構造体版＋バラ引数版を揃える。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
 - 対応状況（○=ヘルパ実装、△=枠のみ/予定、RAWはITPS直扱い）
 
-| プロトコル                | フレーム構造体                   | デコードヘルパ                  | 送信ヘルパ                        | 状態 |
-|---------------------------|--------------------------------|---------------------------------|---------------------------------|------|
-| NEC                       | `esp32ir::payload::NEC`       | `esp32ir::decodeNEC`       | `esp32ir::sendNEC(struct/args)`            | ○    |
-| SONY (SIRC 12/15/20)      | `esp32ir::payload::SONY`      | `esp32ir::decodeSONY`      | `esp32ir::sendSONY(struct/args)`           | ○    |
-| RAW (ITPS)                | なし（ITPSBuffer直接）     | -                           | `send(ITPSBuffer)`                         | ○    |
-| AEHA (家電協)             | `esp32ir::payload::AEHA`      | `esp32ir::decodeAEHA`      | `esp32ir::sendAEHA(struct/args)`           | △    |
-| Panasonic/Kaseikaden      | `esp32ir::payload::Panasonic` | `esp32ir::decodePanasonic` | `esp32ir::sendPanasonic(struct/args)`      | △    |
-| JVC                       | `esp32ir::payload::JVC`       | `esp32ir::decodeJVC`       | `esp32ir::sendJVC(struct/args)`            | △    |
-| Samsung                   | `esp32ir::payload::Samsung`   | `esp32ir::decodeSamsung`   | `esp32ir::sendSamsung(struct/args)`        | △    |
-| LG                        | `esp32ir::payload::LG`        | `esp32ir::decodeLG`        | `esp32ir::sendLG(struct/args)`             | △    |
-| Denon/Sharp               | `esp32ir::payload::Denon`     | `esp32ir::decodeDenon`     | `esp32ir::sendDenon(struct/args)`          | △    |
-| RC5                       | `esp32ir::payload::RC5`       | `esp32ir::decodeRC5`       | `esp32ir::sendRC5(struct/args)`            | △    |
-| RC6                       | `esp32ir::payload::RC6`       | `esp32ir::decodeRC6`       | `esp32ir::sendRC6(struct/args)`            | △    |
-| Apple (NEC拡張系)         | `esp32ir::payload::Apple`     | `esp32ir::decodeApple`     | `esp32ir::sendApple(struct/args)`          | △    |
-| Pioneer                   | `esp32ir::payload::Pioneer`   | `esp32ir::decodePioneer`   | `esp32ir::sendPioneer(struct/args)`        | △    |
-| Toshiba                   | `esp32ir::payload::Toshiba`   | `esp32ir::decodeToshiba`   | `esp32ir::sendToshiba(struct/args)`        | △    |
-| Mitsubishi                | `esp32ir::payload::Mitsubishi`| `esp32ir::decodeMitsubishi`| `esp32ir::sendMitsubishi(struct/args)`     | △    |
-| Hitachi                   | `esp32ir::payload::Hitachi`   | `esp32ir::decodeHitachi`   | `esp32ir::sendHitachi(struct/args)`        | △    |
-| Daikin AC                 | `esp32ir::payload::DaikinAC`  | `esp32ir::decodeDaikinAC`  | `esp32ir::sendDaikinAC(struct/args)`       | △    |
-| Panasonic AC              | `esp32ir::payload::PanasonicAC` | `esp32ir::decodePanasonicAC` | `esp32ir::sendPanasonicAC(struct/args)` | △    |
-| Mitsubishi AC             | `esp32ir::payload::MitsubishiAC` | `esp32ir::decodeMitsubishiAC` | `esp32ir::sendMitsubishiAC(struct/args)` | △    |
-| Toshiba AC                | `esp32ir::payload::ToshibaAC`| `esp32ir::decodeToshibaAC` | `esp32ir::sendToshibaAC(struct/args)`      | △    |
-| Fujitsu AC                | `esp32ir::payload::FujitsuAC`| `esp32ir::decodeFujitsuAC` | `esp32ir::sendFujitsuAC(struct/args)`      | △    |
-
+| プロトコル                 | フレーム構造体                    | デコードヘルパ                   | 送信ヘルパ                                  | 状態 |
+|---------------------------|----------------------------------|---------------------------------|--------------------------------------------|------|
+| RAW (ITPS)                | なし（ITPSBuffer直接）            | -                               | `send(ITPSBuffer)`                         | ○    |
+| NEC                       | `esp32ir::payload::NEC`          | `esp32ir::decodeNEC`            | `esp32ir::sendNEC(struct/args)`            | ○    |
+| SONY (SIRC 12/15/20)      | `esp32ir::payload::SONY`         | `esp32ir::decodeSONY`           | `esp32ir::sendSONY(struct/args)`           | ○    |
+| AEHA (家電協)             | `esp32ir::payload::AEHA`         | `esp32ir::decodeAEHA`           | `esp32ir::sendAEHA(struct/args)`           | △   |
+| Panasonic/Kaseikaden      | `esp32ir::payload::Panasonic`    | `esp32ir::decodePanasonic`      | `esp32ir::sendPanasonic(struct/args)`      | △   |
+| JVC                       | `esp32ir::payload::JVC`          | `esp32ir::decodeJVC`            | `esp32ir::sendJVC(struct/args)`            | △   |
+| Samsung                   | `esp32ir::payload::Samsung`      | `esp32ir::decodeSamsung`        | `esp32ir::sendSamsung(struct/args)`        | △   |
+| LG                        | `esp32ir::payload::LG`           | `esp32ir::decodeLG`             | `esp32ir::sendLG(struct/args)`             | △   |
+| Denon/Sharp               | `esp32ir::payload::Denon`        | `esp32ir::decodeDenon`          | `esp32ir::sendDenon(struct/args)`          | △   |
+| RC5                       | `esp32ir::payload::RC5`          | `esp32ir::decodeRC5`            | `esp32ir::sendRC5(struct/args)`            | △   |
+| RC6                       | `esp32ir::payload::RC6`          | `esp32ir::decodeRC6`            | `esp32ir::sendRC6(struct/args)`            | △   |
+| Apple (NEC拡張系)         | `esp32ir::payload::Apple`        | `esp32ir::decodeApple`          | `esp32ir::sendApple(struct/args)`          | △   |
+| Pioneer                   | `esp32ir::payload::Pioneer`      | `esp32ir::decodePioneer`        | `esp32ir::sendPioneer(struct/args)`        | △   |
+| Toshiba                   | `esp32ir::payload::Toshiba`      | `esp32ir::decodeToshiba`        | `esp32ir::sendToshiba(struct/args)`        | △   |
+| Mitsubishi                | `esp32ir::payload::Mitsubishi`   | `esp32ir::decodeMitsubishi`     | `esp32ir::sendMitsubishi(struct/args)`     | △   |
+| Hitachi                   | `esp32ir::payload::Hitachi`      | `esp32ir::decodeHitachi`        | `esp32ir::sendHitachi(struct/args)`        | △   |
+| Daikin AC                 | `esp32ir::payload::DaikinAC`     | `esp32ir::decodeDaikinAC`       | `esp32ir::sendDaikinAC(struct/args)`       | △   |
+| Panasonic AC              | `esp32ir::payload::PanasonicAC`  | `esp32ir::decodePanasonicAC`    | `esp32ir::sendPanasonicAC(struct/args)`    | △   |
+| Mitsubishi AC             | `esp32ir::payload::MitsubishiAC` | `esp32ir::decodeMitsubishiAC`   | `esp32ir::sendMitsubishiAC(struct/args)`   | △   |
+| Toshiba AC                | `esp32ir::payload::ToshibaAC`    | `esp32ir::decodeToshibaAC`      | `esp32ir::sendToshibaAC(struct/args)`      | △   |
+| Fujitsu AC                | `esp32ir::payload::FujitsuAC`    | `esp32ir::decodeFujitsuAC`      | `esp32ir::sendFujitsuAC(struct/args)`      | △   |
 
 - 構造体とヘルパー詳細（フラットに列挙）
   - RAW  
