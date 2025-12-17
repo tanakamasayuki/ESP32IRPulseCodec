@@ -77,7 +77,10 @@ ProtocolMessage（論理メッセージ） → Encode → **ITPSBuffer（ITPSFra
 - `T_us` は全フレーム共通の量子化値とし、既定は 5us を想定（前段で調整）。
 - パラメータの決め方
   - 各プロトコルは推奨値（例：`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`）を持ち、受信開始時に有効プロトコルから自動マージしてデフォルトを生成する。
-  - マージ例：`frameGapUs`/`hardGapUs`/`maxFrameUs` は有効プロトコル中の最大値を採用し、`minFrameUs`/`minEdges` は最大値（最も厳しい値）を採用してノイズ誤検出を避ける。`splitPolicy` はRAWモードなら `KEEP_GAP_IN_FRAME`、KNOWN系は `DROP_GAP` を優先。ユーザーが明示設定すればそれを上書き。
+  - マージ例（推奨）：
+    - 長さ上限系（`frameGapUs` / `hardGapUs` / `maxFrameUs`）：有効プロトコル中の最大値（最もゆるい上限）を採用し、上限不足で切れないようにする。
+    - ノイズ除去系（`minFrameUs` / `minEdges`）：有効プロトコル中の最大値（最も厳しい下限）を採用し、ノイズ誤検出を避ける。
+    - `splitPolicy`：RAWモードでは `KEEP_GAP_IN_FRAME`、KNOWN系では `DROP_GAP` を優先。ユーザー設定があればそれを上書き。
   - `useRawOnly`/`useRawPlusKnown` のときはRAW向けプリセット（例：ギャップ広め、`KEEP_GAP_IN_FRAME`、`frameCountMax` など）を優先し、プロトコル推奨値は無視してもよい。
 
 ---
