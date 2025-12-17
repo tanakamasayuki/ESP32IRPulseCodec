@@ -159,7 +159,7 @@ struct RxResult {
 - RAW_PLUS 時は DECODED でも raw を必ず含む
 - RAW_ONLY 時は protocol/logical は未使用
 - OVERFLOW 時も取得できた範囲の raw を返す
-- NEC などのデコードヘルパは RxResult 受け取り版を用意し、`status==DECODED` かつ対象プロトコルのときだけ true を返す（例：`bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`）。
+- NEC などのデコードヘルパは RxResult 受け取り版を用意し、`status==DECODED` かつ対象プロトコルのときだけ true を返す（例：`bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::frame::NEC& out);`）。
 - デコード結果構造体を送信ヘルパでも受け取れるようにし、バラ引数版は構造体版に委譲して実装重複を避ける。
 
 ---
@@ -237,9 +237,9 @@ void end();
 ```cpp
 bool send(const esp32ir::ITPSBuffer& raw);
 bool send(const esp32ir::LogicalPacket& p);
-bool sendNEC(const esp32ir::NECDecoded& p);
+bool sendNEC(const esp32ir::frame::NEC& p);
 bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);
-bool sendSONY(const esp32ir::SONYDecoded& p);
+bool sendSONY(const esp32ir::frame::SONY& p);
 bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 ```
 
@@ -252,111 +252,111 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 | プロトコル                | デコード構造体/関数                         | 送信ヘルパ                                 | 状態 |
 |---------------------------|---------------------------------------------|--------------------------------------------|------|
 | RAW (ITPS)                | なし（ITPSBuffer直接）                     | `send(ITPSBuffer)`                         | ○    |
-| NEC                       | `NECDecoded` / `decodeNEC`                 | `sendNEC(struct/args)`                     | ○    |
-| SONY (SIRC 12/15/20)      | `SONYDecoded` / `decodeSONY`               | `sendSONY(struct/args)`                    | ○    |
-| AEHA (家電協)             | `AEHADecoded` / `decodeAEHA`               | `sendAEHA(struct/args)`                    | △    |
-| Panasonic/Kaseikaden      | `PanasonicDecoded` / `decodePanasonic`     | `sendPanasonic(struct/args)`               | △    |
-| JVC                       | `JVCDecoded` / `decodeJVC`                 | `sendJVC(struct/args)`                     | △    |
-| Samsung                   | `SamsungDecoded` / `decodeSamsung`         | `sendSamsung(struct/args)`                 | △    |
-| LG                        | `LGDecoded` / `decodeLG`                   | `sendLG(struct/args)`                      | △    |
-| Denon/Sharp               | `DenonDecoded` / `decodeDenon`             | `sendDenon(struct/args)`                   | △    |
-| RC5                       | `RC5Decoded` / `decodeRC5`                 | `sendRC5(struct/args)`                     | △    |
-| RC6                       | `RC6Decoded` / `decodeRC6`                 | `sendRC6(struct/args)`                     | △    |
-| Apple (NEC拡張系)         | `AppleDecoded` / `decodeApple`             | `sendApple(struct/args)`                   | △    |
-| Pioneer                   | `PioneerDecoded` / `decodePioneer`         | `sendPioneer(struct/args)`                 | △    |
-| Toshiba                   | `ToshibaDecoded` / `decodeToshiba`         | `sendToshiba(struct/args)`                 | △    |
-| Mitsubishi                | `MitsubishiDecoded` / `decodeMitsubishi`   | `sendMitsubishi(struct/args)`              | △    |
-| Hitachi                   | `HitachiDecoded` / `decodeHitachi`         | `sendHitachi(struct/args)`                 | △    |
-| Daikin AC                 | `DaikinACDecoded` / `decodeDaikinAC`       | `sendDaikinAC(struct/args)`                | △    |
-| Panasonic AC              | `PanasonicACDecoded` / `decodePanasonicAC` | `sendPanasonicAC(struct/args)`             | △    |
-| Mitsubishi AC             | `MitsubishiACDecoded` / `decodeMitsubishiAC` | `sendMitsubishiAC(struct/args)`          | △    |
-| Toshiba AC                | `ToshibaACDecoded` / `decodeToshibaAC`     | `sendToshibaAC(struct/args)`               | △    |
-| Fujitsu AC                | `FujitsuACDecoded` / `decodeFujitsuAC`     | `sendFujitsuAC(struct/args)`               | △    |
+| NEC                       | `esp32ir::frame::NEC` / `decodeNEC`                 | `sendNEC(struct/args)`                     | ○    |
+| SONY (SIRC 12/15/20)      | `esp32ir::frame::SONY` / `decodeSONY`               | `sendSONY(struct/args)`                    | ○    |
+| AEHA (家電協)             | `esp32ir::frame::AEHA` / `decodeAEHA`               | `sendAEHA(struct/args)`                    | △    |
+| Panasonic/Kaseikaden      | `esp32ir::frame::Panasonic` / `decodePanasonic`     | `sendPanasonic(struct/args)`               | △    |
+| JVC                       | `esp32ir::frame::JVC` / `decodeJVC`                 | `sendJVC(struct/args)`                     | △    |
+| Samsung                   | `esp32ir::frame::Samsung` / `decodeSamsung`         | `sendSamsung(struct/args)`                 | △    |
+| LG                        | `esp32ir::frame::LG` / `decodeLG`                   | `sendLG(struct/args)`                      | △    |
+| Denon/Sharp               | `esp32ir::frame::Denon` / `decodeDenon`             | `sendDenon(struct/args)`                   | △    |
+| RC5                       | `esp32ir::frame::RC5` / `decodeRC5`                 | `sendRC5(struct/args)`                     | △    |
+| RC6                       | `esp32ir::frame::RC6` / `decodeRC6`                 | `sendRC6(struct/args)`                     | △    |
+| Apple (NEC拡張系)         | `esp32ir::frame::Apple` / `decodeApple`             | `sendApple(struct/args)`                   | △    |
+| Pioneer                   | `esp32ir::frame::Pioneer` / `decodePioneer`         | `sendPioneer(struct/args)`                 | △    |
+| Toshiba                   | `esp32ir::frame::Toshiba` / `decodeToshiba`         | `sendToshiba(struct/args)`                 | △    |
+| Mitsubishi                | `esp32ir::frame::Mitsubishi` / `decodeMitsubishi`   | `sendMitsubishi(struct/args)`              | △    |
+| Hitachi                   | `esp32ir::frame::Hitachi` / `decodeHitachi`         | `sendHitachi(struct/args)`                 | △    |
+| Daikin AC                 | `esp32ir::frame::DaikinAC` / `decodeDaikinAC`       | `sendDaikinAC(struct/args)`                | △    |
+| Panasonic AC              | `esp32ir::frame::PanasonicAC` / `decodePanasonicAC` | `sendPanasonicAC(struct/args)`             | △    |
+| Mitsubishi AC             | `esp32ir::frame::MitsubishiAC` / `decodeMitsubishiAC` | `sendMitsubishiAC(struct/args)`          | △    |
+| Toshiba AC                | `esp32ir::frame::ToshibaAC` / `decodeToshibaAC`     | `sendToshibaAC(struct/args)`               | △    |
+| Fujitsu AC                | `esp32ir::frame::FujitsuAC` / `decodeFujitsuAC`     | `sendFujitsuAC(struct/args)`               | △    |
 
 - 構造体とヘルパー詳細（フラットに列挙）
   - RAW  
     - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。  
     - `send(const esp32ir::ITPSBuffer& raw);` で再送可能。
   - NEC  
-    - `struct esp32ir::NECDecoded { uint16_t address; uint8_t command; bool repeat; };`  
-    - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`  
-    - `bool sendNEC(const esp32ir::NECDecoded& p);` / `bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ40ms既定）
+    - `struct esp32ir::frame::NEC { uint16_t address; uint8_t command; bool repeat; };`  
+    - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::frame::NEC& out);`  
+    - `bool esp32ir::sendNEC(const esp32ir::frame::NEC& p);` / `bool esp32ir::sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ40ms既定）
   - SONY（SIRC 12/15/20bit）  
-    - `struct esp32ir::SONYDecoded { uint16_t address; uint16_t command; uint8_t bits; };`  
-    - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::SONYDecoded& out);`（`bits`は12/15/20のみ）  
-    - `bool sendSONY(const esp32ir::SONYDecoded& p);` / `bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`（bitsは12/15/20のみ）
+    - `struct esp32ir::frame::SONY { uint16_t address; uint16_t command; uint8_t bits; };`  
+    - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::frame::SONY& out);`（`bits`は12/15/20のみ）  
+    - `bool esp32ir::sendSONY(const esp32ir::frame::SONY& p);` / `bool esp32ir::sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`（bitsは12/15/20のみ）
   - AEHA(家電協)  
-    - `struct esp32ir::AEHADecoded { uint16_t address; uint32_t data; uint8_t nbits; };`  
-    - `bool decodeAEHA(const esp32ir::RxResult&, esp32ir::AEHADecoded&);`  
-    - `bool sendAEHA(const esp32ir::AEHADecoded&);` / `bool sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);`
+    - `struct esp32ir::frame::AEHA { uint16_t address; uint32_t data; uint8_t nbits; };`  
+    - `bool esp32ir::decodeAEHA(const esp32ir::RxResult&, esp32ir::frame::AEHA&);`  
+    - `bool esp32ir::sendAEHA(const esp32ir::frame::AEHA&);` / `bool esp32ir::sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);`
   - Panasonic/Kaseikaden  
-    - `struct esp32ir::PanasonicDecoded { uint16_t address; uint32_t data; uint8_t nbits; };`  
-    - `bool decodePanasonic(const esp32ir::RxResult&, esp32ir::PanasonicDecoded&);`  
-    - `bool sendPanasonic(const esp32ir::PanasonicDecoded&);` / `bool sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
+    - `struct esp32ir::frame::Panasonic { uint16_t address; uint32_t data; uint8_t nbits; };`  
+    - `bool esp32ir::decodePanasonic(const esp32ir::RxResult&, esp32ir::frame::Panasonic&);`  
+    - `bool esp32ir::sendPanasonic(const esp32ir::frame::Panasonic&);` / `bool esp32ir::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
   - JVC  
-    - `struct esp32ir::JVCDecoded { uint16_t address; uint16_t command; };`  
-    - `bool decodeJVC(const esp32ir::RxResult&, esp32ir::JVCDecoded&);`  
-    - `bool sendJVC(const esp32ir::JVCDecoded&);` / `bool sendJVC(uint16_t address, uint16_t command);`
+    - `struct esp32ir::frame::JVC { uint16_t address; uint16_t command; };`  
+    - `bool esp32ir::decodeJVC(const esp32ir::RxResult&, esp32ir::frame::JVC&);`  
+    - `bool esp32ir::sendJVC(const esp32ir::frame::JVC&);` / `bool esp32ir::sendJVC(uint16_t address, uint16_t command);`
   - Samsung  
-    - `struct esp32ir::SamsungDecoded { uint16_t address; uint16_t command; };`  
-    - `bool decodeSamsung(const esp32ir::RxResult&, esp32ir::SamsungDecoded&);`  
-    - `bool sendSamsung(const esp32ir::SamsungDecoded&);` / `bool sendSamsung(uint16_t address, uint16_t command);`
+    - `struct esp32ir::frame::Samsung { uint16_t address; uint16_t command; };`  
+    - `bool esp32ir::decodeSamsung(const esp32ir::RxResult&, esp32ir::frame::Samsung&);`  
+    - `bool esp32ir::sendSamsung(const esp32ir::frame::Samsung&);` / `bool esp32ir::sendSamsung(uint16_t address, uint16_t command);`
   - LG  
-    - `struct esp32ir::LGDecoded { uint16_t address; uint16_t command; };`  
-    - `bool decodeLG(const esp32ir::RxResult&, esp32ir::LGDecoded&);`  
-    - `bool sendLG(const esp32ir::LGDecoded&);` / `bool sendLG(uint16_t address, uint16_t command);`
+    - `struct esp32ir::frame::LG { uint16_t address; uint16_t command; };`  
+    - `bool esp32ir::decodeLG(const esp32ir::RxResult&, esp32ir::frame::LG&);`  
+    - `bool esp32ir::sendLG(const esp32ir::frame::LG&);` / `bool esp32ir::sendLG(uint16_t address, uint16_t command);`
   - Denon/Sharp  
-    - `struct esp32ir::DenonDecoded { uint16_t address; uint16_t command; bool repeat; };`  
-    - `bool decodeDenon(const esp32ir::RxResult&, esp32ir::DenonDecoded&);`  
-    - `bool sendDenon(const esp32ir::DenonDecoded&);` / `bool sendDenon(uint16_t address, uint16_t command, bool repeat=false);`
+    - `struct esp32ir::frame::Denon { uint16_t address; uint16_t command; bool repeat; };`  
+    - `bool esp32ir::decodeDenon(const esp32ir::RxResult&, esp32ir::frame::Denon&);`  
+    - `bool esp32ir::sendDenon(const esp32ir::frame::Denon&);` / `bool esp32ir::sendDenon(uint16_t address, uint16_t command, bool repeat=false);`
   - RC5  
-    - `struct esp32ir::RC5Decoded { uint16_t command; bool toggle; };`  
-    - `bool decodeRC5(const esp32ir::RxResult&, esp32ir::RC5Decoded&);`  
-    - `bool sendRC5(const esp32ir::RC5Decoded&);` / バラ引数版
+    - `struct esp32ir::frame::RC5 { uint16_t command; bool toggle; };`  
+    - `bool esp32ir::decodeRC5(const esp32ir::RxResult&, esp32ir::frame::RC5&);`  
+    - `bool esp32ir::sendRC5(const esp32ir::frame::RC5&);` / バラ引数版
   - RC6  
-    - `struct esp32ir::RC6Decoded { uint32_t command; uint8_t mode; bool toggle; };`  
-    - `bool decodeRC6(const esp32ir::RxResult&, esp32ir::RC6Decoded&);`  
-    - `bool sendRC6(const esp32ir::RC6Decoded&);` / バラ引数版
+    - `struct esp32ir::frame::RC6 { uint32_t command; uint8_t mode; bool toggle; };`  
+    - `bool esp32ir::decodeRC6(const esp32ir::RxResult&, esp32ir::frame::RC6&);`  
+    - `bool esp32ir::sendRC6(const esp32ir::frame::RC6&);` / バラ引数版
   - Apple(NEC拡張系)  
-    - `struct esp32ir::AppleDecoded { uint16_t address; uint8_t command; };`  
-    - `bool decodeApple(const esp32ir::RxResult&, esp32ir::AppleDecoded&);`  
-    - `bool sendApple(const esp32ir::AppleDecoded&);` / `bool sendApple(uint16_t address, uint8_t command);`
+    - `struct esp32ir::frame::Apple { uint16_t address; uint8_t command; };`  
+    - `bool esp32ir::decodeApple(const esp32ir::RxResult&, esp32ir::frame::Apple&);`  
+    - `bool esp32ir::sendApple(const esp32ir::frame::Apple&);` / `bool esp32ir::sendApple(uint16_t address, uint8_t command);`
   - Pioneer  
-    - `struct esp32ir::PioneerDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
-    - `bool decodePioneer(const esp32ir::RxResult&, esp32ir::PioneerDecoded&);`  
-    - `bool sendPioneer(const esp32ir::PioneerDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::Pioneer { uint16_t address; uint16_t command; uint8_t extra; };`  
+    - `bool esp32ir::decodePioneer(const esp32ir::RxResult&, esp32ir::frame::Pioneer&);`  
+    - `bool esp32ir::sendPioneer(const esp32ir::frame::Pioneer&);` / バラ引数版
   - Toshiba  
-    - `struct esp32ir::ToshibaDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
-    - `bool decodeToshiba(const esp32ir::RxResult&, esp32ir::ToshibaDecoded&);`  
-    - `bool sendToshiba(const esp32ir::ToshibaDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::Toshiba { uint16_t address; uint16_t command; uint8_t extra; };`  
+    - `bool esp32ir::decodeToshiba(const esp32ir::RxResult&, esp32ir::frame::Toshiba&);`  
+    - `bool esp32ir::sendToshiba(const esp32ir::frame::Toshiba&);` / バラ引数版
   - Mitsubishi  
-    - `struct esp32ir::MitsubishiDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
-    - `bool decodeMitsubishi(const esp32ir::RxResult&, esp32ir::MitsubishiDecoded&);`  
-    - `bool sendMitsubishi(const esp32ir::MitsubishiDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::Mitsubishi { uint16_t address; uint16_t command; uint8_t extra; };`  
+    - `bool esp32ir::decodeMitsubishi(const esp32ir::RxResult&, esp32ir::frame::Mitsubishi&);`  
+    - `bool esp32ir::sendMitsubishi(const esp32ir::frame::Mitsubishi&);` / バラ引数版
   - Hitachi  
-    - `struct esp32ir::HitachiDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
-    - `bool decodeHitachi(const esp32ir::RxResult&, esp32ir::HitachiDecoded&);`  
-    - `bool sendHitachi(const esp32ir::HitachiDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::Hitachi { uint16_t address; uint16_t command; uint8_t extra; };`  
+    - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::frame::Hitachi&);`  
+    - `bool esp32ir::sendHitachi(const esp32ir::frame::Hitachi&);` / バラ引数版
   - Daikin AC  
-    - `struct esp32ir::DaikinACDecoded { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool decodeDaikinAC(const esp32ir::RxResult&, esp32ir::DaikinACDecoded&);`  
-    - `bool sendDaikinAC(const esp32ir::DaikinACDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::DaikinAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
+    - `bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::frame::DaikinAC&);`  
+    - `bool esp32ir::sendDaikinAC(const esp32ir::frame::DaikinAC&);` / バラ引数版
   - Panasonic AC  
-    - `struct esp32ir::PanasonicACDecoded { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool decodePanasonicAC(const esp32ir::RxResult&, esp32ir::PanasonicACDecoded&);`  
-    - `bool sendPanasonicAC(const esp32ir::PanasonicACDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::PanasonicAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
+    - `bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::frame::PanasonicAC&);`  
+    - `bool esp32ir::sendPanasonicAC(const esp32ir::frame::PanasonicAC&);` / バラ引数版
   - Mitsubishi AC  
-    - `struct esp32ir::MitsubishiACDecoded { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::MitsubishiACDecoded&);`  
-    - `bool sendMitsubishiAC(const esp32ir::MitsubishiACDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::MitsubishiAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
+    - `bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::frame::MitsubishiAC&);`  
+    - `bool esp32ir::sendMitsubishiAC(const esp32ir::frame::MitsubishiAC&);` / バラ引数版
   - Toshiba AC  
-    - `struct esp32ir::ToshibaACDecoded { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool decodeToshibaAC(const esp32ir::RxResult&, esp32ir::ToshibaACDecoded&);`  
-    - `bool sendToshibaAC(const esp32ir::ToshibaACDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::ToshibaAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
+    - `bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::frame::ToshibaAC&);`  
+    - `bool esp32ir::sendToshibaAC(const esp32ir::frame::ToshibaAC&);` / バラ引数版
   - Fujitsu AC  
-    - `struct esp32ir::FujitsuACDecoded { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::FujitsuACDecoded&);`  
-    - `bool sendFujitsuAC(const esp32ir::FujitsuACDecoded&);` / バラ引数版
+    - `struct esp32ir::frame::FujitsuAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
+    - `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::frame::FujitsuAC&);`  
+    - `bool esp32ir::sendFujitsuAC(const esp32ir::frame::FujitsuAC&);` / バラ引数版
 - `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコル（現状 NEC / SONY）のときのみ true、それ以外は false。
 
 ## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
@@ -414,7 +414,7 @@ rx.begin();
 void loop() {
   esp32ir::RxResult r;
   if (rx.poll(r)) {
-    esp32ir::NECDecoded nec;
+    esp32ir::frame::NEC nec;
     if (esp32ir::decodeNEC(r, nec)) {
       printf("addr=0x%04X cmd=0x%02X repeat=%s\n",
              nec.address, nec.command, nec.repeat ? "true" : "false");
