@@ -118,6 +118,14 @@ bool setQuantizeT(uint16_t T_us_rx);
 ```
 - デフォルト値（想定）：`invert=false`、`T_us_rx=5`us
 
+### 6.3 begin/end
+```cpp
+bool begin();
+void end();
+```
+- begin で RMT 受信などを初期化し、バックグラウンドで受信を開始する。受信したデータは内部キューに蓄積され、`poll` で取得する。
+- end でバックグラウンド受信を停止し、RMT等のリソースを解放する。
+
 ### 6.3 プロトコル指定（begin前のみ）
 ```cpp
 bool addProtocol(esp32ir::Protocol id);
@@ -230,7 +238,7 @@ public:
 esp32ir::Transmitter();
 esp32ir::Transmitter(int txPin, bool invert=false, uint32_t hz=38000);
 ```
-- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `hz=38000`Hz）を指定可能。
+- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `hz=38000`Hz, duty=約50%, gapUs=40000us）を指定可能。
 
 ### 11.2 セッター（begin前のみ）
 ```cpp
@@ -247,6 +255,8 @@ bool setGapUs(uint32_t gapUs);
 bool begin();
 void end();
 ```
+- begin で送信に必要なRMT等を初期化し、end で解放する（ブロッキング送信なので begin/end はリソース管理が主目的）。
+
 
 ### 11.4 send（ブロッキング）
 ```cpp
