@@ -206,6 +206,43 @@ public:
 
   bool send(const esp32ir::ITPSBuffer& itps);
   bool send(const esp32ir::ProtocolMessage& message);
+
+  // Protocol-specific send helpers (struct + args where applicable; AC is struct only)
+  bool sendNEC(const esp32ir::payload::NEC& p);
+  bool sendNEC(uint16_t address, uint8_t command, bool repeat = false);
+  bool sendSONY(const esp32ir::payload::SONY& p);
+  bool sendSONY(uint16_t address, uint16_t command, uint8_t bits = 12);
+  bool sendAEHA(const esp32ir::payload::AEHA& p);
+  bool sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);
+  bool sendPanasonic(const esp32ir::payload::Panasonic& p);
+  bool sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);
+  bool sendJVC(const esp32ir::payload::JVC& p);
+  bool sendJVC(uint16_t address, uint16_t command);
+  bool sendSamsung(const esp32ir::payload::Samsung& p);
+  bool sendSamsung(uint16_t address, uint16_t command);
+  bool sendLG(const esp32ir::payload::LG& p);
+  bool sendLG(uint16_t address, uint16_t command);
+  bool sendDenon(const esp32ir::payload::Denon& p);
+  bool sendDenon(uint16_t address, uint16_t command, bool repeat = false);
+  bool sendRC5(const esp32ir::payload::RC5& p);
+  bool sendRC5(uint16_t command, bool toggle);
+  bool sendRC6(const esp32ir::payload::RC6& p);
+  bool sendRC6(uint32_t command, uint8_t mode, bool toggle);
+  bool sendApple(const esp32ir::payload::Apple& p);
+  bool sendApple(uint16_t address, uint8_t command);
+  bool sendPioneer(const esp32ir::payload::Pioneer& p);
+  bool sendPioneer(uint16_t address, uint16_t command, uint8_t extra = 0);
+  bool sendToshiba(const esp32ir::payload::Toshiba& p);
+  bool sendToshiba(uint16_t address, uint16_t command, uint8_t extra = 0);
+  bool sendMitsubishi(const esp32ir::payload::Mitsubishi& p);
+  bool sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra = 0);
+  bool sendHitachi(const esp32ir::payload::Hitachi& p);
+  bool sendHitachi(uint16_t address, uint16_t command, uint8_t extra = 0);
+  bool sendDaikinAC(const esp32ir::payload::DaikinAC& p);
+  bool sendPanasonicAC(const esp32ir::payload::PanasonicAC& p);
+  bool sendMitsubishiAC(const esp32ir::payload::MitsubishiAC& p);
+  bool sendToshibaAC(const esp32ir::payload::ToshibaAC& p);
+  bool sendFujitsuAC(const esp32ir::payload::FujitsuAC& p);
 };
 
 // Decode helpers
@@ -229,43 +266,6 @@ bool decodePanasonicAC(const esp32ir::RxResult& in, esp32ir::payload::PanasonicA
 bool decodeMitsubishiAC(const esp32ir::RxResult& in, esp32ir::payload::MitsubishiAC& out);
 bool decodeToshibaAC(const esp32ir::RxResult& in, esp32ir::payload::ToshibaAC& out);
 bool decodeFujitsuAC(const esp32ir::RxResult& in, esp32ir::payload::FujitsuAC& out);
-
-// Send helpers (struct and args variants; AC only struct)
-bool sendNEC(const esp32ir::payload::NEC& p);
-bool sendNEC(uint16_t address, uint8_t command, bool repeat = false);
-bool sendSONY(const esp32ir::payload::SONY& p);
-bool sendSONY(uint16_t address, uint16_t command, uint8_t bits = 12);
-bool sendAEHA(const esp32ir::payload::AEHA& p);
-bool sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);
-bool sendPanasonic(const esp32ir::payload::Panasonic& p);
-bool sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);
-bool sendJVC(const esp32ir::payload::JVC& p);
-bool sendJVC(uint16_t address, uint16_t command);
-bool sendSamsung(const esp32ir::payload::Samsung& p);
-bool sendSamsung(uint16_t address, uint16_t command);
-bool sendLG(const esp32ir::payload::LG& p);
-bool sendLG(uint16_t address, uint16_t command);
-bool sendDenon(const esp32ir::payload::Denon& p);
-bool sendDenon(uint16_t address, uint16_t command, bool repeat = false);
-bool sendRC5(const esp32ir::payload::RC5& p);
-bool sendRC5(uint16_t command, bool toggle);
-bool sendRC6(const esp32ir::payload::RC6& p);
-bool sendRC6(uint32_t command, uint8_t mode, bool toggle);
-bool sendApple(const esp32ir::payload::Apple& p);
-bool sendApple(uint16_t address, uint8_t command);
-bool sendPioneer(const esp32ir::payload::Pioneer& p);
-bool sendPioneer(uint16_t address, uint16_t command, uint8_t extra = 0);
-bool sendToshiba(const esp32ir::payload::Toshiba& p);
-bool sendToshiba(uint16_t address, uint16_t command, uint8_t extra = 0);
-bool sendMitsubishi(const esp32ir::payload::Mitsubishi& p);
-bool sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra = 0);
-bool sendHitachi(const esp32ir::payload::Hitachi& p);
-bool sendHitachi(uint16_t address, uint16_t command, uint8_t extra = 0);
-bool sendDaikinAC(const esp32ir::payload::DaikinAC& p);
-bool sendPanasonicAC(const esp32ir::payload::PanasonicAC& p);
-bool sendMitsubishiAC(const esp32ir::payload::MitsubishiAC& p);
-bool sendToshibaAC(const esp32ir::payload::ToshibaAC& p);
-bool sendFujitsuAC(const esp32ir::payload::FujitsuAC& p);
 
 }  // namespace esp32ir
 
