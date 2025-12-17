@@ -126,7 +126,7 @@ void end();
 - begin で RMT 受信などを初期化し、バックグラウンドで受信を開始する。受信したデータは内部キューに蓄積され、`poll` で取得する。
 - end でバックグラウンド受信を停止し、RMT等のリソースを解放する。
 
-### 6.3 プロトコル指定（begin前のみ）
+### 6.4 プロトコル指定（begin前のみ）
 ```cpp
 bool addProtocol(esp32ir::Protocol id);
 bool clearProtocols();
