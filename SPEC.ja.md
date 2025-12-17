@@ -96,9 +96,8 @@ ProtocolMessage（論理メッセージ） → Encode → **ITPSBuffer（ITPSFra
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
   - `esp32ir::Protocol`
-- フレーム構造体（プロトコルごと）
-  - `esp32ir::payload::NEC` / `SONY` / `AEHA` / `Panasonic` / `JVC` / `Samsung` / `LG` / `Denon` / `RC5` / `RC6` / `Apple` / `Pioneer` / `Toshiba` / `Mitsubishi` / `Hitachi`
-  - AC系: `esp32ir::payload::DaikinAC` / `PanasonicAC` / `MitsubishiAC` / `ToshibaAC` / `FujitsuAC`
+- プロトコル別Payload構造体
+  - `esp32ir::payload::<Protocol>`（例：NEC, SONY, AEHA, ...。詳細は「対応プロトコルとヘルパー」）
 
 ---
 
@@ -253,7 +252,7 @@ void end();
 bool send(const esp32ir::ITPSBuffer& raw);
 bool send(const esp32ir::ProtocolMessage& p);
 ```
-- プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）はセクション12を参照。
+- プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）は「対応プロトコルとヘルパー」を参照。
 
 ---
 
