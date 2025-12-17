@@ -128,7 +128,7 @@ void end();
 
 ### 6.4 プロトコル指定（begin前のみ）
 ```cpp
-bool addProtocol(esp32ir::Protocol id);
+bool addProtocol(esp32ir::Protocol protocol);
 bool clearProtocols();
 bool useRawOnly();
 bool useRawPlusKnown();
