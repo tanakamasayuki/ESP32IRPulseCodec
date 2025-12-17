@@ -25,11 +25,15 @@
 - RTOSタスク管理の自由度提供（内部で必要最低限のみ使用）
 
 ## 2. 用語
-- **Mark**：搬送波（キャリア）ON（IR LED点灯）
-- **Space**：搬送波OFF（IR LED消灯）
-- **Frame**：Mark/Spaceの区間列（ITPSFrame）
+- **Mark / Space**：搬送波ON / OFF 区間（IR LED点灯/消灯）
+- **Frame**：Mark/Spaceの区間列（ITPSFrame）。ギャップを含めるかは分割ポリシー依存。
+- **ITPS**：正規化済み中間フォーマット（`SPEC_ITPS.ja.md`）
+- **ITPSFrame / ITPSBuffer**：ITPSのフレーム／フレーム配列
+- **LogicalPacket**：プロトコル固有データを汎用フォーマットで表したもの
+- **Protocol**：`esp32ir::Protocol`（NEC/SONY等）
+- **Frame構造体**：`esp32ir::frame::<Protocol>`（デコード結果/送信パラメータ）
 - **HAL**：ESP32固有層（RMT、GPIO、キャリア、反転）
-- **Codec**：プロトコル固有のデコード/エンコード（NECなど）
+- **Codec**：プロトコル固有のデコード/エンコード処理
 
 ## 3. 全体アーキテクチャ
 
