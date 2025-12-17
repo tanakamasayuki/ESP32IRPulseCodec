@@ -246,22 +246,33 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 ---
 
 ## 12. 対応プロトコルとヘルパー
-- 方針：プロトコルごとにヘルパーを用意し、追加しやすい構造とする。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
-- NEC
-  - デコード：`struct esp32ir::NECDecoded { uint16_t address; uint8_t command; bool repeat; };`
-  - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`  
-    `status==DECODED` かつ `protocol==esp32ir::Protocol::NEC` のときだけ true。内部で `LogicalPacket` 版に委譲し、データ不正やリピートコードを判定する。
-  - 送信：`bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ制約は40ms既定を適用）
-- SONY（SIRC 12/15/20bit）
-  - デコード：`struct esp32ir::SONYDecoded { uint16_t address; uint16_t command; uint8_t bits; };`
-  - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::SONYDecoded& out);`  
-    `status==DECODED` かつ `protocol==esp32ir::Protocol::SONY` のときだけ true。`bits` には 12/15/20 を格納し、長さ不正は false。
-  - 送信：`bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`  
-    `bits` は 12/15/20 のみ受け付ける。その他は false で返す。
-- RAW
-  - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。
-  - `send(const esp32ir::ITPSBuffer& raw);` で再送可能。
-- `bool send(const esp32ir::LogicalPacket& p);` は `p.protocol` が既知ヘルパ対象（現状 NEC / SONY）なら true、それ以外は false。
+- 方針：プロトコルごとにデコード/送信ヘルパを用意し、構造体版＋バラ引数版を揃える。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。初期実装は NEC/SONY/RAW のみで、その他はAPI予約（当初は未対応で false を返す想定）。
+- プロトコル一覧とヘルパー設計
+  - 初期サポート
+    - NEC  
+      - `struct esp32ir::NECDecoded { uint16_t address; uint8_t command; bool repeat; };`  
+      - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`（`status==DECODED` かつ NEC のときのみ true）  
+      - `bool sendNEC(const esp32ir::NECDecoded& p);` / `bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ40ms既定）
+    - SONY（SIRC 12/15/20bit）  
+      - `struct esp32ir::SONYDecoded { uint16_t address; uint16_t command; uint8_t bits; };`  
+      - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::SONYDecoded& out);`（`bits`は12/15/20のみ有効）  
+      - `bool sendSONY(const esp32ir::SONYDecoded& p);` / `bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`（bitsは12/15/20のみ）
+    - RAW  
+      - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。  
+      - `send(const esp32ir::ITPSBuffer& raw);` で再送可能。
+  - 追加候補（短〜中尺、APIのみ予約予定・当初は未実装で false）
+    - AEHA(家電協)：`struct esp32ir::AEHADecoded { uint16_t address; uint32_t data; uint8_t nbits; };`、`decodeAEHA(...)`、`sendAEHA(const AEHADecoded&)` / `sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);`
+    - Panasonic/Kaseikaden：`struct esp32ir::PanasonicDecoded { uint16_t address; uint32_t data; uint8_t nbits; };`、`decodePanasonic(...)`、`sendPanasonic(const PanasonicDecoded&)` / `sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
+    - JVC：`struct esp32ir::JVCDecoded { uint16_t address; uint16_t command; };`、`decodeJVC(...)`、`sendJVC(const JVCDecoded&)` / `sendJVC(uint16_t address, uint16_t command);`
+    - Samsung：`struct esp32ir::SamsungDecoded { uint16_t address; uint16_t command; };`、`decodeSamsung(...)`、`sendSamsung(const SamsungDecoded&)` / `sendSamsung(uint16_t address, uint16_t command);`
+    - LG：`struct esp32ir::LGDecoded { uint16_t address; uint16_t command; };`、`decodeLG(...)`、`sendLG(const LGDecoded&)` / `sendLG(uint16_t address, uint16_t command);`
+    - Denon/Sharp：`struct esp32ir::DenonDecoded { uint16_t address; uint16_t command; bool repeat; };`、`decodeDenon(...)`、`sendDenon(const DenonDecoded&)` / `sendDenon(uint16_t address, uint16_t command, bool repeat=false);`
+    - RC5 / RC6：`struct esp32ir::RC5Decoded { uint16_t command; bool toggle; };` / `struct esp32ir::RC6Decoded { uint32_t command; uint8_t mode; bool toggle; };`、`decodeRC5/RC6(...)`、`sendRC5/RC6(const XxxDecoded&)` / バラ引数版
+    - Apple(NEC拡張系)：`struct esp32ir::AppleDecoded { uint16_t address; uint8_t command; };`、`decodeApple(...)`、`sendApple(const AppleDecoded&)` / `sendApple(uint16_t address, uint8_t command);`
+    - Pioneer / Toshiba / Mitsubishi / Hitachi：各 `struct esp32ir::XxxDecoded { uint16_t address; uint16_t command; uint8_t extra; };`（必要フィールドはプロトコル仕様に合わせて決定）、`decodeXxx(...)`、`sendXxx(const XxxDecoded&)` / バラ引数版
+  - 追加候補（長尺/AC系、まずはRAW取得。必要に応じ個別ヘルパ追加。APIは将来予約）
+    - Daikin AC、Panasonic AC、Mitsubishi AC、Toshiba AC、Fujitsu AC など：`struct XxxACDecoded { ... }`、`decodeXxxAC(...)`、`sendXxxAC(.../構造体版)`（当初は未実装で false）
+- `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコル（当初は NEC / SONY）のときのみ true、それ以外は false。
 
 ---
 
