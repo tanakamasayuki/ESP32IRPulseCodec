@@ -228,9 +228,9 @@ public:
 ### 11.1 コンストラクタ
 ```cpp
 esp32ir::Transmitter();
-esp32ir::Transmitter(int txPin);
-esp32ir::Transmitter(int txPin, bool invert, uint32_t hz);
+esp32ir::Transmitter(int txPin, bool invert=false, uint32_t hz=38000);
 ```
+- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `hz=38000`Hz）を指定可能。
 
 ### 11.2 セッター（begin前のみ）
 ```cpp
@@ -240,6 +240,7 @@ bool setCarrierHz(uint32_t hz);
 bool setDutyPercent(uint8_t dutyPercent);
 bool setGapUs(uint32_t gapUs);
 ```
+- デフォルト値（想定）：`invert=false`、`hz=38000`Hz、`dutyPercent` は一般的な50%近辺、`gapUs=40000`us（送信ギャップ既定）
 
 ### 11.3 begin/end
 ```cpp
