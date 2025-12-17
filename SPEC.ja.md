@@ -138,12 +138,8 @@ bool useRawPlusKnown();
 bool poll(esp32ir::RxResult& out);
 ```
 
-- RxResult は呼び出し側が所有
-- 次回 poll で破壊されない
-- 内部 FIFO キュー（上限あり）
-- 溢れた場合は古いデータを破棄し OVERFLOW 通知
-- ノイズ判定で破棄した場合は RxResult を発行しない
-- 戻り値はポーリング成功/失敗のみ。シンプルな利用例（ネスト抑制）：
+- RxResult は呼び出し側が所有し、次回 poll でも破壊されない。内部はFIFOキュー（上限あり）で管理し、溢れた場合は古いデータを破棄して OVERFLOW を通知する。ノイズ判定で破棄した場合は RxResult を発行しない。
+- 戻り値は「取得できたかどうか」の bool のみ。シンプルな利用例：
   ```cpp
   esp32ir::RxResult r;
   if (rx.poll(r)) {  // 取得があるときだけ分岐
@@ -162,6 +158,7 @@ bool poll(esp32ir::RxResult& out);
 ---
 
 ## 8. RxResult
+受信結果を格納する構造体。`poll` で取得し、ProtocolMessage（論理メッセージ）とITPS RAWの両方を保持できる。
 ```cpp
 struct RxResult {
   esp32ir::RxStatus status;
