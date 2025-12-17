@@ -83,7 +83,6 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロト
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
   - `esp32ir::ProtocolId`
-  - `esp32ir::TxStatus`
 
 ---
 
@@ -223,22 +222,20 @@ void end();
 
 ### 11.4 send（ブロッキング）
 ```cpp
-esp32ir::TxStatus send(const esp32ir::ITPSBuffer& raw);
-esp32ir::TxStatus send(const esp32ir::LogicalPacket& p);
-esp32ir::TxStatus sendNEC(uint16_t address, uint8_t command, bool repeat=false);
+bool send(const esp32ir::ITPSBuffer& raw);
+bool send(const esp32ir::LogicalPacket& p);
+bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);
 ```
 
 ---
 
-## 12. TxStatus
-```cpp
-enum class TxStatus {
-  OK,
-  INVALID_ARG,
-  UNSUPPORTED_PROTOCOL,
-  HAL_ERROR
-};
-```
+## 12. 共通ポリシー（エラー/時間/ログ/サンプル）
+- 例外は使わず、公開APIの成否は `bool` で返す。失敗時は適切なログを出し、false を返して終了する（不正利用含む）。動作は継続し、アサート/abort は行わない。
+- 送信APIの失敗理由はログで把握する前提とし、戻り値は成功/失敗のみ（詳細ステータスは持たない）。
+- 時間待ちは Arduino の `delay()` を基準とし、内部 tick は 1ms 固定のみを想定。その他の高精度タイマや別tick周波数は考慮しない。
+- ログは ESP-IDF の `ESP_LOGE/W/I/D/V` を Arduino 環境でも利用する。タグは共通で `ESP32IRPulseCodec` を使用し、必要に応じてメッセージ先頭に `RX`/`TX` などでクラスを示す。ログ初期化やレベル設定はボード定義側で行う前提。
+- サンプルコードのコメントは英語/日本語併記とし、行頭は `// en: ...` の次行に `// ja: ...`、行末なら `// en: ... / ja: ...` とする。
+- サンプルは機能別にシンプルな例を多数用意し、正しい使い方習得を優先する。読み順が分かるよう `01_...` のような連番付きプロジェクト名とする。
 
 ---
 
