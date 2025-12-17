@@ -159,6 +159,8 @@ struct RxResult {
 - RAW_PLUS 時は DECODED でも raw を必ず含む
 - RAW_ONLY 時は protocol/logical は未使用
 - OVERFLOW 時も取得できた範囲の raw を返す
+- NEC などのデコードヘルパは RxResult 受け取り版を用意し、`status==DECODED` かつ対象プロトコルのときだけ true を返す（例：`bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`）。
+- デコード結果構造体を送信ヘルパでも受け取れるようにし、バラ引数版は構造体版に委譲して実装重複を避ける。
 
 ---
 
@@ -235,12 +237,35 @@ void end();
 ```cpp
 bool send(const esp32ir::ITPSBuffer& raw);
 bool send(const esp32ir::LogicalPacket& p);
+bool sendNEC(const esp32ir::NECDecoded& p);
 bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);
+bool sendSONY(const esp32ir::SONYDecoded& p);
+bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 ```
 
 ---
 
-## 12. 共通ポリシー（エラー/時間/ログ/サンプル）
+## 12. 対応プロトコルとヘルパー
+- 方針：プロトコルごとにヘルパーを用意し、追加しやすい構造とする。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
+- NEC
+  - デコード：`struct esp32ir::NECDecoded { uint16_t address; uint8_t command; bool repeat; };`
+  - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::NECDecoded& out);`  
+    `status==DECODED` かつ `protocol==esp32ir::Protocol::NEC` のときだけ true。内部で `LogicalPacket` 版に委譲し、データ不正やリピートコードを判定する。
+  - 送信：`bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);`（ギャップ制約は40ms既定を適用）
+- SONY（SIRC 12/15/20bit）
+  - デコード：`struct esp32ir::SONYDecoded { uint16_t address; uint16_t command; uint8_t bits; };`
+  - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::SONYDecoded& out);`  
+    `status==DECODED` かつ `protocol==esp32ir::Protocol::SONY` のときだけ true。`bits` には 12/15/20 を格納し、長さ不正は false。
+  - 送信：`bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`  
+    `bits` は 12/15/20 のみ受け付ける。その他は false で返す。
+- RAW
+  - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。
+  - `send(const esp32ir::ITPSBuffer& raw);` で再送可能。
+- `bool send(const esp32ir::LogicalPacket& p);` は `p.protocol` が既知ヘルパ対象（現状 NEC / SONY）なら true、それ以外は false。
+
+---
+
+## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
 - 例外は使わず、公開APIの成否は `bool` で返す。失敗時は適切なログを出し、false を返して終了する（不正利用含む）。動作は継続し、アサート/abort は行わない。
 - 送信APIの失敗理由はログで把握する前提とし、戻り値は成功/失敗のみ（詳細ステータスは持たない）。
 - 時間待ちは Arduino の `delay()` を基準とし、内部 tick は 1ms 固定のみを想定。その他の高精度タイマや別tick周波数は考慮しない。
@@ -250,29 +275,29 @@ bool sendNEC(uint16_t address, uint8_t command, bool repeat=false);
 
 ---
 
-## 13. 送信ギャップ
+## 14. 送信ギャップ
 - デフォルト 40ms
 - RAW/Logical/NEC すべてに適用
 - 最終 Space を最低 gapUs 確保
 
 ---
 
-## 14. ESP32 HAL（RMT利用）
+## 15. ESP32 HAL（RMT利用）
 - 受信：RMTのMark/Space dur列を取得し、SPEC_ITPS準拠で量子化・正規化（Mark開始、±127分割、不要分割除去）してフレーム分割後にITPSへ変換。`invertInput` はRMT設定または受信後の解釈で吸収。バッファ不足時は `OVERFLOW` として通知。
 - 送信：ITPSFrame配列をMark/Space dur列へ展開しRMTへ投入。キャリア周波数・デューティ比・反転（`invertOutput`）はRMT設定で吸収。
 
 ---
 
-## 15. 互換性・拡張性ポリシー
+## 16. 互換性・拡張性ポリシー
 - ITPSFrameの `flags` は予約ビットを持ち、将来拡張しても旧版が無視できること
 - 新規プロトコルはCodec登録のみで追加可能とする
 - Arduino APIは破壊的変更を避け、設定項目は追加方向で拡張する
 
 ---
 
-## 16. サンプルと期待挙動
+## 17. サンプルと期待挙動
 
-### 16.1 コード例（完全修飾）
+### 17.1 コード例（完全修飾）
 受信
 ```cpp
 esp32ir::Receiver rx(23);
@@ -286,7 +311,26 @@ tx.begin();
 tx.sendNEC(0x00FF, 0xA2);
 ```
 
-### 16.2 期待挙動（ユースケース）
+NEC 受信（デコードヘルパ使用例）
+```cpp
+esp32ir::Receiver rx(23);
+rx.addProtocol(esp32ir::Protocol::NEC);
+rx.begin();
+
+void loop() {
+  esp32ir::RxResult r;
+  if (rx.poll(r)) {
+    esp32ir::NECDecoded nec;
+    if (esp32ir::decodeNEC(r, nec)) {
+      printf("addr=0x%04X cmd=0x%02X repeat=%s\n",
+             nec.address, nec.command, nec.repeat ? "true" : "false");
+    }
+  }
+  delay(1);
+}
+```
+
+### 17.2 期待挙動（ユースケース）
 - NEC受信（デフォルト設定）：デコード成功時は `status=DECODED` と論理データを返す。`useRawPlusKnown()` していれば raw も添付。デコード不能で RAW モードの場合は `status=RAW_ONLY` として ITPS を返す。
 - AC学習（RAW重視プリセット）：長大データでも `maxFrameUs` 超過前に Space 境界で分割し、可能な限り RAW を返す。`frameCountMax` 超過で `OVERFLOW`。
 - RAW再送信：受信で得た ITPSBuffer をそのまま `send(raw)` で送信可能。反転が必要な環境でも `invertOutput` で吸収し ITPS は変更しない。
