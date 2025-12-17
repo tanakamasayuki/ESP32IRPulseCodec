@@ -334,11 +334,11 @@ bool send(const esp32ir::ProtocolMessage& message);
   - RC5  
     - `struct esp32ir::payload::RC5 { uint16_t command; bool toggle; };`  
     - `bool esp32ir::decodeRC5(const esp32ir::RxResult&, esp32ir::payload::RC5&);`  
-    - `bool esp32ir::sendRC5(const esp32ir::payload::RC5&);` / バラ引数版
+    - `bool esp32ir::sendRC5(const esp32ir::payload::RC5&);` / `bool esp32ir::sendRC5(uint16_t command, bool toggle);`
   - RC6  
     - `struct esp32ir::payload::RC6 { uint32_t command; uint8_t mode; bool toggle; };`  
     - `bool esp32ir::decodeRC6(const esp32ir::RxResult&, esp32ir::payload::RC6&);`  
-    - `bool esp32ir::sendRC6(const esp32ir::payload::RC6&);` / バラ引数版
+    - `bool esp32ir::sendRC6(const esp32ir::payload::RC6&);` / `bool esp32ir::sendRC6(uint32_t command, uint8_t mode, bool toggle);`
   - Apple(NEC拡張系)  
     - `struct esp32ir::payload::Apple { uint16_t address; uint8_t command; };`  
     - `bool esp32ir::decodeApple(const esp32ir::RxResult&, esp32ir::payload::Apple&);`  
@@ -346,39 +346,29 @@ bool send(const esp32ir::ProtocolMessage& message);
   - Pioneer  
     - `struct esp32ir::payload::Pioneer { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodePioneer(const esp32ir::RxResult&, esp32ir::payload::Pioneer&);`  
-    - `bool esp32ir::sendPioneer(const esp32ir::payload::Pioneer&);` / バラ引数版
+    - `bool esp32ir::sendPioneer(const esp32ir::payload::Pioneer&);` / `bool esp32ir::sendPioneer(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Toshiba  
     - `struct esp32ir::payload::Toshiba { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeToshiba(const esp32ir::RxResult&, esp32ir::payload::Toshiba&);`  
-    - `bool esp32ir::sendToshiba(const esp32ir::payload::Toshiba&);` / バラ引数版
+    - `bool esp32ir::sendToshiba(const esp32ir::payload::Toshiba&);` / `bool esp32ir::sendToshiba(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Mitsubishi  
     - `struct esp32ir::payload::Mitsubishi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeMitsubishi(const esp32ir::RxResult&, esp32ir::payload::Mitsubishi&);`  
-    - `bool esp32ir::sendMitsubishi(const esp32ir::payload::Mitsubishi&);` / バラ引数版
+    - `bool esp32ir::sendMitsubishi(const esp32ir::payload::Mitsubishi&);` / `bool esp32ir::sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Hitachi  
     - `struct esp32ir::payload::Hitachi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::payload::Hitachi&);`  
-    - `bool esp32ir::sendHitachi(const esp32ir::payload::Hitachi&);` / バラ引数版
+    - `bool esp32ir::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Daikin AC  
-    - `struct esp32ir::payload::DaikinAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);`  
-    - `bool esp32ir::sendDaikinAC(const esp32ir::payload::DaikinAC&);` / バラ引数版
+    - 構造体は未定義（長尺/可変要素が多いため）。関数名のみ予約：`bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendDaikinAC(/* payload TBD */);`
   - Panasonic AC  
-    - `struct esp32ir::payload::PanasonicAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);`  
-    - `bool esp32ir::sendPanasonicAC(const esp32ir::payload::PanasonicAC&);` / バラ引数版
+    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendPanasonicAC(/* payload TBD */);`
   - Mitsubishi AC  
-    - `struct esp32ir::payload::MitsubishiAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);`  
-    - `bool esp32ir::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC&);` / バラ引数版
+    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendMitsubishiAC(/* payload TBD */);`
   - Toshiba AC  
-    - `struct esp32ir::payload::ToshibaAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);`  
-    - `bool esp32ir::sendToshibaAC(const esp32ir::payload::ToshibaAC&);` / バラ引数版
+    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendToshibaAC(/* payload TBD */);`
   - Fujitsu AC  
-    - `struct esp32ir::payload::FujitsuAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
-    - `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);`  
-    - `bool esp32ir::sendFujitsuAC(const esp32ir::payload::FujitsuAC&);` / バラ引数版
+    - 構造体は未定義。関数名のみ予約：`bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, /* payload TBD */);` / `bool esp32ir::sendFujitsuAC(/* payload TBD */);`
 
 ## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
 - 例外は使わず、公開APIの成否は `bool` で返す。失敗時は適切なログを出し、false を返して終了する（不正利用含む）。動作は継続し、アサート/abort は行わない。
