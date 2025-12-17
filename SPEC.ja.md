@@ -106,10 +106,9 @@ ProtocolMessage（論理メッセージ） → Encode → **ITPSBuffer（ITPSFra
 ### 6.1 コンストラクタ
 ```cpp
 esp32ir::Receiver();
-esp32ir::Receiver(int rxPin);
-esp32ir::Receiver(int rxPin, bool invert);
-esp32ir::Receiver(int rxPin, bool invert, uint16_t T_us_rx);
+esp32ir::Receiver(int rxPin, bool invert=false, uint16_t T_us_rx=5);
 ```
+- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `T_us_rx=5us`）を指定可能。
 
 ### 6.2 セッター（begin前のみ有効）
 ```cpp
@@ -117,6 +116,7 @@ bool setPin(int rxPin);
 bool setInvertInput(bool invert);
 bool setQuantizeT(uint16_t T_us_rx);
 ```
+- デフォルト値（想定）：`invert=false`、`T_us_rx=5`us
 
 ### 6.3 プロトコル指定（begin前のみ）
 ```cpp
@@ -129,6 +129,7 @@ bool useRawPlusKnown();
 - プロトコル未指定 → ALL_KNOWN
 - 指定あり → ONLY
 - RAW系指定が最優先
+- プロトコル推奨パラメータを begin 時にマージして受信デフォルトを決定（詳細は「受信モードと分割ポリシー」）
 
 ---
 
