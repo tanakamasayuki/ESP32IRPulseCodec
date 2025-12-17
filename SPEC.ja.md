@@ -467,6 +467,6 @@ void loop() {
 - **NECデコード**：デフォルト設定で `status=DECODED` の ProtocolMessage を返し、`decodeNEC` が true を返す。`useRawPlusKnown()` 指定時は raw も添付。
 - **RAW優先の学習**：`useRawOnly()` では常に `status=RAW_ONLY` で ITPS を返す（デコードは試行しない）。`useRawPlusKnown()` ではデコード成功でも RAW を保持。
 - **長大ACキャプチャ**：AC系でフレームが長い場合、`maxFrameUs` 超過前に Space 境界で分割して可能な限り RAW を返す。`frameCountMax` 超過時は `status=OVERFLOW` とし、取得できた範囲の RAW を渡す。
-- **プロトコル限定受信**：`addProtocol(NEC)` のみ指定すれば NEC 以外はデコードしない（RAW指定があれば RAW のみ優先）。指定なしは既知プロトコルすべてを KNOWN_ONLY でデコードする（RAWは明示が必要）。
+- **プロトコル限定受信**：`addProtocol(NEC)` のみ指定すれば NEC 以外はデコードしない（RAW指定があれば RAW のみ優先）。`useKnownWithoutAC()` なら AC を除いた既知プロトコルのみを対象にする。指定なしは既知プロトコルすべてを KNOWN_ONLY でデコードする（RAWは明示が必要）。
 - **キュー動作**：受信キューが空なら `poll` は false。溢れた場合は古いデータを破棄し、次回取得で `status=OVERFLOW` を通知。
 - **RAWの再送**：受信で得た ITPSBuffer は `send(raw)` でそのまま再送できる。反転が必要な環境は `invertOutput` で吸収し、ITPSはそのまま扱う。
