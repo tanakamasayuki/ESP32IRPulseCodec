@@ -297,12 +297,43 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
       - `struct esp32ir::AppleDecoded { uint16_t address; uint8_t command; };`  
       - `bool decodeApple(const esp32ir::RxResult&, esp32ir::AppleDecoded&);`  
       - `bool sendApple(const esp32ir::AppleDecoded&);` / `bool sendApple(uint16_t address, uint8_t command);`
-    - Pioneer / Toshiba / Mitsubishi / Hitachi  
-      - 各 `struct esp32ir::XxxDecoded { uint16_t address; uint16_t command; uint8_t extra; };`（必要フィールドはプロトコル仕様に合わせて決定）  
-      - `bool decodeXxx(const esp32ir::RxResult&, esp32ir::XxxDecoded&);`  
-      - `bool sendXxx(const esp32ir::XxxDecoded&);` / バラ引数版
+    - Pioneer  
+      - `struct esp32ir::PioneerDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
+      - `bool decodePioneer(const esp32ir::RxResult&, esp32ir::PioneerDecoded&);`  
+      - `bool sendPioneer(const esp32ir::PioneerDecoded&);` / バラ引数版
+    - Toshiba  
+      - `struct esp32ir::ToshibaDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
+      - `bool decodeToshiba(const esp32ir::RxResult&, esp32ir::ToshibaDecoded&);`  
+      - `bool sendToshiba(const esp32ir::ToshibaDecoded&);` / バラ引数版
+    - Mitsubishi  
+      - `struct esp32ir::MitsubishiDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
+      - `bool decodeMitsubishi(const esp32ir::RxResult&, esp32ir::MitsubishiDecoded&);`  
+      - `bool sendMitsubishi(const esp32ir::MitsubishiDecoded&);` / バラ引数版
+    - Hitachi  
+      - `struct esp32ir::HitachiDecoded { uint16_t address; uint16_t command; uint8_t extra; };`  
+      - `bool decodeHitachi(const esp32ir::RxResult&, esp32ir::HitachiDecoded&);`  
+      - `bool sendHitachi(const esp32ir::HitachiDecoded&);` / バラ引数版
   - 追加候補（長尺/AC系、まずはRAW取得。必要に応じ個別ヘルパ追加。APIは将来予約）
-    - Daikin AC、Panasonic AC、Mitsubishi AC、Toshiba AC、Fujitsu AC など：`struct esp32ir::XxxACDecoded { ... }`、`decodeXxxAC(...)`、`sendXxxAC(.../構造体版)`
+    - Daikin AC  
+      - `struct esp32ir::DaikinACDecoded { /* AC固有フィールド */ };`  
+      - `bool decodeDaikinAC(const esp32ir::RxResult&, esp32ir::DaikinACDecoded&);`  
+      - `bool sendDaikinAC(const esp32ir::DaikinACDecoded&);` / バラ引数版
+    - Panasonic AC  
+      - `struct esp32ir::PanasonicACDecoded { /* AC固有フィールド */ };`  
+      - `bool decodePanasonicAC(const esp32ir::RxResult&, esp32ir::PanasonicACDecoded&);`  
+      - `bool sendPanasonicAC(const esp32ir::PanasonicACDecoded&);` / バラ引数版
+    - Mitsubishi AC  
+      - `struct esp32ir::MitsubishiACDecoded { /* AC固有フィールド */ };`  
+      - `bool decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::MitsubishiACDecoded&);`  
+      - `bool sendMitsubishiAC(const esp32ir::MitsubishiACDecoded&);` / バラ引数版
+    - Toshiba AC  
+      - `struct esp32ir::ToshibaACDecoded { /* AC固有フィールド */ };`  
+      - `bool decodeToshibaAC(const esp32ir::RxResult&, esp32ir::ToshibaACDecoded&);`  
+      - `bool sendToshibaAC(const esp32ir::ToshibaACDecoded&);` / バラ引数版
+    - Fujitsu AC  
+      - `struct esp32ir::FujitsuACDecoded { /* AC固有フィールド */ };`  
+      - `bool decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::FujitsuACDecoded&);`  
+      - `bool sendFujitsuAC(const esp32ir::FujitsuACDecoded&);` / バラ引数版
 - `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコルのときのみ true、それ以外は false。
 
 ---
