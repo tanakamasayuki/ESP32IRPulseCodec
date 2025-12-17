@@ -51,9 +51,15 @@ ProtocolMessage（論理メッセージ） → Encode → **ITPSBuffer（ITPSFra
 - ProtocolMessage の生成は、プロトコル別送信ヘルパ（例：`esp32ir::sendNEC`）で `esp32ir::payload::<Protocol>` から自動変換してもよいし、直接組み立ててもよい。
 
 ### 3.3 レイヤ構造
-1) **Core（機種非依存）**：ITPSFrame/Normalize、ProtocolCodecインタフェース  
-2) **ESP32 HAL**：RMT受信/送信、GPIO/キャリア設定、反転、バッファ管理  
-3) **Arduino API**：`esp32ir::Receiver` / `esp32ir::Transmitter`
+1) **Core（機種非依存）**  
+   - ITPSFrame/Normalize、ProtocolCodecインタフェース  
+   - ProtocolMessage / payload::<Protocol> の変換ヘルパ（decode/send系）
+2) **ESP32 HAL**  
+   - RMT受信/送信、GPIO/キャリア設定、反転、バッファ管理  
+   - Arduino-ESP32 v3以降のRMT APIに対応
+3) **Arduino API**  
+   - `esp32ir::Receiver` / `esp32ir::Transmitter`  
+   - モード設定、プロトコル選択、ポーリング/ブロッキング送信など
 
 ## 4. 受信モードと分割ポリシー
 
