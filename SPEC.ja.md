@@ -3,22 +3,27 @@
 ## 0. 前提
 - ライブラリ名：**ESP32IRPulseCodec**
 - namespace：`esp32ir`
+- Arduino環境でESP32（RMT利用）のハードウェア支援を使い、安定したIR送受信を提供する
 - 対象：ESP32（RMT利用）
 - 中間フォーマット：ITPS（正規化済み、詳細は `SPEC_ITPS.ja.md`）
 - 反転（INVERT）は送受信直前（HAL）で吸収
 - 受信：ポーリングのみ
 - 送信：ブロッキング送信
 - 受信側の量子化（`T_us` 決定）とノイズ処理は前段で済ませ、ITPSには正規化済みデータを渡す
+- 仕様記述はユーザーの使い方（API/期待挙動）を中心とし、実装詳細は最小限に留める
 
 ## 1. 目的と非目的
 
 ### 1.1 目的
+- Arduinoユーザーが ESP32 のハードウェア支援を活用して安定したIR送受信を手軽に使えるようにする
 - ESP32のRMTを用いた、ジッタに強いIR送受信
 - ITPSを入出力として、デコーダ/エンコーダの移植性を確保
+- コーデックはITPSベースで移植性を保ちつつ、本ライブラリはESP32特化とし、必要な実装のみ（MIT等の既存実装も必要部分だけを取り込む前提）で構成する
 - 既知プロトコルのデコードと、AC等の長大データを含むRAW取得の両立（モード切り替えで制御）
 - 送受信での反転はHAL層で吸収し、ITPSは常に正のMark/負のSpaceで保持
 
 ### 1.2 非目的
+- ESP32以外のHAL実装を本リポジトリで提供すること
 - すべてのIRプロトコルの完全実装（まずは枠組み優先）
 - 送受信波形の圧縮・暗号化等の付加機能
 - RTOSタスク管理の自由度提供（内部で必要最低限のみ使用）
@@ -33,7 +38,7 @@
 ## 3. 全体アーキテクチャ
 
 ### 3.1 データフロー（受信）
-Raw(RMT) → Split/Quantize → **ITPSFrame配列（ITPSBuffer）** → Decode（有効プロトコル） → 論理データ  
+Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロトコル） → 論理データ  
 - `useRawOnly()` 指定時はデコードをスキップし、ITPSをRAWとして返す。  
 - `useRawPlusKnown()` 指定時はデコード成功でもITPSを添付する。  
 - プロトコル集合は `addProtocol/clearProtocols/useRawOnly/useRawPlusKnown` により決定する。  
@@ -47,7 +52,7 @@ Raw(RMT) → Split/Quantize → **ITPSFrame配列（ITPSBuffer）** → Decode�
 2) **ESP32 HAL**：RMT受信/送信、GPIO/キャリア設定、反転、バッファ管理  
 3) **Arduino API**：`esp32ir::Receiver` / `esp32ir::Transmitter`
 
-## 4. 受信モードと分割ポリシー（推奨）
+## 4. 受信モードと分割ポリシー
 
 - モード
   - **KNOWN_ONLY**（デフォルト）：有効プロトコルでデコード。RAWは `useRawPlusKnown()` 指定時のみ添付。
