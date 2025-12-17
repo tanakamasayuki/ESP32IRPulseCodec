@@ -39,3 +39,4 @@ namespace esp32ir
   }
 
 } // namespace esp32ir
+#include <cstdlib>
