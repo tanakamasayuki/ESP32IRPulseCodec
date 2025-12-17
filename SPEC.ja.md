@@ -387,8 +387,8 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 15. ESP32 HAL（RMT利用）
-- 受信：RMTのMark/Space dur列を取得し、SPEC_ITPS準拠で量子化・正規化（Mark開始、±127分割、不要分割除去）してフレーム分割後にITPSへ変換。`invertInput` はRMT設定または受信後の解釈で吸収。バッファ不足時は `OVERFLOW` として通知。
-- 送信：ITPSBuffer（ITPSFrame配列）をMark/Space dur列へ展開しRMTへ投入。キャリア周波数・デューティ比・反転（`invertOutput`）はRMT設定で吸収。
+- **受信**：RMTのMark/Space dur列を取得し、SPEC_ITPS準拠で量子化・正規化（Mark開始、±127分割、不要分割除去）してフレーム分割後にITPSへ変換。`invertInput` はRMT設定または受信後の符号解釈で吸収。バッファ不足時は `OVERFLOW` として通知。
+- **送信**：ITPSBuffer（ITPSFrame配列）をMark/Space dur列へ展開しRMTへ投入。キャリア周波数・デューティ比・反転（`invertOutput`）はRMT設定で吸収し、ITPS自体は変更しない。
 
 ---
 
