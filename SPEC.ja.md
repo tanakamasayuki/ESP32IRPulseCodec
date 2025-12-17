@@ -252,7 +252,7 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
 - 方針：プロトコルごとにデコード/送信ヘルパを用意し、構造体版＋バラ引数版を揃える。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
 - 対応状況（○=ヘルパ実装、△=枠のみ/予定、RAWはITPS直扱い）
 
-| プロトコル                | フレーム構造体                   | デコード関数                    | 送信ヘルパ                        | 状態 |
+| プロトコル                | フレーム構造体                   | デコードヘルパ                  | 送信ヘルパ                        | 状態 |
 |---------------------------|--------------------------------|---------------------------------|---------------------------------|------|
 | NEC                       | `esp32ir::frame::NEC`       | `esp32ir::decodeNEC`       | `esp32ir::sendNEC(struct/args)`            | ○    |
 | SONY (SIRC 12/15/20)      | `esp32ir::frame::SONY`      | `esp32ir::decodeSONY`      | `esp32ir::sendSONY(struct/args)`           | ○    |
@@ -361,7 +361,6 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
     - `struct esp32ir::frame::FujitsuAC { const uint8_t* data; uint16_t length; uint16_t flags; };`  
     - `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::frame::FujitsuAC&);`  
     - `bool esp32ir::sendFujitsuAC(const esp32ir::frame::FujitsuAC&);` / バラ引数版
-- `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコル（現状 NEC / SONY）のときのみ true、それ以外は false。
 
 ## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
 - 例外は使わず、公開APIの成否は `bool` で返す。失敗時は適切なログを出し、false を返して終了する（不正利用含む）。動作は継続し、アサート/abort は行わない。
