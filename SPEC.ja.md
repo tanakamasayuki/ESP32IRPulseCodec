@@ -303,7 +303,7 @@ bool sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);
       - `bool sendXxx(const esp32ir::XxxDecoded&);` / バラ引数版
   - 追加候補（長尺/AC系、まずはRAW取得。必要に応じ個別ヘルパ追加。APIは将来予約）
     - Daikin AC、Panasonic AC、Mitsubishi AC、Toshiba AC、Fujitsu AC など：`struct esp32ir::XxxACDecoded { ... }`、`decodeXxxAC(...)`、`sendXxxAC(.../構造体版)`
-- `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコル（当初は NEC / SONY）のときのみ true、それ以外は false。
+- `bool send(const esp32ir::LogicalPacket& p);` はヘルパ実装済みプロトコルのときのみ true、それ以外は false。
 
 ---
 
