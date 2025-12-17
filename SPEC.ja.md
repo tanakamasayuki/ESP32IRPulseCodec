@@ -260,8 +260,8 @@ void end();
 
 ### 11.4 send（ブロッキング）
 ```cpp
-bool send(const esp32ir::ITPSBuffer& raw);
-bool send(const esp32ir::ProtocolMessage& p);
+bool send(const esp32ir::ITPSBuffer& itps);
+bool send(const esp32ir::ProtocolMessage& message);
 ```
 - プロトコル別の送信ヘルパ（`esp32ir::sendNEC` 等）は「対応プロトコルとヘルパー」を参照。
 
