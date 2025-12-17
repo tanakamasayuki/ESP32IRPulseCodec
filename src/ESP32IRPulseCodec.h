@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <vector>
 
 #define ESP32IRPULSECODEC_VERSION_MAJOR 0
 #define ESP32IRPULSECODEC_VERSION_MINOR 0
@@ -58,9 +59,16 @@ namespace esp32ir
   {
   public:
     ITPSBuffer() = default;
+
+    void clear();
+    void addFrame(const esp32ir::ITPSFrame &f);
+
     uint16_t frameCount() const;
     const esp32ir::ITPSFrame &frame(uint16_t i) const;
     uint32_t totalTimeUs() const;
+
+  private:
+    std::vector<esp32ir::ITPSFrame> frames_;
   };
 
   struct ProtocolMessage
@@ -221,6 +229,16 @@ namespace esp32ir
     bool useKnownWithoutAC();
 
     bool poll(esp32ir::RxResult &out);
+
+  private:
+    int rxPin_{-1};
+    bool invertInput_{false};
+    uint16_t quantizeT_{5};
+    bool useRawOnly_{false};
+    bool useRawPlusKnown_{false};
+    bool useKnownNoAC_{false};
+    bool begun_{false};
+    std::vector<esp32ir::Protocol> protocols_;
   };
 
   // Transmitter
@@ -278,6 +296,14 @@ namespace esp32ir
     bool sendMitsubishiAC(const esp32ir::payload::MitsubishiAC &p);
     bool sendToshibaAC(const esp32ir::payload::ToshibaAC &p);
     bool sendFujitsuAC(const esp32ir::payload::FujitsuAC &p);
+
+  private:
+    int txPin_{-1};
+    bool invertOutput_{false};
+    uint32_t carrierHz_{38000};
+    uint8_t dutyPercent_{50};
+    uint32_t gapUs_{40000};
+    bool begun_{false};
   };
 
   // Decode helpers

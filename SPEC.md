@@ -220,7 +220,7 @@ struct ProtocolMessage {
 };
 ```
 
-- Protocol-specific payload structs live in `esp32ir::payload::<Protocol>` (e.g., `payload::NEC`). On RX, use decode helpers (`decodeNEC`, etc.) to convert ProtocolMessage → `payload::<Protocol>`. On TX, send helpers (`sendNEC`, etc.) build ProtocolMessage → ITPS from `payload::<Protocol>`.
+- Protocol-specific payload structs live in `esp32ir::payload::<Protocol>` (e.g., `payload::NEC`). On RX, use decode helpers (`decodeNEC`, etc.) to convert ProtocolMessage → `payload::<Protocol>`. On TX, send helpers (`Transmitter::sendNEC`, etc.) build ProtocolMessage → ITPS from `payload::<Protocol>`.
 
 ---
 
@@ -287,7 +287,7 @@ void end();
 bool send(const esp32ir::ITPSBuffer& itps);
 bool send(const esp32ir::ProtocolMessage& message);
 ```
-- See “Supported Protocols and Helpers” for protocol-specific send helpers (`esp32ir::sendNEC`, etc.). `gapUs` uses user override if set, else helper recommendation, else default 40ms.
+- See “Supported Protocols and Helpers” for protocol-specific send helpers (e.g., `tx.sendNEC`). `gapUs` uses user override if set, else helper recommendation, else default 40ms.
 
 ---
 
@@ -324,7 +324,7 @@ bool send(const esp32ir::ProtocolMessage& message);
   - RAW  
     - Work with ITPSBuffer directly. Enable via `useRawOnly` / `useRawPlusKnown`.  
     - Resend with `send(const esp32ir::ITPSBuffer& raw);`.
-  - NEC  
+- NEC  
     - `struct esp32ir::payload::NEC { uint16_t address; uint8_t command; bool repeat; };`  
     - `bool esp32ir::decodeNEC(const esp32ir::RxResult& in, esp32ir::payload::NEC& out);`  
     - `bool esp32ir::Transmitter::sendNEC(const esp32ir::payload::NEC& p);` / `bool esp32ir::Transmitter::sendNEC(uint16_t address, uint8_t command, bool repeat=false);` (gap uses helper recommendation; falls back to default 40ms)
@@ -335,65 +335,65 @@ bool send(const esp32ir::ProtocolMessage& message);
   - AEHA  
     - `struct esp32ir::payload::AEHA { uint16_t address; uint32_t data; uint8_t nbits; };`  
     - `bool esp32ir::decodeAEHA(const esp32ir::RxResult&, esp32ir::payload::AEHA&);`  
-    - `bool esp32ir::sendAEHA(const esp32ir::payload::AEHA&);` / `bool esp32ir::sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);`
+    - `bool esp32ir::Transmitter::sendAEHA(const esp32ir::payload::AEHA&);` / `bool esp32ir::Transmitter::sendAEHA(uint16_t address, uint32_t data, uint8_t nbits);`
   - Panasonic/Kaseikaden  
     - `struct esp32ir::payload::Panasonic { uint16_t address; uint32_t data; uint8_t nbits; };`  
     - `bool esp32ir::decodePanasonic(const esp32ir::RxResult&, esp32ir::payload::Panasonic&);`  
-    - `bool esp32ir::sendPanasonic(const esp32ir::payload::Panasonic&);` / `bool esp32ir::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
+    - `bool esp32ir::Transmitter::sendPanasonic(const esp32ir::payload::Panasonic&);` / `bool esp32ir::Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
   - JVC  
     - `struct esp32ir::payload::JVC { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeJVC(const esp32ir::RxResult&, esp32ir::payload::JVC&);`  
-    - `bool esp32ir::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::sendJVC(uint16_t address, uint16_t command);`
+    - `bool esp32ir::Transmitter::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::Transmitter::sendJVC(uint16_t address, uint16_t command);`
   - Samsung  
     - `struct esp32ir::payload::Samsung { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeSamsung(const esp32ir::RxResult&, esp32ir::payload::Samsung&);`  
-    - `bool esp32ir::sendSamsung(const esp32ir::payload::Samsung&);` / `bool esp32ir::sendSamsung(uint16_t address, uint16_t command);`
+    - `bool esp32ir::Transmitter::sendSamsung(const esp32ir::payload::Samsung&);` / `bool esp32ir::Transmitter::sendSamsung(uint16_t address, uint16_t command);`
   - LG  
     - `struct esp32ir::payload::LG { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeLG(const esp32ir::RxResult&, esp32ir::payload::LG&);`  
-    - `bool esp32ir::sendLG(const esp32ir::payload::LG&);` / `bool esp32ir::sendLG(uint16_t address, uint16_t command);`
+    - `bool esp32ir::Transmitter::sendLG(const esp32ir::payload::LG&);` / `bool esp32ir::Transmitter::sendLG(uint16_t address, uint16_t command);`
   - Denon/Sharp  
     - `struct esp32ir::payload::Denon { uint16_t address; uint16_t command; bool repeat; };`  
     - `bool esp32ir::decodeDenon(const esp32ir::RxResult&, esp32ir::payload::Denon&);`  
-    - `bool esp32ir::sendDenon(const esp32ir::payload::Denon&);` / `bool esp32ir::sendDenon(uint16_t address, uint16_t command, bool repeat=false);`
+    - `bool esp32ir::Transmitter::sendDenon(const esp32ir::payload::Denon&);` / `bool esp32ir::Transmitter::sendDenon(uint16_t address, uint16_t command, bool repeat=false);`
   - RC5  
     - `struct esp32ir::payload::RC5 { uint16_t command; bool toggle; };`  
     - `bool esp32ir::decodeRC5(const esp32ir::RxResult&, esp32ir::payload::RC5&);`  
-    - `bool esp32ir::sendRC5(const esp32ir::payload::RC5&);` / `bool esp32ir::sendRC5(uint16_t command, bool toggle);`
+    - `bool esp32ir::Transmitter::sendRC5(const esp32ir::payload::RC5&);` / `bool esp32ir::Transmitter::sendRC5(uint16_t command, bool toggle);`
   - RC6  
     - `struct esp32ir::payload::RC6 { uint32_t command; uint8_t mode; bool toggle; };`  
     - `bool esp32ir::decodeRC6(const esp32ir::RxResult&, esp32ir::payload::RC6&);`  
-    - `bool esp32ir::sendRC6(const esp32ir::payload::RC6&);` / `bool esp32ir::sendRC6(uint32_t command, uint8_t mode, bool toggle);`
+    - `bool esp32ir::Transmitter::sendRC6(const esp32ir::payload::RC6&);` / `bool esp32ir::Transmitter::sendRC6(uint32_t command, uint8_t mode, bool toggle);`
   - Apple (NEC ext.)  
     - `struct esp32ir::payload::Apple { uint16_t address; uint8_t command; };`  
     - `bool esp32ir::decodeApple(const esp32ir::RxResult&, esp32ir::payload::Apple&);`  
-    - `bool esp32ir::sendApple(const esp32ir::payload::Apple&);` / `bool esp32ir::sendApple(uint16_t address, uint8_t command);`
+    - `bool esp32ir::Transmitter::sendApple(const esp32ir::payload::Apple&);` / `bool esp32ir::Transmitter::sendApple(uint16_t address, uint8_t command);`
   - Pioneer  
     - `struct esp32ir::payload::Pioneer { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodePioneer(const esp32ir::RxResult&, esp32ir::payload::Pioneer&);`  
-    - `bool esp32ir::sendPioneer(const esp32ir::payload::Pioneer&);` / `bool esp32ir::sendPioneer(uint16_t address, uint16_t command, uint8_t extra=0);`
+    - `bool esp32ir::Transmitter::sendPioneer(const esp32ir::payload::Pioneer&);` / `bool esp32ir::Transmitter::sendPioneer(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Toshiba  
     - `struct esp32ir::payload::Toshiba { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeToshiba(const esp32ir::RxResult&, esp32ir::payload::Toshiba&);`  
-    - `bool esp32ir::sendToshiba(const esp32ir::payload::Toshiba&);` / `bool esp32ir::sendToshiba(uint16_t address, uint16_t command, uint8_t extra=0);`
+    - `bool esp32ir::Transmitter::sendToshiba(const esp32ir::payload::Toshiba&);` / `bool esp32ir::Transmitter::sendToshiba(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Mitsubishi  
     - `struct esp32ir::payload::Mitsubishi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeMitsubishi(const esp32ir::RxResult&, esp32ir::payload::Mitsubishi&);`  
-    - `bool esp32ir::sendMitsubishi(const esp32ir::payload::Mitsubishi&);` / `bool esp32ir::sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra=0);`
+    - `bool esp32ir::Transmitter::sendMitsubishi(const esp32ir::payload::Mitsubishi&);` / `bool esp32ir::Transmitter::sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Hitachi  
     - `struct esp32ir::payload::Hitachi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::payload::Hitachi&);`  
-    - `bool esp32ir::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
+    - `bool esp32ir::Transmitter::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::Transmitter::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
   - Daikin AC  
-    - Struct reserved: `esp32ir::payload::DaikinAC` (fields TBD). Functions reserved: `bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);` / `bool esp32ir::sendDaikinAC(const esp32ir::payload::DaikinAC&);`
+    - Struct reserved: `esp32ir::payload::DaikinAC` (fields TBD). Functions reserved: `bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);` / `bool esp32ir::Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC&);`
   - Panasonic AC  
-    - Struct reserved: `esp32ir::payload::PanasonicAC` (fields TBD). Functions reserved: `bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);` / `bool esp32ir::sendPanasonicAC(const esp32ir::payload::PanasonicAC&);`
+    - Struct reserved: `esp32ir::payload::PanasonicAC` (fields TBD). Functions reserved: `bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);` / `bool esp32ir::Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC&);`
   - Mitsubishi AC  
-    - Struct reserved: `esp32ir::payload::MitsubishiAC` (fields TBD). Functions reserved: `bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);` / `bool esp32ir::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC&);`
+    - Struct reserved: `esp32ir::payload::MitsubishiAC` (fields TBD). Functions reserved: `bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);` / `bool esp32ir::Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC&);`
   - Toshiba AC  
-    - Struct reserved: `esp32ir::payload::ToshibaAC` (fields TBD). Functions reserved: `bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);` / `bool esp32ir::sendToshibaAC(const esp32ir::payload::ToshibaAC&);`
+    - Struct reserved: `esp32ir::payload::ToshibaAC` (fields TBD). Functions reserved: `bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);` / `bool esp32ir::Transmitter::sendToshibaAC(const esp32ir::payload::ToshibaAC&);`
   - Fujitsu AC  
-    - Struct reserved: `esp32ir::payload::FujitsuAC` (fields TBD). Functions reserved: `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);` / `bool esp32ir::sendFujitsuAC(const esp32ir::payload::FujitsuAC&);`
+    - Struct reserved: `esp32ir::payload::FujitsuAC` (fields TBD). Functions reserved: `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);` / `bool esp32ir::Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC&);`
 
 ## 13. Common Policies (Error/Timing/Log/Samples)
 - **Error handling**: No exceptions. Public APIs return `bool` success only. On failure, log appropriately and return false (including misuse). Keep running; no assert/abort. TX APIs also do not expose detailed status.
