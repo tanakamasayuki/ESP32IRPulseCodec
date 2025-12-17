@@ -38,14 +38,14 @@
 ## 3. 全体アーキテクチャ
 
 ### 3.1 データフロー（受信）
-Raw(RMT) → Split/Quantize → **ITPSFrame配列** → Decode（有効プロトコル） → 論理データ  
+Raw(RMT) → Split/Quantize → **ITPSBuffer（ITPSFrame配列）** → Decode（有効プロトコル） → 論理データ  
 - `useRawOnly()`：デコードせず ITPS を RAW として返す。  
 - `useRawPlusKnown()`：デコードを試み、成功しても ITPS を添付する。  
 - `clearProtocols()`：プロトコル設定をクリア。`addProtocol()` を1回も呼ばなければ既知プロトコル全対応＋RAW。  
 - `addProtocol()`：受信対象プロトコルを限定（指定があれば ONLY）。RAW系指定があれば RAW を優先。  
 
 ### 3.2 データフロー（送信）
-論理データ → Encode → **ITPSFrame配列** → HAL(RMT)送信  
+論理データ → Encode → **ITPSBuffer（ITPSFrame配列）** → HAL(RMT)送信  
 反転はHALで吸収する（ITPSは変更しない）。
 
 ### 3.3 レイヤ構造
@@ -379,7 +379,7 @@ bool send(const esp32ir::ProtocolMessage& p);
 
 ## 15. ESP32 HAL（RMT利用）
 - 受信：RMTのMark/Space dur列を取得し、SPEC_ITPS準拠で量子化・正規化（Mark開始、±127分割、不要分割除去）してフレーム分割後にITPSへ変換。`invertInput` はRMT設定または受信後の解釈で吸収。バッファ不足時は `OVERFLOW` として通知。
-- 送信：ITPSFrame配列をMark/Space dur列へ展開しRMTへ投入。キャリア周波数・デューティ比・反転（`invertOutput`）はRMT設定で吸収。
+- 送信：ITPSBuffer（ITPSFrame配列）をMark/Space dur列へ展開しRMTへ投入。キャリア周波数・デューティ比・反転（`invertOutput`）はRMT設定で吸収。
 
 ---
 
