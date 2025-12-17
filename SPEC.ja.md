@@ -381,9 +381,8 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 14. 送信ギャップ
-- デフォルト 40ms
-- RAW/Logical/NEC すべてに適用
-- 最終 Space を最低 gapUs 確保
+- デフォルト 40ms（`gapUs`）、送信する全プロトコル/RAWに共通で適用
+- フレーム末尾の Space を最低 `gapUs` 確保してから送信完了とみなす
 
 ---
 
