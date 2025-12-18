@@ -144,8 +144,14 @@ namespace esp32ir
             .resolution_hz = kRmtResolutionHz,
             .mem_block_symbols = 64,
             .trans_queue_depth = 4,
+            .intr_priority = 0,
             .flags = {
-                .invert_out = invertOutput_ ? 1 : 0,
+                .invert_out = invertOutput_ ? 1U : 0U,
+                .with_dma = 0,
+                .io_loop_back = 0,
+                .io_od_mode = 0,
+                .allow_pd = 0,
+                .init_level = 0,
             },
         };
 
@@ -166,7 +172,7 @@ namespace esp32ir
             uint32_t duty = dutyPercent_ == 0 ? 50 : dutyPercent_;
             rmt_carrier_config_t carrier_cfg = {
                 .frequency_hz = carrierHz_,
-                .duty_cycle = duty,
+                .duty_cycle = static_cast<float>(duty),
                 .flags = {
                     .polarity_active_low = 0,
                     .always_on = 0,
@@ -246,6 +252,10 @@ namespace esp32ir
         }
         rmt_transmit_config_t tx_cfg = {
             .loop_count = 0,
+            .flags = {
+                .eot_level = 0,
+                .queue_nonblocking = 0,
+            },
         };
         esp_err_t err = rmt_transmit(txChannel_, txEncoder_, items.data(),
                                      items.size() * sizeof(rmt_symbol_word_t), &tx_cfg);

@@ -14,7 +14,6 @@ namespace esp32ir
             return true;
         }
         uint64_t data = 0;
-        constexpr uint16_t kTUs = 5;
         constexpr uint32_t kHdrMarkUs = 3500;
         constexpr uint32_t kHdrSpaceUs = 1750;
         constexpr uint32_t kBitMarkUs = 502;
