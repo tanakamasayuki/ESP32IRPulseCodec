@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
 #include "itps_encode.h"
+#include "pulse_utils.h"
 #include <vector>
 
 namespace esp32ir
@@ -13,16 +14,57 @@ namespace esp32ir
         {
             return true;
         }
-        uint32_t cmd = 0;
-        uint8_t mode = 0;
-        bool tog = false;
-        if (!decodeRC6Raw(in, cmd, mode, tog))
-        {
+        std::vector<esp32ir::Pulse> pulses;
+        if (!esp32ir::collectPulses(in.raw, pulses))
             return false;
+        if (pulses.size() < 40)
+            return false;
+        size_t idx = 0;
+        auto take = [&]() -> esp32ir::Pulse
+        {
+            if (idx >= pulses.size())
+                return esp32ir::Pulse{false, 0};
+            return pulses[idx++];
+        };
+        auto ok = [&](const esp32ir::Pulse &p, uint32_t target, uint32_t tol)
+        { return esp32ir::inRange(p.us, target, tol); };
+        // Leader 2T mark 2T space
+        esp32ir::Pulse p1 = take(), p2 = take();
+        if (!p1.mark || p2.mark || !ok(p1, p1.us, 40) || !ok(p2, p1.us, 40))
+            return false;
+        uint32_t T = p1.us / 2;
+        // start bit double width
+        esp32ir::Pulse s1 = take(), s2 = take();
+        if (!s1.mark || s2.mark || !ok(s1, 2 * T, 40) || !ok(s2, 2 * T, 40))
+            return false;
+        auto decodeBit = [&](bool &bit) -> bool
+        {
+            esp32ir::Pulse h1 = take(), h2 = take();
+            if (!ok(h1, T, 40) || !ok(h2, T, 40))
+                return false;
+            bit = h1.mark && !h2.mark;
+            return true;
+        };
+        out.mode = 0;
+        for (int i = 2; i >= 0; --i)
+        {
+            bool b;
+            if (!decodeBit(b))
+                return false;
+            if (b)
+                out.mode |= (1 << i);
         }
-        out.command = cmd;
-        out.mode = mode;
-        out.toggle = tog;
+        if (!decodeBit(out.toggle))
+            return false;
+        out.command = 0;
+        for (int i = 15; i >= 0; --i)
+        {
+            bool b;
+            if (!decodeBit(b))
+                return false;
+            if (b)
+                out.command |= (1u << i);
+        }
         return true;
     }
     namespace

@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
 #include "itps_encode.h"
+#include "pulse_utils.h"
 #include <vector>
 #include <esp_log.h>
 
@@ -59,16 +60,47 @@ namespace esp32ir
         {
             return true;
         }
-        uint16_t addr = 0;
-        uint32_t data = 0;
-        uint8_t bits = 0;
-        if (!decodeAEHARaw(in, addr, data, bits))
+        std::vector<esp32ir::Pulse> pulses;
+        if (!esp32ir::collectPulses(in.raw, pulses))
         {
             return false;
         }
-        out.address = addr;
-        out.data = data;
-        out.nbits = bits;
+        size_t idx = 0;
+        auto expect = [&](bool mark, uint32_t target) -> bool
+        {
+            if (idx >= pulses.size())
+                return false;
+            const auto &p = pulses[idx];
+            if (p.mark != mark || !esp32ir::inRange(p.us, target, 30))
+                return false;
+            ++idx;
+            return true;
+        };
+        constexpr uint32_t unit = 425;
+        if (!expect(true, unit * 8) || !expect(false, unit * 4))
+            return false;
+        uint64_t raw = 0;
+        uint8_t bits = 0;
+        while (idx + 1 < pulses.size() && bits < 48)
+        {
+            if (!expect(true, unit))
+                return false;
+            if (idx >= pulses.size() || pulses[idx].mark)
+                return false;
+            bool one = esp32ir::inRange(pulses[idx].us, unit * 3, 35);
+            bool zero = esp32ir::inRange(pulses[idx].us, unit, 35);
+            if (!one && !zero)
+                break;
+            if (one)
+                raw |= (uint64_t{1} << bits);
+            ++bits;
+            ++idx;
+        }
+        if (bits < 24)
+            return false;
+        out.address = static_cast<uint16_t>(raw & 0xFFFF);
+        out.data = static_cast<uint32_t>(raw >> 16);
+        out.nbits = static_cast<uint8_t>(bits - 16);
         return true;
     }
     bool Transmitter::sendAEHA(const esp32ir::payload::AEHA &p)

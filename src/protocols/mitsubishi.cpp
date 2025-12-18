@@ -18,7 +18,7 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 560;
         constexpr uint32_t kZeroSpaceUs = 560;
         constexpr uint32_t kOneSpaceUs = 1690;
-        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 40, data))
+        if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 40, data))
         {
             return false;
         }

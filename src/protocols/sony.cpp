@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
 #include "itps_encode.h"
+#include "pulse_utils.h"
 #include <esp_log.h>
 #include <vector>
 
@@ -58,15 +59,58 @@ namespace esp32ir
         // try 12/15/20 variants
         uint16_t addr = 0;
         uint16_t cmd = 0;
+        std::vector<esp32ir::Pulse> pulses;
+        if (!esp32ir::collectPulses(in.raw, pulses))
+        {
+            return false;
+        }
         for (uint8_t bits : {12, 15, 20})
         {
-            if (decodeSonyRaw(in, bits, addr, cmd))
+            if (pulses.size() < 2 + bits * 2)
             {
-                out.address = addr;
-                out.command = cmd;
-                out.bits = bits;
-                return true;
+                continue;
             }
+            size_t idx = 0;
+            auto ok = [&](bool mark, uint32_t target, uint32_t tol) -> bool
+            {
+                if (idx >= pulses.size())
+                    return false;
+                const auto &p = pulses[idx];
+                if (p.mark != mark || !esp32ir::inRange(p.us, target, tol))
+                    return false;
+                ++idx;
+                return true;
+            };
+            idx = 0;
+            if (!ok(true, 2400, 25) || !ok(false, 600, 35))
+                continue;
+            uint32_t data = 0;
+            bool okBits = true;
+            for (uint8_t i = 0; i < bits; ++i)
+            {
+                if (idx >= pulses.size() || !esp32ir::inRange(pulses[idx].us, 600, 35) || !pulses[idx].mark)
+                {
+                    okBits = false;
+                    break;
+                }
+                uint32_t markLen = pulses[idx].us;
+                ++idx;
+                if (idx >= pulses.size() || pulses[idx].mark || !esp32ir::inRange(pulses[idx].us, 600, 35))
+                {
+                    okBits = false;
+                    break;
+                }
+                bool one = markLen > 900;
+                if (one)
+                    data |= (1u << i);
+                ++idx;
+            }
+            if (!okBits)
+                continue;
+            out.address = static_cast<uint16_t>(data >> 7);
+            out.command = static_cast<uint16_t>(data & 0x7F);
+            out.bits = bits;
+            return true;
         }
         return false;
     }

@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
 #include "itps_encode.h"
+#include "pulse_utils.h"
 #include <vector>
 
 namespace esp32ir
@@ -13,14 +14,53 @@ namespace esp32ir
         {
             return true;
         }
-        uint16_t cmd = 0;
-        bool tog = false;
-        if (!decodeRC5Raw(in, cmd, tog))
-        {
+        std::vector<esp32ir::Pulse> pulses;
+        if (!esp32ir::collectPulses(in.raw, pulses))
             return false;
+        if (pulses.size() < 28) // 14 bits * 2 halves
+            return false;
+        uint32_t T = pulses[0].us;
+        size_t idx = 0;
+        auto nextHalf = [&]() -> esp32ir::Pulse
+        {
+            if (idx >= pulses.size())
+                return esp32ir::Pulse{false, 0};
+            return pulses[idx++];
+        };
+        auto okHalf = [&](const esp32ir::Pulse &p)
+        { return esp32ir::inRange(p.us, T, 40); };
+        // Start bits: 1,1 -> mark/space, mark/space
+        esp32ir::Pulse a = nextHalf(), b = nextHalf();
+        if (!a.mark || b.mark || !okHalf(a) || !okHalf(b))
+            return false;
+        esp32ir::Pulse c = nextHalf(), d = nextHalf();
+        if (!c.mark || d.mark || !okHalf(c) || !okHalf(d))
+            return false;
+        esp32ir::Pulse t1 = nextHalf(), t2 = nextHalf();
+        if (!okHalf(t1) || !okHalf(t2))
+            return false;
+        out.toggle = t1.mark && !t2.mark;
+        uint16_t addr = 0;
+        for (int i = 4; i >= 0; --i)
+        {
+            esp32ir::Pulse h1 = nextHalf(), h2 = nextHalf();
+            if (!okHalf(h1) || !okHalf(h2))
+                return false;
+            bool bit = h1.mark && !h2.mark;
+            if (bit)
+                addr |= (1 << i);
+        }
+        uint16_t cmd = 0;
+        for (int i = 5; i >= 0; --i)
+        {
+            esp32ir::Pulse h1 = nextHalf(), h2 = nextHalf();
+            if (!okHalf(h1) || !okHalf(h2))
+                return false;
+            bool bit = h1.mark && !h2.mark;
+            if (bit)
+                cmd |= (1 << i);
         }
         out.command = cmd;
-        out.toggle = tog;
         return true;
     }
     namespace

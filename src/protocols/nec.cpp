@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
 #include "itps_encode.h"
+#include "pulse_utils.h"
 #include <vector>
 
 namespace esp32ir
@@ -30,6 +31,43 @@ namespace esp32ir
         {
             appendMark(seq, kBitMarkUs);
             appendSpace(seq, one ? kOneSpaceUs : kZeroSpaceUs);
+        }
+
+        bool decodeNecRaw(const esp32ir::RxResult &in, uint64_t &dataOut)
+        {
+            std::vector<esp32ir::Pulse> pulses;
+            if (!esp32ir::collectPulses(in.raw, pulses))
+                return false;
+            size_t idx = 0;
+            auto expect = [&](bool mark, uint32_t targetUs, uint32_t tol) -> bool
+            {
+                if (idx >= pulses.size())
+                    return false;
+                const auto &p = pulses[idx];
+                if (p.mark != mark || !esp32ir::inRange(p.us, targetUs, tol))
+                    return false;
+                ++idx;
+                return true;
+            };
+            if (!expect(true, kHdrMarkUs, 25) || !expect(false, kHdrSpaceUs, 25))
+                return false;
+            uint64_t data = 0;
+            for (uint8_t i = 0; i < 32; ++i)
+            {
+                if (!expect(true, kBitMarkUs, 30))
+                    return false;
+                if (idx >= pulses.size() || pulses[idx].mark)
+                    return false;
+                bool one = esp32ir::inRange(pulses[idx].us, kOneSpaceUs, 30);
+                bool zero = esp32ir::inRange(pulses[idx].us, kZeroSpaceUs, 30);
+                if (!one && !zero)
+                    return false;
+                if (one)
+                    data |= (uint64_t{1} << i);
+                ++idx;
+            }
+            dataOut = data;
+            return true;
         }
 
         esp32ir::ITPSBuffer buildNECFrame(uint16_t address, uint8_t command)
@@ -81,7 +119,7 @@ namespace esp32ir
             return true;
         }
         uint64_t data = 0;
-        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
+        if (!decodeNecRaw(in, data))
         {
             return false;
         }
