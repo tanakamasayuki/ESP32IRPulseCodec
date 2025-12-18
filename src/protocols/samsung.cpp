@@ -1,5 +1,5 @@
 #include "ESP32IRPulseCodec.h"
-#include "decoder_stub.h"
+#include "message_utils.h"
 #include "nec_like.h"
 
 namespace esp32ir

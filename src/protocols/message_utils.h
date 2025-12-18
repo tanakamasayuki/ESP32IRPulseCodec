@@ -6,7 +6,7 @@
 namespace esp32ir
 {
     template <typename T>
-    inline bool decodeMessage(const esp32ir::RxResult &in, esp32ir::Protocol expected, const char * /*name*/, T &out)
+    inline bool decodeMessage(const esp32ir::RxResult &in, esp32ir::Protocol expected, T &out)
     {
         if (in.protocol == expected && in.status == esp32ir::RxStatus::DECODED && in.message.data && in.message.length == sizeof(T))
         {
@@ -15,5 +15,4 @@ namespace esp32ir
         }
         return false;
     }
-
 } // namespace esp32ir
