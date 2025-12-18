@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
-#include "send_stub.h"
+#include "protocol_message_utils.h"
+#include <esp_log.h>
 
 namespace esp32ir
 {
@@ -12,7 +13,7 @@ namespace esp32ir
     }
     bool Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC &p)
     {
-        logSendStub("MitsubishiAC");
+        ESP_LOGW("ESP32IRPulseCodec", "send MitsubishiAC not implemented");
         return send(makeProtocolMessage(esp32ir::Protocol::MitsubishiAC, p));
     }
 

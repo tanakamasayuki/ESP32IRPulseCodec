@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
-#include "send_stub.h"
+#include "protocol_message_utils.h"
+#include <esp_log.h>
 
 namespace esp32ir
 {
@@ -12,7 +13,7 @@ namespace esp32ir
     }
     bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &p)
     {
-        logSendStub("PanasonicAC");
+        ESP_LOGW("ESP32IRPulseCodec", "send PanasonicAC not implemented");
         return send(makeProtocolMessage(esp32ir::Protocol::PanasonicAC, p));
     }
 

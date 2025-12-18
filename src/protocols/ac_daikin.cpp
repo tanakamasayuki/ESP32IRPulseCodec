@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
-#include "send_stub.h"
+#include "protocol_message_utils.h"
+#include <esp_log.h>
 
 namespace esp32ir
 {
@@ -12,7 +13,7 @@ namespace esp32ir
     }
     bool Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC &p)
     {
-        logSendStub("DaikinAC");
+        ESP_LOGW("ESP32IRPulseCodec", "send DaikinAC not implemented");
         // AC payload structs are placeholders; still forward as-is for future encode support.
         return send(makeProtocolMessage(esp32ir::Protocol::DaikinAC, p));
     }

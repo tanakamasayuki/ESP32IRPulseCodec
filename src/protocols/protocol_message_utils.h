@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ESP32IRPulseCodec.h"
-#include <esp_log.h>
 
 namespace esp32ir
 {
@@ -13,10 +12,5 @@ namespace esp32ir
             reinterpret_cast<const uint8_t *>(&payload),
             static_cast<uint16_t>(sizeof(T)),
             0};
-    }
-
-    inline void logSendStub(const char *name)
-    {
-        ESP_LOGW("ESP32IRPulseCodec", "send %s not implemented yet", name);
     }
 } // namespace esp32ir
