@@ -95,6 +95,7 @@ namespace esp32ir
     esp32ir::Protocol protocol;
     esp32ir::ProtocolMessage message;
     esp32ir::ITPSBuffer raw;
+    std::vector<uint8_t> payloadStorage;
   };
 
   namespace payload

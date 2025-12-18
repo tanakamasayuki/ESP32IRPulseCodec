@@ -298,17 +298,190 @@ namespace esp32ir
         esp32ir::ITPSBuffer buf;
         buf.addFrame(frame);
 
-        bool deliverRaw = useRawOnly_ || useRawPlusKnown_ || protocols_.empty();
-        if (!deliverRaw)
+        auto protocolsToTry = protocols_;
+        if (protocolsToTry.empty())
         {
-            ESP_LOGW(kTag, "RX decode not implemented; enable RAW modes to get data");
-            return false;
+            protocolsToTry = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
         }
-        out.status = esp32ir::RxStatus::RAW_ONLY;
-        out.protocol = esp32ir::Protocol::RAW;
-        out.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
-        out.raw = buf;
-        return true;
+
+        auto fillDecoded = [&](esp32ir::Protocol proto, const void *payload, size_t len) -> bool
+        {
+            out.payloadStorage.assign(reinterpret_cast<const uint8_t *>(payload),
+                                      reinterpret_cast<const uint8_t *>(payload) + len);
+            out.message = {proto, out.payloadStorage.data(), static_cast<uint16_t>(len), 0};
+            out.protocol = proto;
+            out.status = esp32ir::RxStatus::DECODED;
+            if (useRawPlusKnown_)
+            {
+                out.raw = buf;
+            }
+            else
+            {
+                out.raw.clear();
+            }
+            return true;
+        };
+
+        esp32ir::RxResult temp;
+        temp.status = esp32ir::RxStatus::RAW_ONLY;
+        temp.protocol = esp32ir::Protocol::RAW;
+        temp.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
+        temp.raw = buf;
+
+        for (auto proto : protocolsToTry)
+        {
+            switch (proto)
+            {
+            case esp32ir::Protocol::NEC:
+            {
+                esp32ir::payload::NEC p{};
+                if (esp32ir::decodeNEC(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::SONY:
+            {
+                esp32ir::payload::SONY p{};
+                if (esp32ir::decodeSONY(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::AEHA:
+            {
+                esp32ir::payload::AEHA p{};
+                if (esp32ir::decodeAEHA(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Panasonic:
+            {
+                esp32ir::payload::Panasonic p{};
+                if (esp32ir::decodePanasonic(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::JVC:
+            {
+                esp32ir::payload::JVC p{};
+                if (esp32ir::decodeJVC(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Samsung:
+            {
+                esp32ir::payload::Samsung p{};
+                if (esp32ir::decodeSamsung(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::LG:
+            {
+                esp32ir::payload::LG p{};
+                if (esp32ir::decodeLG(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Denon:
+            {
+                esp32ir::payload::Denon p{};
+                if (esp32ir::decodeDenon(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::RC5:
+            {
+                esp32ir::payload::RC5 p{};
+                if (esp32ir::decodeRC5(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::RC6:
+            {
+                esp32ir::payload::RC6 p{};
+                if (esp32ir::decodeRC6(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Apple:
+            {
+                esp32ir::payload::Apple p{};
+                if (esp32ir::decodeApple(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Pioneer:
+            {
+                esp32ir::payload::Pioneer p{};
+                if (esp32ir::decodePioneer(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Toshiba:
+            {
+                esp32ir::payload::Toshiba p{};
+                if (esp32ir::decodeToshiba(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Mitsubishi:
+            {
+                esp32ir::payload::Mitsubishi p{};
+                if (esp32ir::decodeMitsubishi(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Hitachi:
+            {
+                esp32ir::payload::Hitachi p{};
+                if (esp32ir::decodeHitachi(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        // No decode hit
+        if (useRawPlusKnown_ || useRawOnly_)
+        {
+            out.status = esp32ir::RxStatus::RAW_ONLY;
+            out.protocol = esp32ir::Protocol::RAW;
+            out.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
+            out.raw = buf;
+            out.payloadStorage.clear();
+            return true;
+        }
+        return false;
 #else
         if (!warned)
         {
