@@ -1,6 +1,10 @@
 #include "ESP32IRPulseCodec.h"
 #include <esp_log.h>
 #include <cstring>
+#ifdef ESP_PLATFORM
+#include <driver/rmt.h>
+#include <freertos/FreeRTOS.h>
+#endif
 
 namespace esp32ir
 {
@@ -8,6 +12,49 @@ namespace esp32ir
     namespace
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
+
+#ifdef ESP_PLATFORM
+        constexpr uint32_t kRmtResolutionHz = 1000000; // 1us tick
+        constexpr uint32_t kRmtDurationMax = 32767;
+
+        void pushSymbol(std::vector<rmt_item32_t> &items, bool level, uint32_t durationUs)
+        {
+            uint32_t remaining = durationUs;
+            while (remaining > 0)
+            {
+                uint32_t chunk = remaining > kRmtDurationMax ? kRmtDurationMax : remaining;
+                if (items.empty() || items.back().duration1 != 0)
+                {
+                    rmt_item32_t item = {};
+                    item.level0 = level ? 1 : 0;
+                    item.duration0 = chunk;
+                    items.push_back(item);
+                }
+                else
+                {
+                    rmt_item32_t &last = items.back();
+                    last.level1 = level ? 1 : 0;
+                    last.duration1 = chunk;
+                }
+                remaining -= chunk;
+            }
+        }
+
+        void appendITPSFrame(std::vector<rmt_item32_t> &items, const esp32ir::ITPSFrame &f)
+        {
+            if (!f.seq || f.len == 0 || f.T_us == 0)
+            {
+                return;
+            }
+            for (uint16_t i = 0; i < f.len; ++i)
+            {
+                int v = f.seq[i];
+                uint32_t durUs = static_cast<uint32_t>((v < 0) ? -v : v) * static_cast<uint32_t>(f.T_us);
+                bool level = v > 0;
+                pushSymbol(items, level, durUs);
+            }
+        }
+#endif
 
         bool itpsFrameValid(const esp32ir::ITPSFrame &f)
         {
@@ -95,6 +142,32 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX begin failed: pin not set");
             return false;
         }
+#ifdef ESP_PLATFORM
+        rmt_config_t config = {};
+        config.rmt_mode = RMT_MODE_TX;
+        config.channel = static_cast<rmt_channel_t>(txChannel_);
+        config.gpio_num = txPin_;
+        config.mem_block_num = 2;
+        config.clk_div = 80; // 1us tick (80MHz APB)
+        config.tx_config.loop_en = false;
+        config.tx_config.carrier_en = true;
+        config.tx_config.carrier_freq_hz = carrierHz_;
+        config.tx_config.carrier_duty_percent = dutyPercent_;
+        config.tx_config.carrier_level = invertOutput_ ? RMT_CARRIER_LEVEL_LOW : RMT_CARRIER_LEVEL_HIGH;
+        config.tx_config.idle_output_en = true;
+        config.tx_config.idle_level = invertOutput_ ? RMT_IDLE_LEVEL_HIGH : RMT_IDLE_LEVEL_LOW;
+
+        if (rmt_config(&config) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "TX begin failed: rmt_config");
+            return false;
+        }
+        if (rmt_driver_install(config.channel, 0, 0) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "TX begin failed: rmt_driver_install");
+            return false;
+        }
+#endif
         begun_ = true;
         ESP_LOGI(kTag, "TX begin: pin=%d invert=%s carrier=%luHz duty=%u%% gapUs=%lu",
                  txPin_, invertOutput_ ? "true" : "false",
@@ -109,6 +182,9 @@ namespace esp32ir
         {
             return;
         }
+#ifdef ESP_PLATFORM
+        rmt_driver_uninstall(static_cast<rmt_channel_t>(txChannel_));
+#endif
         begun_ = false;
         ESP_LOGI(kTag, "TX end");
     }
@@ -125,8 +201,39 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: invalid ITPSBuffer");
             return false;
         }
-        ESP_LOGW(kTag, "TX send ITPS stub: hardware TX path not implemented yet");
+#ifdef ESP_PLATFORM
+        std::vector<rmt_item32_t> items;
+        for (uint16_t i = 0; i < itps.frameCount(); ++i)
+        {
+            appendITPSFrame(items, itps.frame(i));
+        }
+        // enforce trailing gap as Space
+        if (gapUs_ > 0)
+        {
+            pushSymbol(items, false, gapUs_);
+        }
+        if (items.empty())
+        {
+            ESP_LOGE(kTag, "TX send failed: empty RMT items");
+            return false;
+        }
+        esp_err_t err = rmt_write_items(static_cast<rmt_channel_t>(txChannel_), items.data(),
+                                        static_cast<int>(items.size()), true);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(kTag, "TX send failed: rmt_write_items err=%d", err);
+            return false;
+        }
+        err = rmt_wait_tx_done(static_cast<rmt_channel_t>(txChannel_), pdMS_TO_TICKS(gapUs_ / 1000 + 50));
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(kTag, "TX wait done returned err=%d", err);
+        }
         return true;
+#else
+        ESP_LOGW(kTag, "TX send ITPS stub: hardware TX path not implemented in this build");
+        return true;
+#endif
     }
     bool Transmitter::send(const esp32ir::ProtocolMessage &message)
     {

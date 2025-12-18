@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
+#ifdef ESP_PLATFORM
+#include <driver/rmt.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/ringbuf.h>
+#endif
 
 #define ESP32IRPULSECODEC_VERSION_MAJOR 0
 #define ESP32IRPULSECODEC_VERSION_MINOR 0
@@ -244,6 +249,10 @@ namespace esp32ir
     bool useKnownNoAC_{false};
     bool begun_{false};
     std::vector<esp32ir::Protocol> protocols_;
+#ifdef ESP_PLATFORM
+    int rmtChannel_{0};
+    RingbufHandle_t rmtRingbuf_{nullptr};
+#endif
   };
 
   // Transmitter
@@ -309,6 +318,9 @@ namespace esp32ir
     uint8_t dutyPercent_{50};
     uint32_t gapUs_{40000};
     bool begun_{false};
+#ifdef ESP_PLATFORM
+    int rmtChannel_{1};
+#endif
   };
 
   // Decode helpers
