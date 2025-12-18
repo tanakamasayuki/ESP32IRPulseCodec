@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeLG(const esp32ir::RxResult &in, esp32ir::payload::LG &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::LG, "LG");
+        return decodeMessage(in, esp32ir::Protocol::LG, "LG", out);
     }
     bool Transmitter::sendLG(const esp32ir::payload::LG &p)
     {

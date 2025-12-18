@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::Denon, "Denon");
+        return decodeMessage(in, esp32ir::Protocol::Denon, "Denon", out);
     }
     bool Transmitter::sendDenon(const esp32ir::payload::Denon &p)
     {

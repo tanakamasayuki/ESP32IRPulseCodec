@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeRC5(const esp32ir::RxResult &in, esp32ir::payload::RC5 &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::RC5, "RC5");
+        return decodeMessage(in, esp32ir::Protocol::RC5, "RC5", out);
     }
     bool Transmitter::sendRC5(const esp32ir::payload::RC5 &p)
     {

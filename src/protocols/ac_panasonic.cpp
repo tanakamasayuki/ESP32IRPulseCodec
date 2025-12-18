@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodePanasonicAC(const esp32ir::RxResult &in, esp32ir::payload::PanasonicAC &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::PanasonicAC, "PanasonicAC");
+        return decodeMessage(in, esp32ir::Protocol::PanasonicAC, "PanasonicAC", out);
     }
     bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &p)
     {

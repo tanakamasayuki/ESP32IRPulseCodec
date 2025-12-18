@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeSONY(const esp32ir::RxResult &in, esp32ir::payload::SONY &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::SONY, "SONY");
+        return decodeMessage(in, esp32ir::Protocol::SONY, "SONY", out);
     }
     bool Transmitter::sendSONY(const esp32ir::payload::SONY &p)
     {

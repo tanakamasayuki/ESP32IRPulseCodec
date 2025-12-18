@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeRC6(const esp32ir::RxResult &in, esp32ir::payload::RC6 &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::RC6, "RC6");
+        return decodeMessage(in, esp32ir::Protocol::RC6, "RC6", out);
     }
     bool Transmitter::sendRC6(const esp32ir::payload::RC6 &p)
     {

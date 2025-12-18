@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeNEC(const esp32ir::RxResult &in, esp32ir::payload::NEC &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::NEC, "NEC");
+        return decodeMessage(in, esp32ir::Protocol::NEC, "NEC", out);
     }
 
     bool Transmitter::sendNEC(const esp32ir::payload::NEC &p)

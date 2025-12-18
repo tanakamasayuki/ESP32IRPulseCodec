@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::Panasonic, "Panasonic");
+        return decodeMessage(in, esp32ir::Protocol::Panasonic, "Panasonic", out);
     }
     bool Transmitter::sendPanasonic(const esp32ir::payload::Panasonic &p)
     {

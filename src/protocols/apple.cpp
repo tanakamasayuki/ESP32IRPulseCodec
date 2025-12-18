@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeApple(const esp32ir::RxResult &in, esp32ir::payload::Apple &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::Apple, "Apple");
+        return decodeMessage(in, esp32ir::Protocol::Apple, "Apple", out);
     }
     bool Transmitter::sendApple(const esp32ir::payload::Apple &p)
     {

@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeToshiba(const esp32ir::RxResult &in, esp32ir::payload::Toshiba &out)
     {
         out = {};
-        return decodeStub(in, esp32ir::Protocol::Toshiba, "Toshiba");
+        return decodeMessage(in, esp32ir::Protocol::Toshiba, "Toshiba", out);
     }
     bool Transmitter::sendToshiba(const esp32ir::payload::Toshiba &p)
     {
