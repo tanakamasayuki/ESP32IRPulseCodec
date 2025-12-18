@@ -135,13 +135,10 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send (protocol) called before begin");
             return false;
         }
-        if (message.data == nullptr || message.length == 0)
-        {
-            ESP_LOGE(kTag, "TX send failed: protocol payload missing");
-            return false;
-        }
         // TODO: encode ProtocolMessage into ITPSBuffer and dispatch to TX HAL.
-        ESP_LOGW(kTag, "TX send ProtocolMessage not implemented yet");
+        ESP_LOGW(kTag, "TX send ProtocolMessage not implemented yet (protocol=%u, len=%u)",
+                 static_cast<unsigned>(message.protocol),
+                 static_cast<unsigned>(message.length));
         return false;
     }
 
