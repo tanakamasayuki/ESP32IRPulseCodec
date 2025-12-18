@@ -114,7 +114,7 @@ namespace esp32ir
     bool decodeNEC(const esp32ir::RxResult &in, esp32ir::payload::NEC &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::NEC, "NEC", out))
+        if (decodeMessage(in, esp32ir::Protocol::NEC, out))
         {
             return true;
         }

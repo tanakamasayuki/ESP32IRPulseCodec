@@ -146,7 +146,7 @@ namespace esp32ir
         rmt_config_t config = {};
         config.rmt_mode = RMT_MODE_TX;
         config.channel = static_cast<rmt_channel_t>(txChannel_);
-        config.gpio_num = txPin_;
+        config.gpio_num = static_cast<gpio_num_t>(txPin_);
         config.mem_block_num = 2;
         config.clk_div = 80; // 1us tick (80MHz APB)
         config.tx_config.loop_en = false;

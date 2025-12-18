@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeSamsung(const esp32ir::RxResult &in, esp32ir::payload::Samsung &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Samsung, "Samsung", out))
+        if (decodeMessage(in, esp32ir::Protocol::Samsung, out))
         {
             return true;
         }

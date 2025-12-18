@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::JVC, "JVC", out))
+        if (decodeMessage(in, esp32ir::Protocol::JVC, out))
         {
             return true;
         }

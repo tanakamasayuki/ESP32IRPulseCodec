@@ -9,7 +9,7 @@ namespace esp32ir
     bool decodeFujitsuAC(const esp32ir::RxResult &in, esp32ir::payload::FujitsuAC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::FujitsuAC, "FujitsuAC", out);
+        return decodeMessage(in, esp32ir::Protocol::FujitsuAC, out);
     }
     bool Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC &p)
     {

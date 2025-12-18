@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeHitachi(const esp32ir::RxResult &in, esp32ir::payload::Hitachi &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Hitachi, "Hitachi", out))
+        if (decodeMessage(in, esp32ir::Protocol::Hitachi, out))
         {
             return true;
         }

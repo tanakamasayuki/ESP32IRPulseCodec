@@ -52,13 +52,11 @@ namespace esp32ir
     bool decodeSONY(const esp32ir::RxResult &in, esp32ir::payload::SONY &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::SONY, "SONY", out))
+        if (decodeMessage(in, esp32ir::Protocol::SONY, out))
         {
             return true;
         }
         // try 12/15/20 variants
-        uint16_t addr = 0;
-        uint16_t cmd = 0;
         std::vector<esp32ir::Pulse> pulses;
         if (!esp32ir::collectPulses(in.raw, pulses))
         {

@@ -9,7 +9,7 @@ namespace esp32ir
     bool decodeToshibaAC(const esp32ir::RxResult &in, esp32ir::payload::ToshibaAC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::ToshibaAC, "ToshibaAC", out);
+        return decodeMessage(in, esp32ir::Protocol::ToshibaAC, out);
     }
     bool Transmitter::sendToshibaAC(const esp32ir::payload::ToshibaAC &p)
     {

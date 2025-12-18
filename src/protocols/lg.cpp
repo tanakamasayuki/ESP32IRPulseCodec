@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeLG(const esp32ir::RxResult &in, esp32ir::payload::LG &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::LG, "LG", out))
+        if (decodeMessage(in, esp32ir::Protocol::LG, out))
         {
             return true;
         }

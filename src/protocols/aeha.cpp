@@ -56,7 +56,7 @@ namespace esp32ir
     bool decodeAEHA(const esp32ir::RxResult &in, esp32ir::payload::AEHA &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::AEHA, "AEHA", out))
+        if (decodeMessage(in, esp32ir::Protocol::AEHA, out))
         {
             return true;
         }

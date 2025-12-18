@@ -119,7 +119,7 @@ namespace esp32ir
         rmt_config_t config = {};
         config.rmt_mode = RMT_MODE_RX;
         config.channel = static_cast<rmt_channel_t>(rmtChannel_);
-        config.gpio_num = rxPin_;
+        config.gpio_num = static_cast<gpio_num_t>(rxPin_);
         config.mem_block_num = 2;
         config.clk_div = 80; // 1us tick
         config.rx_config.filter_en = true;
@@ -252,7 +252,6 @@ namespace esp32ir
 
     bool Receiver::poll(esp32ir::RxResult &out)
     {
-        static bool warned = false;
         if (!begun_)
         {
             ESP_LOGW(kTag, "RX poll called before begin");
@@ -483,11 +482,7 @@ namespace esp32ir
         }
         return false;
 #else
-        if (!warned)
-        {
-            ESP_LOGW(kTag, "RX poll failed: HAL decode pipeline not available in this build");
-            warned = true;
-        }
+        ESP_LOGW(kTag, "RX poll failed: HAL decode pipeline not available in this build");
         return false;
 #endif
     }

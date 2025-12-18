@@ -10,7 +10,7 @@ namespace esp32ir
     bool decodeRC6(const esp32ir::RxResult &in, esp32ir::payload::RC6 &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::RC6, "RC6", out))
+        if (decodeMessage(in, esp32ir::Protocol::RC6, out))
         {
             return true;
         }

@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeMitsubishi(const esp32ir::RxResult &in, esp32ir::payload::Mitsubishi &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Mitsubishi, "Mitsubishi", out))
+        if (decodeMessage(in, esp32ir::Protocol::Mitsubishi, out))
         {
             return true;
         }

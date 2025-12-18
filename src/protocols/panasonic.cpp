@@ -9,7 +9,7 @@ namespace esp32ir
     bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Panasonic, "Panasonic", out))
+        if (decodeMessage(in, esp32ir::Protocol::Panasonic, out))
         {
             return true;
         }

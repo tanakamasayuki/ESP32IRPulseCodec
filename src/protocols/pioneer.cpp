@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodePioneer(const esp32ir::RxResult &in, esp32ir::payload::Pioneer &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Pioneer, "Pioneer", out))
+        if (decodeMessage(in, esp32ir::Protocol::Pioneer, out))
         {
             return true;
         }

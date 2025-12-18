@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Denon, "Denon", out))
+        if (decodeMessage(in, esp32ir::Protocol::Denon, out))
         {
             return true;
         }

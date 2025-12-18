@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeApple(const esp32ir::RxResult &in, esp32ir::payload::Apple &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Apple, "Apple", out))
+        if (decodeMessage(in, esp32ir::Protocol::Apple, out))
         {
             return true;
         }

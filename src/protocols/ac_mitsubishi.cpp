@@ -9,7 +9,7 @@ namespace esp32ir
     bool decodeMitsubishiAC(const esp32ir::RxResult &in, esp32ir::payload::MitsubishiAC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::MitsubishiAC, "MitsubishiAC", out);
+        return decodeMessage(in, esp32ir::Protocol::MitsubishiAC, out);
     }
     bool Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC &p)
     {

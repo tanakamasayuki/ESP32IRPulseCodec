@@ -9,7 +9,7 @@ namespace esp32ir
     bool decodeDaikinAC(const esp32ir::RxResult &in, esp32ir::payload::DaikinAC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::DaikinAC, "DaikinAC", out);
+        return decodeMessage(in, esp32ir::Protocol::DaikinAC, out);
     }
     bool Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC &p)
     {

@@ -8,7 +8,7 @@ namespace esp32ir
     bool decodeToshiba(const esp32ir::RxResult &in, esp32ir::payload::Toshiba &out)
     {
         out = {};
-        if (decodeMessage(in, esp32ir::Protocol::Toshiba, "Toshiba", out))
+        if (decodeMessage(in, esp32ir::Protocol::Toshiba, out))
         {
             return true;
         }
