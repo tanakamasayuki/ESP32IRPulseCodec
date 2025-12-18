@@ -178,7 +178,17 @@ namespace esp32ir
             return sendSONY(p);
         }
         case esp32ir::Protocol::AEHA:
-            return checkSizeStub(sizeof(esp32ir::payload::AEHA), "AEHA");
+        {
+            if (message.length != sizeof(esp32ir::payload::AEHA))
+            {
+                ESP_LOGE(kTag, "TX send AEHA failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::AEHA)));
+                return false;
+            }
+            esp32ir::payload::AEHA p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendAEHA(p);
+        }
         case esp32ir::Protocol::Panasonic:
             return checkSizeStub(sizeof(esp32ir::payload::Panasonic), "Panasonic");
         case esp32ir::Protocol::JVC:
