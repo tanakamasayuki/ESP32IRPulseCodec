@@ -136,8 +136,12 @@ namespace esp32ir
             .clk_src = RMT_CLK_SRC_DEFAULT,
             .resolution_hz = 1000000,
             .mem_block_symbols = 64,
+            .intr_priority = 0,
             .flags = {
-                .invert_input = invertInput_ ? 1 : 0,
+                .with_dma = 0,
+                .invert_in = invertInput_ ? 1 : 0,
+                .io_loop_back = 0,
+                .allow_pd = 0,
             },
         };
         if (rmt_new_rx_channel(&config, &rxChannel_) != ESP_OK)
@@ -303,16 +307,6 @@ namespace esp32ir
             ESP_LOGW(kTag, "RX poll called before begin");
         }
 #ifdef ESP_PLATFORM
-        if (!rmtRingbuf_)
-        {
-            return false;
-        }
-        size_t itemSize = 0;
-        rmt_item32_t *items = (rmt_item32_t *)xRingbufferReceive(rmtRingbuf_, &itemSize, 0);
-        if (!items || itemSize == 0)
-        {
-            return false;
-        }
         rmt_rx_done_event_data_t ev = {};
         if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
