@@ -1,10 +1,8 @@
 #include "ESP32IRPulseCodec.h"
 #include <esp_log.h>
 #include <cstring>
-#ifdef ESP_PLATFORM
 #include <driver/rmt_tx.h>
 #include <driver/rmt_encoder.h>
-#endif
 
 namespace esp32ir
 {
@@ -13,7 +11,6 @@ namespace esp32ir
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
 
-#ifdef ESP_PLATFORM
         constexpr uint32_t kRmtResolutionHz = 1000000; // 1us tick
         constexpr uint32_t kRmtDurationMax = 32767;
 
@@ -54,7 +51,6 @@ namespace esp32ir
                 pushSymbol(items, level, durUs);
             }
         }
-#endif
 
         bool itpsFrameValid(const esp32ir::ITPSFrame &f)
         {
@@ -142,7 +138,6 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX begin failed: pin not set");
             return false;
         }
-#ifdef ESP_PLATFORM
         rmt_tx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(txPin_),
             .clk_src = RMT_CLK_SRC_DEFAULT,
@@ -174,7 +169,6 @@ namespace esp32ir
             txChannel_ = nullptr;
             return false;
         }
-#endif
         begun_ = true;
         ESP_LOGI(kTag, "TX begin: pin=%d invert=%s carrier=%luHz duty=%u%% gapUs=%lu",
                  txPin_, invertOutput_ ? "true" : "false",
@@ -189,7 +183,6 @@ namespace esp32ir
         {
             return;
         }
-#ifdef ESP_PLATFORM
         if (txEncoder_)
         {
             rmt_del_encoder(txEncoder_);
@@ -200,7 +193,6 @@ namespace esp32ir
             rmt_del_channel(txChannel_);
             txChannel_ = nullptr;
         }
-#endif
         begun_ = false;
         ESP_LOGI(kTag, "TX end");
     }
@@ -217,7 +209,6 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: invalid ITPSBuffer");
             return false;
         }
-#ifdef ESP_PLATFORM
         std::vector<rmt_symbol_word_t> items;
         for (uint16_t i = 0; i < itps.frameCount(); ++i)
         {
@@ -249,10 +240,6 @@ namespace esp32ir
             ESP_LOGW(kTag, "TX wait done returned err=%d", err);
         }
         return true;
-#else
-        ESP_LOGW(kTag, "TX send ITPS failed: hardware TX path not available in this build");
-        return false;
-#endif
     }
     bool Transmitter::send(const esp32ir::ProtocolMessage &message)
     {

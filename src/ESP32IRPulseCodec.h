@@ -3,14 +3,16 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#ifndef ESP_PLATFORM
+#error "ESP32IRPulseCodec is intended for ESP32 (ESP_PLATFORM must be defined)."
+#endif
+
 #include <vector>
-#ifdef ESP_PLATFORM
 #include <driver/rmt_tx.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_encoder.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
-#endif
 
 #define ESP32IRPULSECODEC_VERSION_MAJOR 0
 #define ESP32IRPULSECODEC_VERSION_MINOR 0
@@ -252,12 +254,10 @@ namespace esp32ir
     bool useKnownNoAC_{false};
     bool begun_{false};
     std::vector<esp32ir::Protocol> protocols_;
-#ifdef ESP_PLATFORM
     rmt_channel_handle_t rxChannel_{nullptr};
     QueueHandle_t rxQueue_{nullptr};
     std::vector<rmt_symbol_word_t> rxBuffer_;
     rmt_receive_config_t rxConfig_{};
-#endif
   };
 
   // Transmitter
@@ -323,10 +323,8 @@ namespace esp32ir
     uint8_t dutyPercent_{50};
     uint32_t gapUs_{40000};
     bool begun_{false};
-#ifdef ESP_PLATFORM
     rmt_channel_handle_t txChannel_{nullptr};
     rmt_encoder_handle_t txEncoder_{nullptr};
-#endif
   };
 
   // Decode helpers

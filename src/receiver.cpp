@@ -1,9 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include <esp_log.h>
-#ifdef ESP_PLATFORM
 #include <driver/rmt_rx.h>
 #include <driver/rmt_types.h>
-#endif
 
 namespace esp32ir
 {
@@ -12,7 +10,6 @@ namespace esp32ir
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
 
-#ifdef ESP_PLATFORM
         bool rxDoneCallback(rmt_channel_handle_t, const rmt_rx_done_event_data_t *edata, void *user_ctx)
         {
             QueueHandle_t q = static_cast<QueueHandle_t>(user_ctx);
@@ -24,7 +21,6 @@ namespace esp32ir
             xQueueSendFromISR(q, edata, &high_task_woken);
             return high_task_woken == pdTRUE;
         }
-#endif
 
         bool isACProtocol(esp32ir::Protocol p)
         {
@@ -130,7 +126,6 @@ namespace esp32ir
             ESP_LOGE(kTag, "RX begin failed: pin not set");
             return false;
         }
-#ifdef ESP_PLATFORM
         rmt_rx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(rxPin_),
             .clk_src = RMT_CLK_SRC_DEFAULT,
@@ -188,7 +183,6 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
-#endif
 
         if (!useRawOnly_)
         {
@@ -221,7 +215,6 @@ namespace esp32ir
         {
             return;
         }
-#ifdef ESP_PLATFORM
         if (rxChannel_)
         {
             rmt_disable(rxChannel_);
@@ -233,7 +226,6 @@ namespace esp32ir
             vQueueDelete(rxQueue_);
             rxQueue_ = nullptr;
         }
-#endif
         begun_ = false;
         ESP_LOGI(kTag, "RX end");
     }
@@ -278,7 +270,6 @@ namespace esp32ir
 
     namespace
     {
-#ifdef ESP_PLATFORM
         void pushSeq(std::vector<int8_t> &seq, bool mark, uint32_t durationUs, uint16_t T_us)
         {
             if (T_us == 0 || durationUs == 0)
@@ -297,7 +288,6 @@ namespace esp32ir
             }
             seq.push_back(static_cast<int8_t>(mark ? counts : -static_cast<int>(counts)));
         }
-#endif
     } // namespace
 
     bool Receiver::poll(esp32ir::RxResult &out)
@@ -306,7 +296,6 @@ namespace esp32ir
         {
             ESP_LOGW(kTag, "RX poll called before begin");
         }
-#ifdef ESP_PLATFORM
         rmt_rx_done_event_data_t ev = {};
         if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
@@ -527,10 +516,6 @@ namespace esp32ir
             return true;
         }
         return false;
-#else
-        ESP_LOGW(kTag, "RX poll failed: HAL decode pipeline not available in this build");
-        return false;
-#endif
     }
 
 } // namespace esp32ir
