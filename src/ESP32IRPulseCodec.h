@@ -68,7 +68,12 @@ namespace esp32ir
     uint32_t totalTimeUs() const;
 
   private:
-    std::vector<esp32ir::ITPSFrame> frames_;
+    struct FrameStorage
+    {
+      esp32ir::ITPSFrame frame;
+      std::vector<int8_t> data;
+    };
+    std::vector<FrameStorage> frames_;
   };
 
   struct ProtocolMessage

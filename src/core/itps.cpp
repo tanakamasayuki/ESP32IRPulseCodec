@@ -5,7 +5,18 @@ namespace esp32ir
 
   void ITPSBuffer::clear() { frames_.clear(); }
 
-  void ITPSBuffer::addFrame(const esp32ir::ITPSFrame &f) { frames_.push_back(f); }
+  void ITPSBuffer::addFrame(const esp32ir::ITPSFrame &f)
+  {
+    if (!f.seq || f.len == 0 || f.T_us == 0)
+    {
+      return;
+    }
+    FrameStorage storage;
+    storage.data.assign(f.seq, f.seq + f.len);
+    storage.frame = f;
+    storage.frame.seq = storage.data.data();
+    frames_.push_back(std::move(storage));
+  }
 
   uint16_t ITPSBuffer::frameCount() const { return static_cast<uint16_t>(frames_.size()); }
 
@@ -14,7 +25,7 @@ namespace esp32ir
     static const esp32ir::ITPSFrame kEmptyFrame{0, 0, nullptr, 0};
     if (i < frames_.size())
     {
-      return frames_[i];
+      return frames_[i].frame;
     }
     return kEmptyFrame;
   }
@@ -22,8 +33,9 @@ namespace esp32ir
   uint32_t ITPSBuffer::totalTimeUs() const
   {
     uint32_t total = 0;
-    for (const auto &f : frames_)
+    for (const auto &fs : frames_)
     {
+      const auto &f = fs.frame;
       if (!f.seq || f.len == 0 || f.T_us == 0)
       {
         continue;
