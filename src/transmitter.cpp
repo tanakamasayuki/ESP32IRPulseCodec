@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include <esp_log.h>
+#include <cstring>
 
 namespace esp32ir
 {
@@ -139,11 +140,38 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: protocol payload missing");
             return false;
         }
-        // TODO: encode ProtocolMessage into ITPSBuffer and dispatch to TX HAL.
-        ESP_LOGW(kTag, "TX send ProtocolMessage stub: encode/HAL not implemented (protocol=%u, len=%u)",
-                 static_cast<unsigned>(message.protocol),
-                 static_cast<unsigned>(message.length));
-        return true;
+        switch (message.protocol)
+        {
+        case esp32ir::Protocol::NEC:
+        {
+            if (message.length != sizeof(esp32ir::payload::NEC))
+            {
+                ESP_LOGE(kTag, "TX send NEC failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::NEC)));
+                return false;
+            }
+            esp32ir::payload::NEC p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendNEC(p);
+        }
+        case esp32ir::Protocol::SONY:
+        {
+            if (message.length != sizeof(esp32ir::payload::SONY))
+            {
+                ESP_LOGE(kTag, "TX send SONY failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::SONY)));
+                return false;
+            }
+            esp32ir::payload::SONY p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendSONY(p);
+        }
+        default:
+            ESP_LOGW(kTag, "TX send ProtocolMessage stub: encode/HAL not implemented (protocol=%u, len=%u)",
+                     static_cast<unsigned>(message.protocol),
+                     static_cast<unsigned>(message.length));
+            return true;
+        }
     }
 
 } // namespace esp32ir
