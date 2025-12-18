@@ -1,7 +1,7 @@
 #include "ESP32IRPulseCodec.h"
-#include "message_utils.h"
-#include "itps_encode.h"
-#include "pulse_utils.h"
+#include "core/message_utils.h"
+#include "core/itps_encode.h"
+#include "core/pulse_utils.h"
 #include <vector>
 
 namespace esp32ir

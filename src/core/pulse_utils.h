@@ -42,4 +42,3 @@ namespace esp32ir
         return !out.empty();
     }
 } // namespace esp32ir
-
