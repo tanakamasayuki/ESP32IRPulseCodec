@@ -8,7 +8,23 @@ namespace esp32ir
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::JVC, "JVC", out);
+        if (decodeMessage(in, esp32ir::Protocol::JVC, "JVC", out))
+        {
+            return true;
+        }
+        uint64_t data = 0;
+        constexpr uint32_t kHdrMarkUs = 8400;
+        constexpr uint32_t kHdrSpaceUs = 4200;
+        constexpr uint32_t kBitMarkUs = 525;
+        constexpr uint32_t kZeroSpaceUs = 525;
+        constexpr uint32_t kOneSpaceUs = 1575;
+        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
+        {
+            return false;
+        }
+        out.address = static_cast<uint16_t>(data & 0xFFFF);
+        out.command = static_cast<uint16_t>(data >> 16);
+        return true;
     }
     bool Transmitter::sendJVC(const esp32ir::payload::JVC &p)
     {

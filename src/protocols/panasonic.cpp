@@ -9,7 +9,26 @@ namespace esp32ir
     bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::Panasonic, "Panasonic", out);
+        if (decodeMessage(in, esp32ir::Protocol::Panasonic, "Panasonic", out))
+        {
+            return true;
+        }
+        uint64_t data = 0;
+        constexpr uint16_t kTUs = 5;
+        constexpr uint32_t kHdrMarkUs = 3500;
+        constexpr uint32_t kHdrSpaceUs = 1750;
+        constexpr uint32_t kBitMarkUs = 502;
+        constexpr uint32_t kZeroSpaceUs = 424;
+        constexpr uint32_t kOneSpaceUs = 1244;
+        uint8_t bits = 32;
+        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, bits, data))
+        {
+            return false;
+        }
+        out.address = static_cast<uint16_t>(data & 0xFFFF);
+        out.data = static_cast<uint32_t>(data >> 16);
+        out.nbits = 16;
+        return true;
     }
     bool Transmitter::sendPanasonic(const esp32ir::payload::Panasonic &p)
     {

@@ -9,7 +9,21 @@ namespace esp32ir
     bool decodeRC6(const esp32ir::RxResult &in, esp32ir::payload::RC6 &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::RC6, "RC6", out);
+        if (decodeMessage(in, esp32ir::Protocol::RC6, "RC6", out))
+        {
+            return true;
+        }
+        uint32_t cmd = 0;
+        uint8_t mode = 0;
+        bool tog = false;
+        if (!decodeRC6Raw(in, cmd, mode, tog))
+        {
+            return false;
+        }
+        out.command = cmd;
+        out.mode = mode;
+        out.toggle = tog;
+        return true;
     }
     namespace
     {

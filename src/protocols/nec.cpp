@@ -76,7 +76,19 @@ namespace esp32ir
     bool decodeNEC(const esp32ir::RxResult &in, esp32ir::payload::NEC &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::NEC, "NEC", out);
+        if (decodeMessage(in, esp32ir::Protocol::NEC, "NEC", out))
+        {
+            return true;
+        }
+        uint64_t data = 0;
+        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
+        {
+            return false;
+        }
+        out.address = static_cast<uint16_t>(data & 0xFFFF);
+        out.command = static_cast<uint8_t>((data >> 16) & 0xFF);
+        out.repeat = false;
+        return true;
     }
 
     bool Transmitter::sendNEC(const esp32ir::payload::NEC &p)

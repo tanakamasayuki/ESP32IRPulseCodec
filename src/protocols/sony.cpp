@@ -51,7 +51,24 @@ namespace esp32ir
     bool decodeSONY(const esp32ir::RxResult &in, esp32ir::payload::SONY &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::SONY, "SONY", out);
+        if (decodeMessage(in, esp32ir::Protocol::SONY, "SONY", out))
+        {
+            return true;
+        }
+        // try 12/15/20 variants
+        uint16_t addr = 0;
+        uint16_t cmd = 0;
+        for (uint8_t bits : {12, 15, 20})
+        {
+            if (decodeSonyRaw(in, bits, addr, cmd))
+            {
+                out.address = addr;
+                out.command = cmd;
+                out.bits = bits;
+                return true;
+            }
+        }
+        return false;
     }
     bool Transmitter::sendSONY(const esp32ir::payload::SONY &p)
     {

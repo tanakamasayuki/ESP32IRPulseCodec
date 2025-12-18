@@ -8,7 +8,24 @@ namespace esp32ir
     bool decodeMitsubishi(const esp32ir::RxResult &in, esp32ir::payload::Mitsubishi &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::Mitsubishi, "Mitsubishi", out);
+        if (decodeMessage(in, esp32ir::Protocol::Mitsubishi, "Mitsubishi", out))
+        {
+            return true;
+        }
+        uint64_t data = 0;
+        constexpr uint32_t kHdrMarkUs = 9000;
+        constexpr uint32_t kHdrSpaceUs = 4500;
+        constexpr uint32_t kBitMarkUs = 560;
+        constexpr uint32_t kZeroSpaceUs = 560;
+        constexpr uint32_t kOneSpaceUs = 1690;
+        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 40, data))
+        {
+            return false;
+        }
+        out.address = static_cast<uint16_t>(data & 0xFFFF);
+        out.command = static_cast<uint16_t>((data >> 16) & 0xFFFF);
+        out.extra = static_cast<uint8_t>((data >> 32) & 0xFF);
+        return true;
     }
     bool Transmitter::sendMitsubishi(const esp32ir::payload::Mitsubishi &p)
     {

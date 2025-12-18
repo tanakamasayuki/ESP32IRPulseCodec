@@ -8,7 +8,24 @@ namespace esp32ir
     bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::Denon, "Denon", out);
+        if (decodeMessage(in, esp32ir::Protocol::Denon, "Denon", out))
+        {
+            return true;
+        }
+        uint64_t data = 0;
+        constexpr uint32_t kHdrMarkUs = 9000;
+        constexpr uint32_t kHdrSpaceUs = 4500;
+        constexpr uint32_t kBitMarkUs = 560;
+        constexpr uint32_t kZeroSpaceUs = 560;
+        constexpr uint32_t kOneSpaceUs = 1690;
+        if (!decodeNecLikeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
+        {
+            return false;
+        }
+        out.address = static_cast<uint16_t>(data & 0xFFFF);
+        out.command = static_cast<uint16_t>(data >> 16);
+        out.repeat = false;
+        return true;
     }
     bool Transmitter::sendDenon(const esp32ir::payload::Denon &p)
     {

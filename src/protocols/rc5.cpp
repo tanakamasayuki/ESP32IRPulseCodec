@@ -9,7 +9,19 @@ namespace esp32ir
     bool decodeRC5(const esp32ir::RxResult &in, esp32ir::payload::RC5 &out)
     {
         out = {};
-        return decodeMessage(in, esp32ir::Protocol::RC5, "RC5", out);
+        if (decodeMessage(in, esp32ir::Protocol::RC5, "RC5", out))
+        {
+            return true;
+        }
+        uint16_t cmd = 0;
+        bool tog = false;
+        if (!decodeRC5Raw(in, cmd, tog))
+        {
+            return false;
+        }
+        out.command = cmd;
+        out.toggle = tog;
+        return true;
     }
     namespace
     {
