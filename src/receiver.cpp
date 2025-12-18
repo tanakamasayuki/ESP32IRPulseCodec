@@ -138,8 +138,8 @@ namespace esp32ir
             .mem_block_symbols = 64,
             .intr_priority = 0,
             .flags = {
+                .invert_in = invertInput_ ? 1U : 0U,
                 .with_dma = 0,
-                .invert_in = invertInput_ ? 1 : 0,
                 .io_loop_back = 0,
                 .allow_pd = 0,
             },
