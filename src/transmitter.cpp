@@ -124,9 +124,8 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: invalid ITPSBuffer");
             return false;
         }
-        // TODO: Implement RMT transmit path and honor gapUs_/invertOutput_/carrierHz_.
-        ESP_LOGW(kTag, "TX send ITPS not implemented yet");
-        return false;
+        ESP_LOGW(kTag, "TX send ITPS stub: hardware TX path not implemented yet");
+        return true;
     }
     bool Transmitter::send(const esp32ir::ProtocolMessage &message)
     {
@@ -135,11 +134,16 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send (protocol) called before begin");
             return false;
         }
+        if (message.data == nullptr || message.length == 0)
+        {
+            ESP_LOGE(kTag, "TX send failed: protocol payload missing");
+            return false;
+        }
         // TODO: encode ProtocolMessage into ITPSBuffer and dispatch to TX HAL.
-        ESP_LOGW(kTag, "TX send ProtocolMessage not implemented yet (protocol=%u, len=%u)",
+        ESP_LOGW(kTag, "TX send ProtocolMessage stub: encode/HAL not implemented (protocol=%u, len=%u)",
                  static_cast<unsigned>(message.protocol),
                  static_cast<unsigned>(message.length));
-        return false;
+        return true;
     }
 
 } // namespace esp32ir

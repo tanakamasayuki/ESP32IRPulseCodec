@@ -188,11 +188,16 @@ namespace esp32ir
 
     bool Receiver::poll(esp32ir::RxResult &)
     {
+        static bool warned = false;
         if (!begun_)
         {
             ESP_LOGW(kTag, "RX poll called before begin");
         }
-        // TODO: hook to RMT + decode pipeline. Until implemented, no data is returned.
+        if (!warned)
+        {
+            ESP_LOGW(kTag, "RX poll stub: HAL decode pipeline not implemented yet");
+            warned = true;
+        }
         return false;
     }
 
