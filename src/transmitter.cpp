@@ -161,6 +161,25 @@ namespace esp32ir
             txChannel_ = nullptr;
             return false;
         }
+        if (carrierHz_ > 0)
+        {
+            uint32_t duty = dutyPercent_ == 0 ? 50 : dutyPercent_;
+            rmt_carrier_config_t carrier_cfg = {
+                .frequency_hz = carrierHz_,
+                .duty_cycle = duty,
+                .flags = {
+                    .polarity_active_low = 0,
+                    .always_on = 0,
+                },
+            };
+            if (rmt_apply_carrier(txChannel_, &carrier_cfg) != ESP_OK)
+            {
+                ESP_LOGE(kTag, "TX begin failed: rmt_apply_carrier");
+                rmt_del_channel(txChannel_);
+                txChannel_ = nullptr;
+                return false;
+            }
+        }
         rmt_copy_encoder_config_t enc_cfg = {};
         if (rmt_new_copy_encoder(&enc_cfg, &txEncoder_) != ESP_OK)
         {
@@ -190,6 +209,7 @@ namespace esp32ir
         }
         if (txChannel_)
         {
+            rmt_disable(txChannel_);
             rmt_del_channel(txChannel_);
             txChannel_ = nullptr;
         }
