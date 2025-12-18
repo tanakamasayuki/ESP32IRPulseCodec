@@ -319,7 +319,7 @@ namespace esp32ir
     uint32_t gapUs_{40000};
     bool begun_{false};
 #ifdef ESP_PLATFORM
-    int rmtChannel_{1};
+    int txChannel_{1};
 #endif
   };
 

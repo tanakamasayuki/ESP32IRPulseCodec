@@ -297,29 +297,149 @@ namespace esp32ir
             return sendAEHA(p);
         }
         case esp32ir::Protocol::Panasonic:
-            return checkSizeStub(sizeof(esp32ir::payload::Panasonic), "Panasonic");
+        {
+            if (message.length != sizeof(esp32ir::payload::Panasonic))
+            {
+                ESP_LOGE(kTag, "TX send Panasonic failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Panasonic)));
+                return false;
+            }
+            esp32ir::payload::Panasonic p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendPanasonic(p);
+        }
         case esp32ir::Protocol::JVC:
-            return checkSizeStub(sizeof(esp32ir::payload::JVC), "JVC");
+        {
+            if (message.length != sizeof(esp32ir::payload::JVC))
+            {
+                ESP_LOGE(kTag, "TX send JVC failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::JVC)));
+                return false;
+            }
+            esp32ir::payload::JVC p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendJVC(p);
+        }
         case esp32ir::Protocol::Samsung:
-            return checkSizeStub(sizeof(esp32ir::payload::Samsung), "Samsung");
+        {
+            if (message.length != sizeof(esp32ir::payload::Samsung))
+            {
+                ESP_LOGE(kTag, "TX send Samsung failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Samsung)));
+                return false;
+            }
+            esp32ir::payload::Samsung p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendSamsung(p);
+        }
         case esp32ir::Protocol::LG:
-            return checkSizeStub(sizeof(esp32ir::payload::LG), "LG");
+        {
+            if (message.length != sizeof(esp32ir::payload::LG))
+            {
+                ESP_LOGE(kTag, "TX send LG failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::LG)));
+                return false;
+            }
+            esp32ir::payload::LG p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendLG(p);
+        }
         case esp32ir::Protocol::Denon:
-            return checkSizeStub(sizeof(esp32ir::payload::Denon), "Denon");
+        {
+            if (message.length != sizeof(esp32ir::payload::Denon))
+            {
+                ESP_LOGE(kTag, "TX send Denon failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Denon)));
+                return false;
+            }
+            esp32ir::payload::Denon p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendDenon(p);
+        }
         case esp32ir::Protocol::RC5:
-            return checkSizeStub(sizeof(esp32ir::payload::RC5), "RC5");
+        {
+            if (message.length != sizeof(esp32ir::payload::RC5))
+            {
+                ESP_LOGE(kTag, "TX send RC5 failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::RC5)));
+                return false;
+            }
+            esp32ir::payload::RC5 p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendRC5(p);
+        }
         case esp32ir::Protocol::RC6:
-            return checkSizeStub(sizeof(esp32ir::payload::RC6), "RC6");
+        {
+            if (message.length != sizeof(esp32ir::payload::RC6))
+            {
+                ESP_LOGE(kTag, "TX send RC6 failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::RC6)));
+                return false;
+            }
+            esp32ir::payload::RC6 p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendRC6(p);
+        }
         case esp32ir::Protocol::Apple:
-            return checkSizeStub(sizeof(esp32ir::payload::Apple), "Apple");
+        {
+            if (message.length != sizeof(esp32ir::payload::Apple))
+            {
+                ESP_LOGE(kTag, "TX send Apple failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Apple)));
+                return false;
+            }
+            esp32ir::payload::Apple p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendApple(p);
+        }
         case esp32ir::Protocol::Pioneer:
-            return checkSizeStub(sizeof(esp32ir::payload::Pioneer), "Pioneer");
+        {
+            if (message.length != sizeof(esp32ir::payload::Pioneer))
+            {
+                ESP_LOGE(kTag, "TX send Pioneer failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Pioneer)));
+                return false;
+            }
+            esp32ir::payload::Pioneer p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendPioneer(p);
+        }
         case esp32ir::Protocol::Toshiba:
-            return checkSizeStub(sizeof(esp32ir::payload::Toshiba), "Toshiba");
+        {
+            if (message.length != sizeof(esp32ir::payload::Toshiba))
+            {
+                ESP_LOGE(kTag, "TX send Toshiba failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Toshiba)));
+                return false;
+            }
+            esp32ir::payload::Toshiba p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendToshiba(p);
+        }
         case esp32ir::Protocol::Mitsubishi:
-            return checkSizeStub(sizeof(esp32ir::payload::Mitsubishi), "Mitsubishi");
+        {
+            if (message.length != sizeof(esp32ir::payload::Mitsubishi))
+            {
+                ESP_LOGE(kTag, "TX send Mitsubishi failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Mitsubishi)));
+                return false;
+            }
+            esp32ir::payload::Mitsubishi p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendMitsubishi(p);
+        }
         case esp32ir::Protocol::Hitachi:
-            return checkSizeStub(sizeof(esp32ir::payload::Hitachi), "Hitachi");
+        {
+            if (message.length != sizeof(esp32ir::payload::Hitachi))
+            {
+                ESP_LOGE(kTag, "TX send Hitachi failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Hitachi)));
+                return false;
+            }
+            esp32ir::payload::Hitachi p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendHitachi(p);
+        }
         case esp32ir::Protocol::DaikinAC:
             return checkSizeStub(sizeof(esp32ir::payload::DaikinAC), "DaikinAC");
         case esp32ir::Protocol::PanasonicAC:

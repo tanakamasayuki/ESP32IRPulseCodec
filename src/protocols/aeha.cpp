@@ -1,6 +1,5 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
-#include "send_stub.h"
 #include "itps_encode.h"
 #include <vector>
 #include <esp_log.h>
