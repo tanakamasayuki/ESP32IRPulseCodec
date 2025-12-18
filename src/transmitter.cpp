@@ -231,8 +231,8 @@ namespace esp32ir
         }
         return true;
 #else
-        ESP_LOGW(kTag, "TX send ITPS stub: hardware TX path not implemented in this build");
-        return true;
+        ESP_LOGW(kTag, "TX send ITPS failed: hardware TX path not available in this build");
+        return false;
 #endif
     }
     bool Transmitter::send(const esp32ir::ProtocolMessage &message)
@@ -256,7 +256,7 @@ namespace esp32ir
                 return false;
             }
             ESP_LOGW(kTag, "TX send %s stub: encode/HAL not implemented", name);
-            return true;
+            return false;
         };
         switch (message.protocol)
         {
@@ -334,7 +334,7 @@ namespace esp32ir
             ESP_LOGW(kTag, "TX send ProtocolMessage stub: encode/HAL not implemented (protocol=%u, len=%u)",
                      static_cast<unsigned>(message.protocol),
                      static_cast<unsigned>(message.length));
-            return true;
+            return false;
         }
     }
 

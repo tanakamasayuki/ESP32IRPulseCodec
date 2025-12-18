@@ -298,6 +298,12 @@ namespace esp32ir
         esp32ir::ITPSBuffer buf;
         buf.addFrame(frame);
 
+        bool deliverRaw = useRawOnly_ || useRawPlusKnown_ || protocols_.empty();
+        if (!deliverRaw)
+        {
+            ESP_LOGW(kTag, "RX decode not implemented; enable RAW modes to get data");
+            return false;
+        }
         out.status = esp32ir::RxStatus::RAW_ONLY;
         out.protocol = esp32ir::Protocol::RAW;
         out.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
@@ -306,7 +312,7 @@ namespace esp32ir
 #else
         if (!warned)
         {
-            ESP_LOGW(kTag, "RX poll stub: HAL decode pipeline not implemented yet");
+            ESP_LOGW(kTag, "RX poll failed: HAL decode pipeline not available in this build");
             warned = true;
         }
         return false;
