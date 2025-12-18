@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::Mitsubishi, "Mitsubishi");
     }
-    bool Transmitter::sendMitsubishi(const esp32ir::payload::Mitsubishi &)
+    bool Transmitter::sendMitsubishi(const esp32ir::payload::Mitsubishi &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::Mitsubishi, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("Mitsubishi");
+        return send(makeProtocolMessage(esp32ir::Protocol::Mitsubishi, p));
     }
     bool Transmitter::sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra)
     {

@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::Hitachi, "Hitachi");
     }
-    bool Transmitter::sendHitachi(const esp32ir::payload::Hitachi &)
+    bool Transmitter::sendHitachi(const esp32ir::payload::Hitachi &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::Hitachi, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("Hitachi");
+        return send(makeProtocolMessage(esp32ir::Protocol::Hitachi, p));
     }
     bool Transmitter::sendHitachi(uint16_t address, uint16_t command, uint8_t extra)
     {

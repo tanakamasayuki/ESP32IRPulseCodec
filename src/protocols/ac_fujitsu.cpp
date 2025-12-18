@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::FujitsuAC, "FujitsuAC");
     }
-    bool Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC &)
+    bool Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::FujitsuAC, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("FujitsuAC");
+        return send(makeProtocolMessage(esp32ir::Protocol::FujitsuAC, p));
     }
 
 } // namespace esp32ir

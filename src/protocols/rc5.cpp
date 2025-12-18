@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::RC5, "RC5");
     }
-    bool Transmitter::sendRC5(const esp32ir::payload::RC5 &)
+    bool Transmitter::sendRC5(const esp32ir::payload::RC5 &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::RC5, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("RC5");
+        return send(makeProtocolMessage(esp32ir::Protocol::RC5, p));
     }
     bool Transmitter::sendRC5(uint16_t command, bool toggle)
     {

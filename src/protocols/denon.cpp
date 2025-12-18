@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::Denon, "Denon");
     }
-    bool Transmitter::sendDenon(const esp32ir::payload::Denon &)
+    bool Transmitter::sendDenon(const esp32ir::payload::Denon &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::Denon, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("Denon");
+        return send(makeProtocolMessage(esp32ir::Protocol::Denon, p));
     }
     bool Transmitter::sendDenon(uint16_t address, uint16_t command, bool repeat)
     {

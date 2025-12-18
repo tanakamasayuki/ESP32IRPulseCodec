@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::SONY, "SONY");
     }
-    bool Transmitter::sendSONY(const esp32ir::payload::SONY &)
+    bool Transmitter::sendSONY(const esp32ir::payload::SONY &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::SONY, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("SONY");
+        return send(makeProtocolMessage(esp32ir::Protocol::SONY, p));
     }
     bool Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits)
     {

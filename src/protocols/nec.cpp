@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -10,10 +11,10 @@ namespace esp32ir
         return decodeStub(in, esp32ir::Protocol::NEC, "NEC");
     }
 
-    bool Transmitter::sendNEC(const esp32ir::payload::NEC &)
+    bool Transmitter::sendNEC(const esp32ir::payload::NEC &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::NEC, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("NEC");
+        return send(makeProtocolMessage(esp32ir::Protocol::NEC, p));
     }
 
     bool Transmitter::sendNEC(uint16_t address, uint8_t command, bool repeat)

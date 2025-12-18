@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::PanasonicAC, "PanasonicAC");
     }
-    bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &)
+    bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::PanasonicAC, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("PanasonicAC");
+        return send(makeProtocolMessage(esp32ir::Protocol::PanasonicAC, p));
     }
 
 } // namespace esp32ir

@@ -1,5 +1,6 @@
 #include "ESP32IRPulseCodec.h"
 #include "decoder_stub.h"
+#include "send_stub.h"
 
 namespace esp32ir
 {
@@ -9,10 +10,10 @@ namespace esp32ir
         out = {};
         return decodeStub(in, esp32ir::Protocol::JVC, "JVC");
     }
-    bool Transmitter::sendJVC(const esp32ir::payload::JVC &)
+    bool Transmitter::sendJVC(const esp32ir::payload::JVC &p)
     {
-        esp32ir::ProtocolMessage msg{esp32ir::Protocol::JVC, nullptr, 0, 0};
-        return send(msg);
+        logSendStub("JVC");
+        return send(makeProtocolMessage(esp32ir::Protocol::JVC, p));
     }
     bool Transmitter::sendJVC(uint16_t address, uint16_t command)
     {
