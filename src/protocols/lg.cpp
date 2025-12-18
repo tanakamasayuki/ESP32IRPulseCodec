@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeLG(const esp32ir::RxResult &, esp32ir::payload::LG &) { return false; }
+    bool decodeLG(const esp32ir::RxResult &in, esp32ir::payload::LG &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::LG, "LG");
+    }
     bool Transmitter::sendLG(const esp32ir::payload::LG &)
     {
         esp32ir::ProtocolMessage msg{esp32ir::Protocol::LG, nullptr, 0, 0};

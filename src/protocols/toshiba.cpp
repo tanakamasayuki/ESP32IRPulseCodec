@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeToshiba(const esp32ir::RxResult &, esp32ir::payload::Toshiba &) { return false; }
+    bool decodeToshiba(const esp32ir::RxResult &in, esp32ir::payload::Toshiba &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::Toshiba, "Toshiba");
+    }
     bool Transmitter::sendToshiba(const esp32ir::payload::Toshiba &)
     {
         esp32ir::ProtocolMessage msg{esp32ir::Protocol::Toshiba, nullptr, 0, 0};

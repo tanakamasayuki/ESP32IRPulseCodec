@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeNEC(const esp32ir::RxResult &, esp32ir::payload::NEC &) { return false; }
+    bool decodeNEC(const esp32ir::RxResult &in, esp32ir::payload::NEC &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::NEC, "NEC");
+    }
 
     bool Transmitter::sendNEC(const esp32ir::payload::NEC &)
     {

@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeJVC(const esp32ir::RxResult &, esp32ir::payload::JVC &) { return false; }
+    bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::JVC, "JVC");
+    }
     bool Transmitter::sendJVC(const esp32ir::payload::JVC &)
     {
         esp32ir::ProtocolMessage msg{esp32ir::Protocol::JVC, nullptr, 0, 0};

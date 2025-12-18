@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeAEHA(const esp32ir::RxResult &, esp32ir::payload::AEHA &) { return false; }
+    bool decodeAEHA(const esp32ir::RxResult &in, esp32ir::payload::AEHA &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::AEHA, "AEHA");
+    }
     bool Transmitter::sendAEHA(const esp32ir::payload::AEHA &)
     {
         esp32ir::ProtocolMessage msg{esp32ir::Protocol::AEHA, nullptr, 0, 0};

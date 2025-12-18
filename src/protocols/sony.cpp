@@ -1,9 +1,14 @@
 #include "ESP32IRPulseCodec.h"
+#include "decoder_stub.h"
 
 namespace esp32ir
 {
 
-    bool decodeSONY(const esp32ir::RxResult &, esp32ir::payload::SONY &) { return false; }
+    bool decodeSONY(const esp32ir::RxResult &in, esp32ir::payload::SONY &out)
+    {
+        out = {};
+        return decodeStub(in, esp32ir::Protocol::SONY, "SONY");
+    }
     bool Transmitter::sendSONY(const esp32ir::payload::SONY &)
     {
         esp32ir::ProtocolMessage msg{esp32ir::Protocol::SONY, nullptr, 0, 0};
