@@ -2,8 +2,8 @@
 #include <esp_log.h>
 #include <cstring>
 #ifdef ESP_PLATFORM
-#include <driver/rmt.h>
-#include <freertos/FreeRTOS.h>
+#include <driver/rmt_tx.h>
+#include <driver/rmt_encoder.h>
 #endif
 
 namespace esp32ir
@@ -17,7 +17,7 @@ namespace esp32ir
         constexpr uint32_t kRmtResolutionHz = 1000000; // 1us tick
         constexpr uint32_t kRmtDurationMax = 32767;
 
-        void pushSymbol(std::vector<rmt_item32_t> &items, bool level, uint32_t durationUs)
+        void pushSymbol(std::vector<rmt_symbol_word_t> &items, bool level, uint32_t durationUs)
         {
             uint32_t remaining = durationUs;
             while (remaining > 0)
@@ -25,14 +25,14 @@ namespace esp32ir
                 uint32_t chunk = remaining > kRmtDurationMax ? kRmtDurationMax : remaining;
                 if (items.empty() || items.back().duration1 != 0)
                 {
-                    rmt_item32_t item = {};
+                    rmt_symbol_word_t item = {};
                     item.level0 = level ? 1 : 0;
                     item.duration0 = chunk;
                     items.push_back(item);
                 }
                 else
                 {
-                    rmt_item32_t &last = items.back();
+                    rmt_symbol_word_t &last = items.back();
                     last.level1 = level ? 1 : 0;
                     last.duration1 = chunk;
                 }
@@ -40,7 +40,7 @@ namespace esp32ir
             }
         }
 
-        void appendITPSFrame(std::vector<rmt_item32_t> &items, const esp32ir::ITPSFrame &f)
+        void appendITPSFrame(std::vector<rmt_symbol_word_t> &items, const esp32ir::ITPSFrame &f)
         {
             if (!f.seq || f.len == 0 || f.T_us == 0)
             {
@@ -143,28 +143,35 @@ namespace esp32ir
             return false;
         }
 #ifdef ESP_PLATFORM
-        rmt_config_t config = {};
-        config.rmt_mode = RMT_MODE_TX;
-        config.channel = static_cast<rmt_channel_t>(txChannel_);
-        config.gpio_num = static_cast<gpio_num_t>(txPin_);
-        config.mem_block_num = 2;
-        config.clk_div = 80; // 1us tick (80MHz APB)
-        config.tx_config.loop_en = false;
-        config.tx_config.carrier_en = true;
-        config.tx_config.carrier_freq_hz = carrierHz_;
-        config.tx_config.carrier_duty_percent = dutyPercent_;
-        config.tx_config.carrier_level = invertOutput_ ? RMT_CARRIER_LEVEL_LOW : RMT_CARRIER_LEVEL_HIGH;
-        config.tx_config.idle_output_en = true;
-        config.tx_config.idle_level = invertOutput_ ? RMT_IDLE_LEVEL_HIGH : RMT_IDLE_LEVEL_LOW;
+        rmt_tx_channel_config_t config = {
+            .gpio_num = static_cast<gpio_num_t>(txPin_),
+            .clk_src = RMT_CLK_SRC_DEFAULT,
+            .resolution_hz = kRmtResolutionHz,
+            .mem_block_symbols = 64,
+            .trans_queue_depth = 4,
+            .flags = {
+                .invert_out = invertOutput_ ? 1 : 0,
+            },
+        };
 
-        if (rmt_config(&config) != ESP_OK)
+        if (rmt_new_tx_channel(&config, &txChannel_) != ESP_OK)
         {
-            ESP_LOGE(kTag, "TX begin failed: rmt_config");
+            ESP_LOGE(kTag, "TX begin failed: rmt_new_tx_channel");
             return false;
         }
-        if (rmt_driver_install(config.channel, 0, 0) != ESP_OK)
+        if (rmt_enable(txChannel_) != ESP_OK)
         {
-            ESP_LOGE(kTag, "TX begin failed: rmt_driver_install");
+            ESP_LOGE(kTag, "TX begin failed: rmt_enable");
+            rmt_del_channel(txChannel_);
+            txChannel_ = nullptr;
+            return false;
+        }
+        rmt_copy_encoder_config_t enc_cfg = {};
+        if (rmt_new_copy_encoder(&enc_cfg, &txEncoder_) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "TX begin failed: rmt_new_copy_encoder");
+            rmt_del_channel(txChannel_);
+            txChannel_ = nullptr;
             return false;
         }
 #endif
@@ -183,7 +190,16 @@ namespace esp32ir
             return;
         }
 #ifdef ESP_PLATFORM
-        rmt_driver_uninstall(static_cast<rmt_channel_t>(txChannel_));
+        if (txEncoder_)
+        {
+            rmt_del_encoder(txEncoder_);
+            txEncoder_ = nullptr;
+        }
+        if (txChannel_)
+        {
+            rmt_del_channel(txChannel_);
+            txChannel_ = nullptr;
+        }
 #endif
         begun_ = false;
         ESP_LOGI(kTag, "TX end");
@@ -202,7 +218,7 @@ namespace esp32ir
             return false;
         }
 #ifdef ESP_PLATFORM
-        std::vector<rmt_item32_t> items;
+        std::vector<rmt_symbol_word_t> items;
         for (uint16_t i = 0; i < itps.frameCount(); ++i)
         {
             appendITPSFrame(items, itps.frame(i));
@@ -217,14 +233,17 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: empty RMT items");
             return false;
         }
-        esp_err_t err = rmt_write_items(static_cast<rmt_channel_t>(txChannel_), items.data(),
-                                        static_cast<int>(items.size()), true);
+        rmt_transmit_config_t tx_cfg = {
+            .loop_count = 0,
+        };
+        esp_err_t err = rmt_transmit(txChannel_, txEncoder_, items.data(),
+                                     items.size() * sizeof(rmt_symbol_word_t), &tx_cfg);
         if (err != ESP_OK)
         {
-            ESP_LOGE(kTag, "TX send failed: rmt_write_items err=%d", err);
+            ESP_LOGE(kTag, "TX send failed: rmt_transmit err=%d", err);
             return false;
         }
-        err = rmt_wait_tx_done(static_cast<rmt_channel_t>(txChannel_), pdMS_TO_TICKS(gapUs_ / 1000 + 50));
+        err = rmt_tx_wait_all_done(txChannel_, pdMS_TO_TICKS(gapUs_ / 1000 + 50));
         if (err != ESP_OK)
         {
             ESP_LOGW(kTag, "TX wait done returned err=%d", err);

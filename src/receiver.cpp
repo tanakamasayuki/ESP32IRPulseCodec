@@ -1,7 +1,8 @@
 #include "ESP32IRPulseCodec.h"
 #include <esp_log.h>
 #ifdef ESP_PLATFORM
-#include <driver/rmt.h>
+#include <driver/rmt_rx.h>
+#include <driver/rmt_types.h>
 #endif
 
 namespace esp32ir
@@ -10,6 +11,20 @@ namespace esp32ir
     namespace
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
+
+#ifdef ESP_PLATFORM
+        bool rxDoneCallback(rmt_channel_handle_t, const rmt_rx_done_event_data_t *edata, void *user_ctx)
+        {
+            QueueHandle_t q = static_cast<QueueHandle_t>(user_ctx);
+            if (!q || !edata)
+            {
+                return false;
+            }
+            BaseType_t high_task_woken = pdFALSE;
+            xQueueSendFromISR(q, edata, &high_task_woken);
+            return high_task_woken == pdTRUE;
+        }
+#endif
 
         bool isACProtocol(esp32ir::Protocol p)
         {
@@ -116,36 +131,59 @@ namespace esp32ir
             return false;
         }
 #ifdef ESP_PLATFORM
-        rmt_config_t config = {};
-        config.rmt_mode = RMT_MODE_RX;
-        config.channel = static_cast<rmt_channel_t>(rmtChannel_);
-        config.gpio_num = static_cast<gpio_num_t>(rxPin_);
-        config.mem_block_num = 2;
-        config.clk_div = 80; // 1us tick
-        config.rx_config.filter_en = true;
-        config.rx_config.filter_ticks_thresh = quantizeT_;
-        config.rx_config.idle_threshold = 60000; // 60ms split
-        if (invertInput_)
+        rmt_rx_channel_config_t config = {
+            .gpio_num = static_cast<gpio_num_t>(rxPin_),
+            .clk_src = RMT_CLK_SRC_DEFAULT,
+            .resolution_hz = 1000000,
+            .mem_block_symbols = 64,
+            .flags = {
+                .invert_input = invertInput_ ? 1 : 0,
+            },
+        };
+        if (rmt_new_rx_channel(&config, &rxChannel_) != ESP_OK)
         {
-            config.rx_config.filter_en = false; // let raw pass to handle inversion in software if needed
-        }
-        if (rmt_config(&config) != ESP_OK)
-        {
-            ESP_LOGE(kTag, "RX begin failed: rmt_config");
+            ESP_LOGE(kTag, "RX begin failed: rmt_new_rx_channel");
             return false;
         }
-        if (rmt_driver_install(config.channel, 1000, 0) != ESP_OK)
+        if (rmt_enable(rxChannel_) != ESP_OK)
         {
-            ESP_LOGE(kTag, "RX begin failed: rmt_driver_install");
+            ESP_LOGE(kTag, "RX begin failed: rmt_enable");
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
             return false;
         }
-        if (rmt_get_ringbuf_handle(static_cast<rmt_channel_t>(rmtChannel_), &rmtRingbuf_) != ESP_OK || !rmtRingbuf_)
+        rxQueue_ = xQueueCreate(4, sizeof(rmt_rx_done_event_data_t));
+        if (!rxQueue_)
         {
-            ESP_LOGE(kTag, "RX begin failed: rmt_get_ringbuf_handle");
-            rmt_driver_uninstall(static_cast<rmt_channel_t>(rmtChannel_));
+            ESP_LOGE(kTag, "RX begin failed: queue create");
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
             return false;
         }
-        rmt_rx_start(static_cast<rmt_channel_t>(rmtChannel_), true);
+        rmt_rx_event_callbacks_t cbs = {
+            .on_recv_done = rxDoneCallback,
+        };
+        if (rmt_rx_register_event_callbacks(rxChannel_, &cbs, rxQueue_) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "RX begin failed: register callbacks");
+            vQueueDelete(rxQueue_);
+            rxQueue_ = nullptr;
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
+            return false;
+        }
+        rxBuffer_.resize(256);
+        rxConfig_.signal_range_min_ns = 1000;
+        rxConfig_.signal_range_max_ns = 100000000;
+        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "RX begin failed: rmt_receive");
+            vQueueDelete(rxQueue_);
+            rxQueue_ = nullptr;
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
+            return false;
+        }
 #endif
 
         if (!useRawOnly_)
@@ -180,9 +218,17 @@ namespace esp32ir
             return;
         }
 #ifdef ESP_PLATFORM
-        rmt_rx_stop(static_cast<rmt_channel_t>(rmtChannel_));
-        rmt_driver_uninstall(static_cast<rmt_channel_t>(rmtChannel_));
-        rmtRingbuf_ = nullptr;
+        if (rxChannel_)
+        {
+            rmt_disable(rxChannel_);
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
+        }
+        if (rxQueue_)
+        {
+            vQueueDelete(rxQueue_);
+            rxQueue_ = nullptr;
+        }
 #endif
         begun_ = false;
         ESP_LOGI(kTag, "RX end");
@@ -267,24 +313,30 @@ namespace esp32ir
         {
             return false;
         }
-        uint32_t count = itemSize / sizeof(rmt_item32_t);
-        std::vector<int8_t> seq;
-        seq.reserve(count * 2);
-        for (uint32_t i = 0; i < count; ++i)
+        rmt_rx_done_event_data_t ev = {};
+        if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
-            const auto &it = items[i];
-            if (it.duration0)
+            return false;
+        }
+        std::vector<int8_t> seq;
+        seq.reserve(ev.num_symbols * 2);
+        for (size_t i = 0; i < ev.num_symbols; ++i)
+        {
+            const auto &sym = ev.received_symbols[i];
+            if (sym.duration0)
             {
-                bool mark = invertInput_ ? (it.level0 == 0) : (it.level0 != 0);
-                pushSeq(seq, mark, it.duration0, quantizeT_);
+                bool mark = invertInput_ ? (sym.level0 == 0) : (sym.level0 != 0);
+                pushSeq(seq, mark, sym.duration0, quantizeT_);
             }
-            if (it.duration1)
+            if (sym.duration1)
             {
-                bool mark = invertInput_ ? (it.level1 == 0) : (it.level1 != 0);
-                pushSeq(seq, mark, it.duration1, quantizeT_);
+                bool mark = invertInput_ ? (sym.level1 == 0) : (sym.level1 != 0);
+                pushSeq(seq, mark, sym.duration1, quantizeT_);
             }
         }
-        vRingbufferReturnItem(rmtRingbuf_, (void *)items);
+        // restart reception
+        rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
+
         while (!seq.empty() && seq.front() < 0)
         {
             seq.erase(seq.begin());

@@ -5,9 +5,11 @@
 #include <stdint.h>
 #include <vector>
 #ifdef ESP_PLATFORM
-#include <driver/rmt.h>
+#include <driver/rmt_tx.h>
+#include <driver/rmt_rx.h>
+#include <driver/rmt_encoder.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/ringbuf.h>
+#include <freertos/queue.h>
 #endif
 
 #define ESP32IRPULSECODEC_VERSION_MAJOR 0
@@ -251,8 +253,10 @@ namespace esp32ir
     bool begun_{false};
     std::vector<esp32ir::Protocol> protocols_;
 #ifdef ESP_PLATFORM
-    int rmtChannel_{0};
-    RingbufHandle_t rmtRingbuf_{nullptr};
+    rmt_channel_handle_t rxChannel_{nullptr};
+    QueueHandle_t rxQueue_{nullptr};
+    std::vector<rmt_symbol_word_t> rxBuffer_;
+    rmt_receive_config_t rxConfig_{};
 #endif
   };
 
@@ -320,7 +324,8 @@ namespace esp32ir
     uint32_t gapUs_{40000};
     bool begun_{false};
 #ifdef ESP_PLATFORM
-    int txChannel_{1};
+    rmt_channel_handle_t txChannel_{nullptr};
+    rmt_encoder_handle_t txEncoder_{nullptr};
 #endif
   };
 
