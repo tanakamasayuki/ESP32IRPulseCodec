@@ -2,7 +2,6 @@
 #include "core/message_utils.h"
 #include "core/itps_encode.h"
 #include "core/pulse_utils.h"
-#include <esp32-hal-log.h>
 #include <vector>
 
 namespace esp32ir

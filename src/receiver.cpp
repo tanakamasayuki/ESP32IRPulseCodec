@@ -1,5 +1,4 @@
 #include "ESP32IRPulseCodec.h"
-#include <esp32-hal-log.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_types.h>
 #include <algorithm>

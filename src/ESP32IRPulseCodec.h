@@ -1,6 +1,7 @@
 #ifndef ESP32IRPULSECODEC_H
 #define ESP32IRPULSECODEC_H
 
+#include <Arduino.h>
 #include <stddef.h>
 #include <stdint.h>
 #ifndef ESP_PLATFORM
