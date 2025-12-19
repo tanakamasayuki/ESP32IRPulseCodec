@@ -14,8 +14,9 @@ namespace esp32ir
     bool Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC &p)
     {
         ESP_LOGW("ESP32IRPulseCodec", "send DaikinAC not implemented");
-        // AC payload structs are placeholders; still forward as-is for future encode support.
-        return send(makeProtocolMessage(esp32ir::Protocol::DaikinAC, p));
+        // AC payload structs are placeholders; encoding not available yet.
+        (void)p;
+        return false;
     }
 
 } // namespace esp32ir

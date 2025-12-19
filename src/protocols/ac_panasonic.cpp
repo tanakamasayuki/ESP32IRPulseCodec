@@ -14,7 +14,8 @@ namespace esp32ir
     bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &p)
     {
         ESP_LOGW("ESP32IRPulseCodec", "send PanasonicAC not implemented");
-        return send(makeProtocolMessage(esp32ir::Protocol::PanasonicAC, p));
+        (void)p;
+        return false;
     }
 
 } // namespace esp32ir

@@ -14,7 +14,8 @@ namespace esp32ir
     bool Transmitter::sendToshibaAC(const esp32ir::payload::ToshibaAC &p)
     {
         ESP_LOGW("ESP32IRPulseCodec", "send ToshibaAC not implemented");
-        return send(makeProtocolMessage(esp32ir::Protocol::ToshibaAC, p));
+        (void)p;
+        return false;
     }
 
 } // namespace esp32ir
