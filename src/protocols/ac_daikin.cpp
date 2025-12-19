@@ -1,7 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "core/message_utils.h"
 #include "core/protocol_message_utils.h"
-#include <esp_log.h>
+#include <esp32-hal-log.h>
 
 namespace esp32ir
 {
