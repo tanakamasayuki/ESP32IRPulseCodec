@@ -279,14 +279,22 @@ namespace esp32ir
         }
         uint32_t gapToUse = gapOverridden_ ? gapUs_ : (recommendedGapUs ? recommendedGapUs : gapUs_);
         std::vector<rmt_symbol_word_t> items;
+        uint64_t totalUs = 0;
         for (uint16_t i = 0; i < itps.frameCount(); ++i)
         {
-            appendITPSFrame(items, itps.frame(i));
+            const auto &f = itps.frame(i);
+            appendITPSFrame(items, f);
+            for (uint16_t j = 0; j < f.len; ++j)
+            {
+                int v = f.seq[j];
+                totalUs += static_cast<uint64_t>(v < 0 ? -v : v) * static_cast<uint64_t>(f.T_us);
+            }
         }
         // enforce trailing gap as Space
         if (gapToUse > 0)
         {
             pushSymbol(items, false, gapToUse);
+            totalUs += gapToUse;
         }
         if (items.empty())
         {
@@ -307,7 +315,10 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: rmt_transmit err=%d", err);
             return false;
         }
-        err = rmt_tx_wait_all_done(txChannel_, pdMS_TO_TICKS(gapToUse / 1000 + 50));
+        uint32_t waitMs = static_cast<uint32_t>((totalUs + 50000) / 1000); // add 50ms margin
+        if (waitMs < 100)
+            waitMs = 100;
+        err = rmt_tx_wait_all_done(txChannel_, pdMS_TO_TICKS(waitMs));
         if (err != ESP_OK)
         {
             ESP_LOGW(kTag, "TX wait done returned err=%d", err);
