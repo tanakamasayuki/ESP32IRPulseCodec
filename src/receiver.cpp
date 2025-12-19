@@ -116,6 +116,56 @@ namespace esp32ir
         quantizeT_ = T_us_rx;
         return true;
     }
+    bool Receiver::setFrameGapUs(uint32_t frameGapUs)
+    {
+        if (begun_)
+            return false;
+        frameGapUs_ = frameGapUs;
+        return true;
+    }
+    bool Receiver::setHardGapUs(uint32_t hardGapUs)
+    {
+        if (begun_)
+            return false;
+        hardGapUs_ = hardGapUs;
+        return true;
+    }
+    bool Receiver::setMinFrameUs(uint32_t minFrameUs)
+    {
+        if (begun_)
+            return false;
+        minFrameUs_ = minFrameUs;
+        return true;
+    }
+    bool Receiver::setMaxFrameUs(uint32_t maxFrameUs)
+    {
+        if (begun_)
+            return false;
+        maxFrameUs_ = maxFrameUs;
+        return true;
+    }
+    bool Receiver::setMinEdges(uint16_t minEdges)
+    {
+        if (begun_)
+            return false;
+        minEdges_ = minEdges;
+        return true;
+    }
+    bool Receiver::setFrameCountMax(uint16_t frameCountMax)
+    {
+        if (begun_)
+            return false;
+        frameCountMax_ = frameCountMax;
+        return true;
+    }
+    bool Receiver::setSplitPolicy(RxSplitPolicy policy)
+    {
+        if (begun_)
+            return false;
+        splitPolicy_ = policy;
+        splitPolicySet_ = true;
+        return true;
+    }
 
     bool Receiver::begin()
     {
@@ -370,6 +420,10 @@ namespace esp32ir
                 return true; // treat as noise; not an error
             }
             outFrames.push_back(seq);
+            if (params.frameCountMax == 0)
+            {
+                return true;
+            }
             return outFrames.size() <= params.frameCountMax;
         }
     } // namespace
@@ -425,6 +479,34 @@ namespace esp32ir
             overflowed = true;
         }
         RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
+        if (frameGapUs_ > 0)
+        {
+            params.frameGapUs = frameGapUs_;
+        }
+        if (hardGapUs_ > 0)
+        {
+            params.hardGapUs = hardGapUs_;
+        }
+        if (minFrameUs_ > 0)
+        {
+            params.minFrameUs = minFrameUs_;
+        }
+        if (maxFrameUs_ > 0)
+        {
+            params.maxFrameUs = maxFrameUs_;
+        }
+        if (minEdges_ > 0)
+        {
+            params.minEdges = minEdges_;
+        }
+        if (frameCountMax_ > 0)
+        {
+            params.frameCountMax = frameCountMax_;
+        }
+        if (splitPolicySet_)
+        {
+            params.splitPolicy = splitPolicy_;
+        }
 
         std::vector<std::vector<int8_t>> framesData;
         std::vector<int8_t> current;

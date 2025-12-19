@@ -248,6 +248,13 @@ namespace esp32ir
     bool useRawOnly();
     bool useRawPlusKnown();
     bool useKnownWithoutAC();
+    bool setFrameGapUs(uint32_t frameGapUs);
+    bool setHardGapUs(uint32_t hardGapUs);
+    bool setMinFrameUs(uint32_t minFrameUs);
+    bool setMaxFrameUs(uint32_t maxFrameUs);
+    bool setMinEdges(uint16_t minEdges);
+    bool setFrameCountMax(uint16_t frameCountMax);
+    bool setSplitPolicy(RxSplitPolicy policy);
 
     bool poll(esp32ir::RxResult &out);
 
@@ -264,6 +271,14 @@ namespace esp32ir
     bool useRawOnly_{false};
     bool useRawPlusKnown_{false};
     bool useKnownNoAC_{false};
+    uint32_t frameGapUs_{0};
+    uint32_t hardGapUs_{0};
+    uint32_t minFrameUs_{0};
+    uint32_t maxFrameUs_{0};
+    uint16_t minEdges_{0};
+    uint16_t frameCountMax_{0};
+    RxSplitPolicy splitPolicy_{RxSplitPolicy::DROP_GAP};
+    bool splitPolicySet_{false};
     bool begun_{false};
     std::vector<esp32ir::Protocol> protocols_;
     rmt_channel_handle_t rxChannel_{nullptr};
