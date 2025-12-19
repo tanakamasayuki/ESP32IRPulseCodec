@@ -9,6 +9,6 @@ tools/cache/
 arduino_secrets.h
 *.bat
 #*.txt
-sketch.yaml
+#sketch.yaml
 temp
 libs/
