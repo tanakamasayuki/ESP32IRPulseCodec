@@ -18,16 +18,22 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 560;
         constexpr uint32_t kZeroSpaceUs = 560;
         constexpr uint32_t kOneSpaceUs = 1690;
-        if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
+        if (nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
         {
-            return false;
+            out.address = static_cast<uint16_t>(data & 0xFFFF);
+            out.command = static_cast<uint16_t>(data >> 16);
+            out.repeat = false;
+            return true;
         }
-        out.address = static_cast<uint16_t>(data & 0xFFFF);
-        out.command = static_cast<uint16_t>(data >> 16);
-        // Detect repeat: same header but short gap/mark (similar to NEC repeat style)
-        // Here we detect by shorter overall length; leave repeat=true when length is small.
-        out.repeat = in.raw.totalTimeUs() < 20000;
-        return true;
+        // Repeat detection (heuristic): shorter frame without data.
+        if (in.raw.totalTimeUs() < 25000)
+        {
+            out.address = 0;
+            out.command = 0;
+            out.repeat = true;
+            return true;
+        }
+        return false;
     }
     bool Transmitter::sendDenon(const esp32ir::payload::Denon &p)
     {
