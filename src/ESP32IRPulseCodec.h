@@ -279,6 +279,14 @@ namespace esp32ir
     uint16_t frameCountMax_{0};
     RxSplitPolicy splitPolicy_{RxSplitPolicy::DROP_GAP};
     bool splitPolicySet_{false};
+    // Effective params resolved at begin (spec: merge defaults/recommendations at begin)
+    uint32_t effFrameGapUs_{0};
+    uint32_t effHardGapUs_{0};
+    uint32_t effMinFrameUs_{0};
+    uint32_t effMaxFrameUs_{0};
+    uint16_t effMinEdges_{0};
+    uint16_t effFrameCountMax_{0};
+    RxSplitPolicy effSplitPolicy_{RxSplitPolicy::DROP_GAP};
     bool begun_{false};
     std::vector<esp32ir::Protocol> protocols_;
     rmt_channel_handle_t rxChannel_{nullptr};

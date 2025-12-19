@@ -20,7 +20,17 @@ namespace esp32ir
             BaseType_t high_task_woken = pdFALSE;
             if (xQueueSendFromISR(ctx->queue, edata, &high_task_woken) != pdTRUE)
             {
-                *(ctx->overflowFlag) = true;
+                // Drop oldest to make room (spec: older entries are dropped on overflow).
+                rmt_rx_done_event_data_t dummy{};
+                xQueueReceiveFromISR(ctx->queue, &dummy, &high_task_woken);
+                if (xQueueSendFromISR(ctx->queue, edata, &high_task_woken) != pdTRUE)
+                {
+                    *(ctx->overflowFlag) = true;
+                }
+                else
+                {
+                    *(ctx->overflowFlag) = true;
+                }
             }
             return high_task_woken == pdTRUE;
         }
@@ -258,6 +268,40 @@ namespace esp32ir
                 protocols_.swap(filtered);
             }
         }
+
+        // Resolve effective RX parameters once at begin (per spec).
+        RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
+        if (!useRawOnly_)
+        {
+            const auto &plist = protocols_.empty() ? (useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols()) : protocols_;
+            for (auto proto : plist)
+            {
+                mergeParams(params, recommendedParamsForProtocol(proto));
+            }
+        }
+        if (frameGapUs_ > 0)
+            params.frameGapUs = frameGapUs_;
+        if (hardGapUs_ > 0)
+            params.hardGapUs = hardGapUs_;
+        if (minFrameUs_ > 0)
+            params.minFrameUs = minFrameUs_;
+        if (maxFrameUs_ > 0)
+            params.maxFrameUs = maxFrameUs_;
+        if (minEdges_ > 0)
+            params.minEdges = minEdges_;
+        if (frameCountMax_ > 0)
+            params.frameCountMax = frameCountMax_;
+        if (splitPolicySet_)
+            params.splitPolicy = splitPolicy_;
+
+        effFrameGapUs_ = params.frameGapUs;
+        effHardGapUs_ = params.hardGapUs;
+        effMinFrameUs_ = params.minFrameUs;
+        effMaxFrameUs_ = params.maxFrameUs;
+        effMinEdges_ = params.minEdges;
+        effFrameCountMax_ = params.frameCountMax;
+        effSplitPolicy_ = params.splitPolicy;
+
         begun_ = true;
         ESP_LOGI(kTag, "RX begin: pin=%d invert=%s T_us=%u mode=%s",
                  rxPin_, invertInput_ ? "true" : "false", static_cast<unsigned>(quantizeT_),
@@ -546,43 +590,18 @@ namespace esp32ir
             protocolsToTry = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
         }
 
-        RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
-        // Merge protocol recommendations (skip when RAW only).
-        if (!useRawOnly_)
+        RxParams params{};
+        params.frameGapUs = effFrameGapUs_;
+        params.hardGapUs = effHardGapUs_;
+        params.minFrameUs = effMinFrameUs_;
+        params.maxFrameUs = effMaxFrameUs_;
+        params.minEdges = effMinEdges_;
+        params.frameCountMax = effFrameCountMax_;
+        params.splitPolicy = effSplitPolicy_;
+        if (params.frameGapUs == 0)
         {
-            for (auto proto : protocolsToTry)
-            {
-                mergeParams(params, recommendedParamsForProtocol(proto));
-            }
-        }
-        // User overrides take precedence.
-        if (frameGapUs_ > 0)
-        {
-            params.frameGapUs = frameGapUs_;
-        }
-        if (hardGapUs_ > 0)
-        {
-            params.hardGapUs = hardGapUs_;
-        }
-        if (minFrameUs_ > 0)
-        {
-            params.minFrameUs = minFrameUs_;
-        }
-        if (maxFrameUs_ > 0)
-        {
-            params.maxFrameUs = maxFrameUs_;
-        }
-        if (minEdges_ > 0)
-        {
-            params.minEdges = minEdges_;
-        }
-        if (frameCountMax_ > 0)
-        {
-            params.frameCountMax = frameCountMax_;
-        }
-        if (splitPolicySet_)
-        {
-            params.splitPolicy = splitPolicy_;
+            RxParams def = defaultParams(useRawOnly_ || useRawPlusKnown_);
+            params = def;
         }
 
         std::vector<std::vector<int8_t>> framesData;
