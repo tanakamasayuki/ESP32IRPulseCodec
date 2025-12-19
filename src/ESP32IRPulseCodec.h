@@ -55,6 +55,12 @@ namespace esp32ir
     OVERFLOW,
   };
 
+  enum class RxSplitPolicy : uint8_t
+  {
+    DROP_GAP = 0,
+    KEEP_GAP_IN_FRAME,
+  };
+
   // ITPS core types
   struct ITPSFrame
   {

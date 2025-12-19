@@ -327,6 +327,51 @@ namespace esp32ir
             }
             seq.swap(out);
         }
+
+        struct RxParams
+        {
+            uint32_t frameGapUs;
+            uint32_t hardGapUs;
+            uint32_t minFrameUs;
+            uint32_t maxFrameUs;
+            uint16_t minEdges;
+            uint16_t frameCountMax;
+            esp32ir::RxSplitPolicy splitPolicy;
+        };
+
+        RxParams defaultParams(bool rawMode)
+        {
+            // Conservative defaults; can be refined per-protocol later.
+            RxParams p{};
+            p.frameGapUs = 10000;
+            p.hardGapUs = 20000;
+            p.minFrameUs = 500;
+            p.maxFrameUs = 200000;
+            p.minEdges = 4;
+            p.frameCountMax = 8;
+            p.splitPolicy = rawMode ? esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME : esp32ir::RxSplitPolicy::DROP_GAP;
+            return p;
+        }
+
+        bool appendFrameIfValid(const std::vector<int8_t> &seq, uint16_t T_us, const RxParams &params, std::vector<std::vector<int8_t>> &outFrames)
+        {
+            if (seq.empty())
+            {
+                return true;
+            }
+            uint32_t totalUs = 0;
+            for (int v : seq)
+            {
+                int mag = v < 0 ? -v : v;
+                totalUs += static_cast<uint32_t>(mag) * static_cast<uint32_t>(T_us);
+            }
+            if (seq.size() < params.minEdges || totalUs < params.minFrameUs)
+            {
+                return true; // treat as noise; not an error
+            }
+            outFrames.push_back(seq);
+            return outFrames.size() <= params.frameCountMax;
+        }
     } // namespace
 
     bool Receiver::poll(esp32ir::RxResult &out)
@@ -379,9 +424,84 @@ namespace esp32ir
         {
             overflowed = true;
         }
-        esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(seq.size()), seq.data(), 0};
+        RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
+
+        std::vector<std::vector<int8_t>> framesData;
+        std::vector<int8_t> current;
+        uint32_t currentTimeUs = 0;
+        auto flush = [&](bool &overflowFlag)
+        {
+            if (!current.empty())
+            {
+                if (!appendFrameIfValid(current, quantizeT_, params, framesData))
+                {
+                    overflowFlag = true;
+                }
+                current.clear();
+                currentTimeUs = 0;
+            }
+        };
+
+        for (size_t i = 0; i < seq.size(); ++i)
+        {
+            int v = seq[i];
+            uint32_t durUs = static_cast<uint32_t>((v < 0 ? -v : v) * quantizeT_);
+            bool isSpace = v < 0;
+
+            bool forceSplit = false;
+            if (isSpace && durUs >= params.hardGapUs)
+            {
+                forceSplit = true;
+            }
+            else if (isSpace && params.maxFrameUs > 0 && (currentTimeUs + durUs) > params.maxFrameUs && !current.empty())
+            {
+                forceSplit = true;
+            }
+
+            if (forceSplit && !current.empty())
+            {
+                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
+                {
+                    current.push_back(static_cast<int8_t>(v));
+                    currentTimeUs += durUs;
+                }
+                flush(overflowed);
+                continue;
+            }
+
+            if (current.empty() && isSpace)
+            {
+                continue;
+            }
+            current.push_back(static_cast<int8_t>(v));
+            currentTimeUs += durUs;
+
+            if (isSpace && durUs >= params.frameGapUs)
+            {
+                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
+                {
+                    flush(overflowed);
+                }
+                else
+                {
+                    current.pop_back(); // drop gap
+                    flush(overflowed);
+                }
+            }
+        }
+        flush(overflowed);
+
+        if (framesData.empty())
+        {
+            return false;
+        }
+
         esp32ir::ITPSBuffer buf;
-        buf.addFrame(frame);
+        for (const auto &fseq : framesData)
+        {
+            esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(fseq.size()), fseq.data(), 0};
+            buf.addFrame(frame);
+        }
 
         auto fillRaw = [&](esp32ir::RxStatus status) -> bool
         {
