@@ -139,8 +139,7 @@ namespace esp32ir
         }
         if (isRepeat)
         {
-            out.address = 0;
-            out.command = 0;
+            // Repeat uses previous address/command; keep whatever caller had.
             out.repeat = true;
             return true;
         }

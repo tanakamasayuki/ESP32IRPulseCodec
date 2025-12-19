@@ -24,7 +24,9 @@ namespace esp32ir
         }
         out.address = static_cast<uint16_t>(data & 0xFFFF);
         out.command = static_cast<uint16_t>(data >> 16);
-        out.repeat = false;
+        // Detect repeat: same header but short gap/mark (similar to NEC repeat style)
+        // Here we detect by shorter overall length; leave repeat=true when length is small.
+        out.repeat = in.raw.totalTimeUs() < 20000;
         return true;
     }
     bool Transmitter::sendDenon(const esp32ir::payload::Denon &p)
@@ -43,10 +45,7 @@ namespace esp32ir
                                                   kZeroSpaceUs, kOneSpaceUs, data, kBits, true);
         if (p.repeat)
         {
-            if (!sendWithGap(buf, kGapUs))
-            {
-                return false;
-            }
+            return sendWithGap(buf, kGapUs);
         }
         return sendWithGap(buf, kGapUs);
     }
