@@ -19,7 +19,6 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 502;
         constexpr uint32_t kZeroSpaceUs = 424;
         constexpr uint32_t kOneSpaceUs = 1244;
-        constexpr uint32_t kGapUs = 40000;
         uint8_t bits = 32;
         if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, bits, data))
         {
@@ -38,6 +37,7 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 502;
         constexpr uint32_t kZeroSpaceUs = 424;
         constexpr uint32_t kOneSpaceUs = 1244;
+        constexpr uint32_t kGapUs = 40000;
 
         if (p.nbits == 0 || p.nbits > 32)
         {
