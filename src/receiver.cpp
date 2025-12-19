@@ -329,8 +329,7 @@ namespace esp32ir
         }
         rxBuffer_.resize(512);
         rxConfig_.signal_range_min_ns = 1000;
-        rxConfig_.signal_range_max_ns = 100000000;
-        rxConfig_.flags.en_partial_rx = 1; // allow partial events so we can detect buffer shortages
+        rxConfig_.signal_range_max_ns = 65000000; // RMT limit < 65.535ms
         if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
         {
             ESP_LOGE(kTag, "RX begin failed: rmt_receive");
