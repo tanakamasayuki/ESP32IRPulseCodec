@@ -538,18 +538,20 @@ namespace esp32ir
         {
             overflowed = true;
         }
+        auto protocolsToTry = protocols_;
+        if (protocolsToTry.empty())
+        {
+            protocolsToTry = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
+        }
+
         RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
         // Merge protocol recommendations (skip when RAW only).
         if (!useRawOnly_)
         {
-            auto mergeFromList = [&](const std::vector<esp32ir::Protocol> &plist)
+            for (auto proto : protocolsToTry)
             {
-                for (auto proto : plist)
-                {
-                    mergeParams(params, recommendedParamsForProtocol(proto));
-                }
-            };
-            mergeFromList(protocolsToTry);
+                mergeParams(params, recommendedParamsForProtocol(proto));
+            }
         }
         // User overrides take precedence.
         if (frameGapUs_ > 0)
@@ -675,12 +677,6 @@ namespace esp32ir
         if (useRawOnly_)
         {
             return fillRaw(esp32ir::RxStatus::RAW_ONLY);
-        }
-
-        auto protocolsToTry = protocols_;
-        if (protocolsToTry.empty())
-        {
-            protocolsToTry = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
         }
 
         auto fillDecoded = [&](esp32ir::Protocol proto, const void *payload, size_t len) -> bool
