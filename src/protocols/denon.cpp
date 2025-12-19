@@ -43,7 +43,6 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 560;
         constexpr uint32_t kZeroSpaceUs = 560;
         constexpr uint32_t kOneSpaceUs = 1690;
-        constexpr uint32_t kGapUs = 0; // use recommendedGapUs
 
         uint64_t data = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.command) << 16);
         constexpr uint8_t kBits = 32;
