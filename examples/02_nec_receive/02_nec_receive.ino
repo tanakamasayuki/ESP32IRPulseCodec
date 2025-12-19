@@ -42,13 +42,36 @@ void loop()
     for (uint16_t i = 0; i < rxResult.raw.frameCount(); ++i)
     {
       const esp32ir::ITPSFrame &frame = rxResult.raw.frame(i);
-      Serial.printf("  Frame %u: T_us=%u edges=%u\n    ",
+      Serial.printf("  Frame %u: T_us=%u edges=%u\n   ",
                     i, frame.T_us, frame.len);
       for (uint16_t j = 0; j < frame.len; ++j)
       {
         Serial.printf("%d ", frame.seq[j]);
       }
       Serial.printf("\n");
+
+      Serial.println("  us timings: ");
+      Serial.print("   ");
+      uint32_t accumUs = 0;
+      int prevSign = 0;
+      for (uint16_t j = 0; j < frame.len; ++j)
+      {
+        int sign = (frame.seq[j] >= 0) ? 1 : -1;
+        uint32_t durUs = static_cast<uint32_t>((frame.seq[j] < 0 ? -frame.seq[j] : frame.seq[j]) * frame.T_us);
+        if (prevSign == 0 || sign == prevSign)
+        {
+          accumUs += durUs;
+        }
+        else
+        {
+          Serial.print(accumUs);
+          Serial.print(", ");
+          accumUs = durUs;
+        }
+        prevSign = sign;
+      }
+      Serial.print(accumUs);
+      Serial.println();
     }
 
     esp32ir::payload::NEC nec;
