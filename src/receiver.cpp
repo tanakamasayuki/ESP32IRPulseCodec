@@ -548,6 +548,10 @@ namespace esp32ir
         {
             return false;
         }
+        if (!rxChannel_)
+        {
+            return false;
+        }
         rmt_rx_done_event_data_t ev = {};
         if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
@@ -576,6 +580,7 @@ namespace esp32ir
         esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
         if (rxErr != ESP_OK)
         {
+            ESP_LOGW(kTag, "RX rmt_receive restart failed err=%d", static_cast<int>(rxErr));
             overflowed = true;
         }
 
@@ -590,6 +595,7 @@ namespace esp32ir
         }
         if (truncated)
         {
+            ESP_LOGW(kTag, "RX buffer truncated (symbols=%zu cap=%zu)", static_cast<size_t>(ev.num_symbols), rxBuffer_.size());
             overflowed = true;
         }
         auto protocolsToTry = protocols_;
