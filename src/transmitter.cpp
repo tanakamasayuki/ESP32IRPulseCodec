@@ -58,6 +58,10 @@ namespace esp32ir
             {
                 return false;
             }
+            if (f.seq[0] <= 0)
+            {
+                return false; // must start with Mark
+            }
             for (uint16_t i = 0; i < f.len; ++i)
             {
                 int v = f.seq[i];
