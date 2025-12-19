@@ -34,8 +34,9 @@ namespace esp32ir
             appendSpace(seq, one ? kOneSpaceUs : kZeroSpaceUs);
         }
 
-        bool decodeNecRaw(const esp32ir::RxResult &in, uint64_t &dataOut)
+        bool decodeNecRaw(const esp32ir::RxResult &in, bool &isRepeat, uint64_t &dataOut)
         {
+            isRepeat = false;
             std::vector<esp32ir::Pulse> pulses;
             if (!esp32ir::collectPulses(in.raw, pulses))
                 return false;
@@ -52,6 +53,17 @@ namespace esp32ir
             };
             if (!expect(true, kHdrMarkUs, 25) || !expect(false, kHdrSpaceUs, 25))
                 return false;
+            // NEC repeat frame: header + 2250 space + 560 mark
+            if (pulses.size() - idx <= 3)
+            {
+                bool repeatMark = expect(true, kRepeatGapMarkUs, 30);
+                if (repeatMark)
+                {
+                    isRepeat = true;
+                    return true;
+                }
+                return false;
+            }
             uint64_t data = 0;
             for (uint8_t i = 0; i < 32; ++i)
             {
@@ -120,9 +132,17 @@ namespace esp32ir
             return true;
         }
         uint64_t data = 0;
-        if (!decodeNecRaw(in, data))
+        bool isRepeat = false;
+        if (!decodeNecRaw(in, isRepeat, data))
         {
             return false;
+        }
+        if (isRepeat)
+        {
+            out.address = 0;
+            out.command = 0;
+            out.repeat = true;
+            return true;
         }
         out.address = static_cast<uint16_t>(data & 0xFFFF);
         out.command = static_cast<uint8_t>((data >> 16) & 0xFF);
