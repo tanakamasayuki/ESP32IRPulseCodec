@@ -17,7 +17,7 @@ namespace esp32ir
         constexpr uint32_t kOneSpaceUs = 1690;
         constexpr uint32_t kRepeatSpaceUs = 2250;
         constexpr uint32_t kRepeatGapMarkUs = 560;
-        constexpr uint32_t kGapUs = 40000;
+        constexpr uint32_t kGapUs = 0; // use recommendedGapUs()
 
         void appendMark(std::vector<int8_t> &seq, uint32_t us)
         {
@@ -154,9 +154,9 @@ namespace esp32ir
         // If repeat=true, send the NEC repeat code; otherwise full 32-bit frame.
         if (p.repeat)
         {
-            return sendWithGap(buildNECRepeat(), kGapUs);
+            return sendWithGap(buildNECRepeat(), recommendedGapUs(esp32ir::Protocol::NEC));
         }
-        return sendWithGap(buildNECFrame(p.address, p.command), kGapUs);
+        return sendWithGap(buildNECFrame(p.address, p.command), recommendedGapUs(esp32ir::Protocol::NEC));
     }
 
     bool Transmitter::sendNEC(uint16_t address, uint8_t command, bool repeat)

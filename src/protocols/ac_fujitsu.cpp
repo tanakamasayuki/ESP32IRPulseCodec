@@ -14,7 +14,7 @@ namespace esp32ir
     bool Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC &p)
     {
         ESP_LOGW("ESP32IRPulseCodec", "send FujitsuAC not implemented");
-        return send(makeProtocolMessage(esp32ir::Protocol::FujitsuAC, p));
+        return sendWithGap(makeProtocolMessage(esp32ir::Protocol::FujitsuAC, p), recommendedGapUs(esp32ir::Protocol::FujitsuAC));
     }
 
 } // namespace esp32ir

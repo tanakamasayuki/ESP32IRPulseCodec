@@ -550,7 +550,7 @@ namespace esp32ir
             return false;
         }
         bool truncated = ev.num_symbols >= rxBuffer_.size();
-        bool overflowed = rxOverflowed_;
+        bool overflowed = rxOverflowed_ || (ev.num_symbols == 0);
         rxOverflowed_ = false;
         std::vector<int8_t> seq;
         seq.reserve(ev.num_symbols * 2);
@@ -569,7 +569,10 @@ namespace esp32ir
             }
         }
         // restart reception
-        rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
+        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
+        {
+            overflowed = true;
+        }
 
         while (!seq.empty() && seq.front() < 0)
         {

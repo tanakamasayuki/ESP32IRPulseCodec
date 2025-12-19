@@ -35,15 +35,13 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 560;
         constexpr uint32_t kZeroSpaceUs = 560;
         constexpr uint32_t kOneSpaceUs = 1690;
-        constexpr uint32_t kGapUs = 40000;
-
         uint64_t data = static_cast<uint64_t>(p.address) |
                         (static_cast<uint64_t>(p.command) << 16) |
                         (static_cast<uint64_t>(p.extra) << 32);
         constexpr uint8_t kBits = 40;
         esp32ir::ITPSBuffer buf = nec_like::build(kTUs, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs,
                                                   kZeroSpaceUs, kOneSpaceUs, data, kBits, true);
-        return sendWithGap(buf, kGapUs);
+        return sendWithGap(buf, recommendedGapUs(esp32ir::Protocol::Toshiba));
     }
     bool Transmitter::sendToshiba(uint16_t address, uint16_t command, uint8_t extra)
     {

@@ -365,6 +365,7 @@ namespace esp32ir
     rmt_encoder_handle_t txEncoder_{nullptr};
 
     bool sendWithGap(const esp32ir::ITPSBuffer &itps, uint32_t recommendedGapUs);
+    uint32_t recommendedGapUs(esp32ir::Protocol proto) const;
   };
 
   // Decode helpers

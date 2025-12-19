@@ -17,7 +17,6 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = kUnitUs;
         constexpr uint32_t kZeroSpaceUs = kUnitUs;
         constexpr uint32_t kOneSpaceUs = kUnitUs * 3;
-        constexpr uint32_t kGapUs = 40000;
 
         void appendMark(std::vector<int8_t> &seq, uint32_t us)
         {
@@ -111,7 +110,7 @@ namespace esp32ir
             ESP_LOGE("ESP32IRPulseCodec", "AEHA nbits must be 1..32 (got %u)", static_cast<unsigned>(p.nbits));
             return false;
         }
-        return sendWithGap(buildAEHA(p.address, p.data, p.nbits), kGapUs);
+        return sendWithGap(buildAEHA(p.address, p.data, p.nbits), recommendedGapUs(esp32ir::Protocol::AEHA));
     }
     bool Transmitter::sendAEHA(uint16_t address, uint32_t data, uint8_t nbits)
     {

@@ -16,7 +16,6 @@ namespace esp32ir
         constexpr uint32_t kBitSpaceUs = 600;
         constexpr uint32_t kBitMark0Us = 600;
         constexpr uint32_t kBitMark1Us = 1200;
-        constexpr uint32_t kGapUs = 40000;
 
         void appendMark(std::vector<int8_t> &seq, uint32_t us)
         {
@@ -121,7 +120,7 @@ namespace esp32ir
             ESP_LOGE("ESP32IRPulseCodec", "SONY bits must be 12/15/20 (got %u)", static_cast<unsigned>(bits));
             return false;
         }
-        return sendWithGap(buildSONY(p.address, p.command, bits), kGapUs);
+        return sendWithGap(buildSONY(p.address, p.command, bits), recommendedGapUs(esp32ir::Protocol::SONY));
     }
     bool Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits)
     {

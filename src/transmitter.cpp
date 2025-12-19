@@ -88,6 +88,40 @@ namespace esp32ir
             }
             return true;
         }
+
+        uint32_t defaultGapForProtocol(esp32ir::Protocol proto)
+        {
+            switch (proto)
+            {
+            case esp32ir::Protocol::NEC:
+            case esp32ir::Protocol::Samsung:
+            case esp32ir::Protocol::Apple:
+            case esp32ir::Protocol::Denon:
+            case esp32ir::Protocol::LG:
+            case esp32ir::Protocol::JVC:
+                return 40000;
+            case esp32ir::Protocol::SONY:
+                return 45000;
+            case esp32ir::Protocol::AEHA:
+            case esp32ir::Protocol::Panasonic:
+            case esp32ir::Protocol::Pioneer:
+            case esp32ir::Protocol::Toshiba:
+            case esp32ir::Protocol::Mitsubishi:
+            case esp32ir::Protocol::Hitachi:
+                return 35000;
+            case esp32ir::Protocol::RC5:
+            case esp32ir::Protocol::RC6:
+                return 30000;
+            case esp32ir::Protocol::PanasonicAC:
+            case esp32ir::Protocol::MitsubishiAC:
+            case esp32ir::Protocol::ToshibaAC:
+            case esp32ir::Protocol::DaikinAC:
+            case esp32ir::Protocol::FujitsuAC:
+                return 50000;
+            default:
+                return 40000;
+            }
+        }
     } // namespace
 
     Transmitter::Transmitter() = default;
@@ -276,6 +310,11 @@ namespace esp32ir
             ESP_LOGW(kTag, "TX wait done returned err=%d", err);
         }
         return true;
+    }
+
+    uint32_t Transmitter::recommendedGapUs(esp32ir::Protocol proto) const
+    {
+        return defaultGapForProtocol(proto);
     }
     bool Transmitter::send(const esp32ir::ITPSBuffer &itps)
     {
