@@ -18,19 +18,26 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 560;
         constexpr uint32_t kZeroSpaceUs = 560;
         constexpr uint32_t kOneSpaceUs = 1690;
+        // Denon repeat frame: header mark/space then single 560 mark.
+        std::vector<esp32ir::Pulse> pulses;
+        if (esp32ir::collectPulses(in.raw, pulses) && pulses.size() >= 3)
+        {
+            auto inTol = [&](const esp32ir::Pulse &p, bool mark, uint32_t target, uint32_t tol) {
+                return p.mark == mark && esp32ir::inRange(p.us, target, tol);
+            };
+            if (inTol(pulses[0], true, kHdrMarkUs, 25) && inTol(pulses[1], false, kHdrSpaceUs, 25) && inTol(pulses[2], true, kBitMarkUs, 30))
+            {
+                out.address = 0;
+                out.command = 0;
+                out.repeat = true;
+                return true;
+            }
+        }
         if (nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
         {
             out.address = static_cast<uint16_t>(data & 0xFFFF);
             out.command = static_cast<uint16_t>(data >> 16);
             out.repeat = false;
-            return true;
-        }
-        // Repeat detection (heuristic): shorter frame without data.
-        if (in.raw.totalTimeUs() < 25000)
-        {
-            out.address = 0;
-            out.command = 0;
-            out.repeat = true;
             return true;
         }
         return false;
