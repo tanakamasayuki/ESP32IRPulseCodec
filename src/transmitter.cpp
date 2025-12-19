@@ -209,9 +209,12 @@ namespace esp32ir
         if (carrierHz_ > 0)
         {
             uint32_t duty = dutyPercent_ == 0 ? 50 : dutyPercent_;
+            float dutyFloat = static_cast<float>(duty) / 100.0f;
+            if (dutyFloat <= 0.0f)
+                dutyFloat = 0.5f;
             rmt_carrier_config_t carrier_cfg = {
                 .frequency_hz = carrierHz_,
-                .duty_cycle = static_cast<float>(duty),
+                .duty_cycle = dutyFloat, // expect 0.0-1.0
                 .flags = {
                     .polarity_active_low = 0,
                     .always_on = 0,

@@ -10,13 +10,13 @@ void setup()
 {
   Serial.begin(115200);
   tx.begin();
-  // en: send helper is a Transmitter method.
-  // ja: 送信ヘルパは Transmitter のメンバ関数です。
-  bool ok = tx.sendNEC(0x00FF, 0xA2);
-  Serial.printf("sendNEC result: %s\n", ok ? "success" : "failed");
 }
 
 void loop()
 {
+  // en: send helper is a Transmitter method.
+  // ja: 送信ヘルパは Transmitter のメンバ関数です。
+  bool ok = tx.sendNEC(0x00FF, 0xA2);
+  Serial.printf("sendNEC result: %s\n", ok ? "success" : "failed");
   delay(1000);
 }
