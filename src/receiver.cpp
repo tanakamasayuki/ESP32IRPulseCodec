@@ -2,6 +2,7 @@
 #include <esp_log.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_types.h>
+#include <algorithm>
 
 namespace esp32ir
 {
@@ -99,6 +100,92 @@ namespace esp32ir
             }
             list.push_back(p);
         }
+
+        struct RxParams
+        {
+            uint32_t frameGapUs;
+            uint32_t hardGapUs;
+            uint32_t minFrameUs;
+            uint32_t maxFrameUs;
+            uint16_t minEdges;
+            uint16_t frameCountMax;
+            esp32ir::RxSplitPolicy splitPolicy;
+        };
+
+        RxParams defaultParams(bool rawMode)
+        {
+            // Conservative defaults; can be refined per-protocol later.
+            RxParams p{};
+            p.frameGapUs = 10000;
+            p.hardGapUs = 20000;
+            p.minFrameUs = 500;
+            p.maxFrameUs = 200000;
+            p.minEdges = 4;
+            p.frameCountMax = 8;
+            p.splitPolicy = rawMode ? esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME : esp32ir::RxSplitPolicy::DROP_GAP;
+            return p;
+        }
+
+        void mergeParams(RxParams &base, const RxParams &rec)
+        {
+            if (rec.frameGapUs > 0)
+                base.frameGapUs = std::max(base.frameGapUs, rec.frameGapUs);
+            if (rec.hardGapUs > 0)
+                base.hardGapUs = std::max(base.hardGapUs, rec.hardGapUs);
+            if (rec.maxFrameUs > 0)
+                base.maxFrameUs = std::max(base.maxFrameUs, rec.maxFrameUs);
+            if (rec.minFrameUs > 0)
+                base.minFrameUs = std::max(base.minFrameUs, rec.minFrameUs);
+            if (rec.minEdges > 0)
+                base.minEdges = std::max(base.minEdges, rec.minEdges);
+            if (rec.frameCountMax > 0)
+                base.frameCountMax = std::max(base.frameCountMax, rec.frameCountMax);
+            // splitPolicy is selected later; recommendations do not override user/raw choice.
+        }
+
+        RxParams recommendedParamsForProtocol(esp32ir::Protocol p)
+        {
+            // Heuristic recommendations to help frame splitting; kept permissive to avoid data loss.
+            switch (p)
+            {
+            case esp32ir::Protocol::NEC:
+            case esp32ir::Protocol::Samsung:
+            case esp32ir::Protocol::Apple:
+            {
+                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            }
+            case esp32ir::Protocol::SONY:
+                return {30000, 50000, 4000, 80000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::AEHA:
+                return {30000, 45000, 4000, 100000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::Panasonic:
+                return {30000, 45000, 6000, 90000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::JVC:
+                return {35000, 50000, 6000, 90000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::LG:
+            case esp32ir::Protocol::Denon:
+            case esp32ir::Protocol::Toshiba:
+            case esp32ir::Protocol::Mitsubishi:
+            case esp32ir::Protocol::Hitachi:
+            case esp32ir::Protocol::Pioneer:
+                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::RC5:
+                return {25000, 40000, 3000, 60000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::RC6:
+                return {25000, 40000, 3000, 70000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            case esp32ir::Protocol::PanasonicAC:
+            case esp32ir::Protocol::MitsubishiAC:
+            case esp32ir::Protocol::ToshibaAC:
+            case esp32ir::Protocol::DaikinAC:
+            case esp32ir::Protocol::FujitsuAC:
+                return {60000, 80000, 8000, 200000, 10, 4, esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME};
+            case esp32ir::Protocol::RAW:
+                return defaultParams(true);
+            default:
+                return RxParams{};
+            }
+        }
+
     } // namespace
 
     Receiver::Receiver() = default;
@@ -420,93 +507,6 @@ namespace esp32ir
                 }
             }
             seq.swap(out);
-        }
-
-        struct RxParams
-        {
-            uint32_t frameGapUs;
-            uint32_t hardGapUs;
-            uint32_t minFrameUs;
-            uint32_t maxFrameUs;
-            uint16_t minEdges;
-            uint16_t frameCountMax;
-            esp32ir::RxSplitPolicy splitPolicy;
-        };
-
-        RxParams defaultParams(bool rawMode);
-
-        void mergeParams(RxParams &base, const RxParams &rec)
-        {
-            if (rec.frameGapUs > 0)
-                base.frameGapUs = std::max(base.frameGapUs, rec.frameGapUs);
-            if (rec.hardGapUs > 0)
-                base.hardGapUs = std::max(base.hardGapUs, rec.hardGapUs);
-            if (rec.maxFrameUs > 0)
-                base.maxFrameUs = std::max(base.maxFrameUs, rec.maxFrameUs);
-            if (rec.minFrameUs > 0)
-                base.minFrameUs = std::max(base.minFrameUs, rec.minFrameUs);
-            if (rec.minEdges > 0)
-                base.minEdges = std::max(base.minEdges, rec.minEdges);
-            if (rec.frameCountMax > 0)
-                base.frameCountMax = std::max(base.frameCountMax, rec.frameCountMax);
-            // splitPolicy is selected later; recommendations do not override user/raw choice.
-        }
-
-        RxParams recommendedParamsForProtocol(esp32ir::Protocol p)
-        {
-            // Heuristic recommendations to help frame splitting; kept permissive to avoid data loss.
-            switch (p)
-            {
-            case esp32ir::Protocol::NEC:
-            case esp32ir::Protocol::Samsung:
-            case esp32ir::Protocol::Apple:
-            {
-                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            }
-            case esp32ir::Protocol::SONY:
-                return {30000, 50000, 4000, 80000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::AEHA:
-                return {30000, 45000, 4000, 100000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::Panasonic:
-                return {30000, 45000, 6000, 90000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::JVC:
-                return {35000, 50000, 6000, 90000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::LG:
-            case esp32ir::Protocol::Denon:
-            case esp32ir::Protocol::Toshiba:
-            case esp32ir::Protocol::Mitsubishi:
-            case esp32ir::Protocol::Hitachi:
-            case esp32ir::Protocol::Pioneer:
-                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::RC5:
-                return {25000, 40000, 3000, 60000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::RC6:
-                return {25000, 40000, 3000, 70000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
-            case esp32ir::Protocol::PanasonicAC:
-            case esp32ir::Protocol::MitsubishiAC:
-            case esp32ir::Protocol::ToshibaAC:
-            case esp32ir::Protocol::DaikinAC:
-            case esp32ir::Protocol::FujitsuAC:
-                return {60000, 80000, 8000, 200000, 10, 4, esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME};
-            case esp32ir::Protocol::RAW:
-                return defaultParams(true);
-            default:
-                return RxParams{};
-            }
-        }
-
-        RxParams defaultParams(bool rawMode)
-        {
-            // Conservative defaults; can be refined per-protocol later.
-            RxParams p{};
-            p.frameGapUs = 10000;
-            p.hardGapUs = 20000;
-            p.minFrameUs = 500;
-            p.maxFrameUs = 200000;
-            p.minEdges = 4;
-            p.frameCountMax = 8;
-            p.splitPolicy = rawMode ? esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME : esp32ir::RxSplitPolicy::DROP_GAP;
-            return p;
         }
 
         bool appendFrameIfValid(const std::vector<int8_t> &seq, uint16_t T_us, const RxParams &params, std::vector<std::vector<int8_t>> &outFrames)
