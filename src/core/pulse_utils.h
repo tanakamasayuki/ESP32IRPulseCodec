@@ -31,13 +31,31 @@ namespace esp32ir
             return false;
         }
         out.reserve(f.len);
+        Pulse last{false, 0};
+        bool hasLast = false;
         for (uint16_t i = 0; i < f.len; ++i)
         {
             int v = f.seq[i];
             if (v == 0)
                 continue;
             Pulse p{v > 0, static_cast<uint32_t>((v < 0 ? -v : v) * f.T_us)};
-            out.push_back(p);
+            if (hasLast && last.mark == p.mark)
+            {
+                last.us += p.us;
+            }
+            else
+            {
+                if (hasLast)
+                {
+                    out.push_back(last);
+                }
+                last = p;
+                hasLast = true;
+            }
+        }
+        if (hasLast)
+        {
+            out.push_back(last);
         }
         return !out.empty();
     }

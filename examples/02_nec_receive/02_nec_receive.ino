@@ -9,9 +9,17 @@ esp32ir::Receiver rx(32);
 void setup()
 {
   Serial.begin(115200);
+
+  // en: Invert if your IR demod output is active-low (most modules are)
+  // ja: 受信モジュールの出力がアクティブローの場合は反転させる（多くのモジュールはそうなっている）
   rx.setInvertInput(true);
+
+  // en: Keep RAW even when decode fails so you can inspect captures
+  // ja: デコードに失敗してもRAWを保持して、キャプチャ内容を確認できるようにする
   rx.useRawPlusKnown();
-  rx.addProtocol(esp32ir::Protocol::NEC);
+
+  // en: Start receiver
+  // ja: 受信開始
   rx.begin();
 }
 
@@ -23,8 +31,8 @@ void loop()
     Serial.printf("Received IR frame:\n");
     Serial.printf(" status=%u\n", static_cast<uint8_t>(rxResult.status));
     Serial.printf(" protocol=%u\n", static_cast<uint16_t>(rxResult.protocol));
-    Serial.printf(" raw frames=%u totalUs=%u\n",
-                  rxResult.raw.frameCount(), rxResult.raw.totalTimeUs());
+    Serial.printf(" raw frames=%u totalUs=%lu\n",
+                  rxResult.raw.frameCount(), static_cast<unsigned long>(rxResult.raw.totalTimeUs()));
     for (uint16_t i = 0; i < rxResult.raw.frameCount(); ++i)
     {
       const esp32ir::ITPSFrame &frame = rxResult.raw.frame(i);
