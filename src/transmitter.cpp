@@ -1,5 +1,5 @@
 #include "ESP32IRPulseCodec.h"
-#include <esp_log.h>
+#include <esp32-hal-log.h>
 #include <cstring>
 #include <driver/rmt_tx.h>
 #include <driver/rmt_encoder.h>
@@ -236,6 +236,14 @@ namespace esp32ir
             txChannel_ = nullptr;
             return false;
         }
+        ESP_LOGD(kTag, "TX init version=%s pin=%d invert=%s carrierHz=%lu duty=%u%% gapUs=%lu gapOverride=%s resolutionHz=%lu",
+                 ESP32IRPULSECODEC_VERSION_STR,
+                 txPin_, invertOutput_ ? "true" : "false",
+                 static_cast<unsigned long>(carrierHz_),
+                 static_cast<unsigned>(dutyPercent_),
+                 static_cast<unsigned long>(gapUs_),
+                 gapOverridden_ ? "true" : "false",
+                 static_cast<unsigned long>(kRmtResolutionHz));
         begun_ = true;
         ESP_LOGI(kTag, "TX begin: pin=%d invert=%s carrier=%luHz duty=%u%% gapUs=%lu",
                  txPin_, invertOutput_ ? "true" : "false",

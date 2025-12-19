@@ -1,5 +1,5 @@
 #include "ESP32IRPulseCodec.h"
-#include <esp_log.h>
+#include <esp32-hal-log.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_types.h>
 #include <algorithm>
@@ -10,6 +10,19 @@ namespace esp32ir
     namespace
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
+
+        const char *splitPolicyName(esp32ir::RxSplitPolicy policy)
+        {
+            switch (policy)
+            {
+            case esp32ir::RxSplitPolicy::DROP_GAP:
+                return "DROP_GAP";
+            case esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME:
+                return "KEEP_GAP_IN_FRAME";
+            default:
+                return "UNKNOWN";
+            }
+        }
 
         bool rxDoneCallback(rmt_channel_handle_t, const rmt_rx_done_event_data_t *edata, void *user_ctx)
         {
@@ -393,10 +406,23 @@ namespace esp32ir
         effFrameCountMax_ = params.frameCountMax;
         effSplitPolicy_ = params.splitPolicy;
 
+        const char *modeStr = useRawOnly_ ? "RAW_ONLY" : (useRawPlusKnown_ ? "RAW_PLUS_KNOWN" : (useKnownNoAC_ ? "KNOWN_NO_AC" : "KNOWN_ONLY"));
+        ESP_LOGD(kTag, "RX init version=%s pin=%d invert=%s T_us=%u mode=%s frameGapUs=%u hardGapUs=%u minFrameUs=%u maxFrameUs=%u minEdges=%u frameCountMax=%u splitPolicy=%s protocols=%u",
+                 ESP32IRPULSECODEC_VERSION_STR,
+                 rxPin_, invertInput_ ? "true" : "false", static_cast<unsigned>(quantizeT_),
+                 modeStr,
+                 static_cast<unsigned>(effFrameGapUs_),
+                 static_cast<unsigned>(effHardGapUs_),
+                 static_cast<unsigned>(effMinFrameUs_),
+                 static_cast<unsigned>(effMaxFrameUs_),
+                 static_cast<unsigned>(effMinEdges_),
+                 static_cast<unsigned>(effFrameCountMax_),
+                 splitPolicyName(effSplitPolicy_),
+                 static_cast<unsigned>(protocols_.size()));
         begun_ = true;
         ESP_LOGI(kTag, "RX begin: pin=%d invert=%s T_us=%u mode=%s",
                  rxPin_, invertInput_ ? "true" : "false", static_cast<unsigned>(quantizeT_),
-                 useRawOnly_ ? "RAW_ONLY" : (useRawPlusKnown_ ? "RAW_PLUS_KNOWN" : (useKnownNoAC_ ? "KNOWN_NO_AC" : "KNOWN_ONLY")));
+                 modeStr);
         return true;
     }
     void Receiver::end()

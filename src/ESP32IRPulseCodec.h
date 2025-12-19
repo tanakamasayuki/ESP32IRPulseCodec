@@ -7,16 +7,13 @@
 #error "ESP32IRPulseCodec is intended for ESP32 (ESP_PLATFORM must be defined)."
 #endif
 
+#include "esp32irpulsecodec_version.h"
 #include <vector>
 #include <driver/rmt_tx.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_encoder.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
-
-#define ESP32IRPULSECODEC_VERSION_MAJOR 0
-#define ESP32IRPULSECODEC_VERSION_MINOR 0
-#define ESP32IRPULSECODEC_VERSION_PATCH 1
 
 namespace esp32ir
 {
