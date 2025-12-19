@@ -251,6 +251,12 @@ namespace esp32ir
 
     bool poll(esp32ir::RxResult &out);
 
+    struct RxCallbackContext
+    {
+      QueueHandle_t queue;
+      volatile bool *overflowFlag;
+    };
+
   private:
     int rxPin_{-1};
     bool invertInput_{false};
@@ -264,11 +270,6 @@ namespace esp32ir
     QueueHandle_t rxQueue_{nullptr};
     std::vector<rmt_symbol_word_t> rxBuffer_;
     rmt_receive_config_t rxConfig_{};
-    struct RxCallbackContext
-    {
-      QueueHandle_t queue;
-      volatile bool *overflowFlag;
-    };
     RxCallbackContext rxCallbackCtx_{};
     volatile bool rxOverflowed_{false};
   };
