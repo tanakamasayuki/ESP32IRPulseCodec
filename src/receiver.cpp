@@ -573,7 +573,8 @@ namespace esp32ir
             }
         }
         // restart reception
-        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
+        esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
+        if (rxErr != ESP_OK)
         {
             overflowed = true;
         }
