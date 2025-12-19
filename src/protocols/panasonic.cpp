@@ -19,6 +19,7 @@ namespace esp32ir
         constexpr uint32_t kBitMarkUs = 502;
         constexpr uint32_t kZeroSpaceUs = 424;
         constexpr uint32_t kOneSpaceUs = 1244;
+        constexpr uint32_t kGapUs = 40000;
         uint8_t bits = 32;
         if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, bits, data))
         {
@@ -46,7 +47,7 @@ namespace esp32ir
         uint8_t totalBits = static_cast<uint8_t>(16 + p.nbits);
         esp32ir::ITPSBuffer buf = nec_like::build(kTUs, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs,
                                                   kZeroSpaceUs, kOneSpaceUs, data, totalBits, true);
-        return send(buf);
+        return sendWithGap(buf, kGapUs);
     }
     bool Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits)
     {

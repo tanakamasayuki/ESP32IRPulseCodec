@@ -103,10 +103,11 @@ namespace esp32ir
         {
             appendBit(seq, (cmd >> i) & 0x1);
         }
+        constexpr uint32_t kGapUs = 40000;
         esp32ir::ITPSFrame frame{kTUs, static_cast<uint16_t>(seq.size()), seq.data(), 0};
         esp32ir::ITPSBuffer buf;
         buf.addFrame(frame);
-        return send(buf);
+        return sendWithGap(buf, kGapUs);
     }
     bool Transmitter::sendRC5(uint16_t command, bool toggle)
     {

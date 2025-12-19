@@ -12,13 +12,16 @@ namespace esp32ir
 
         bool rxDoneCallback(rmt_channel_handle_t, const rmt_rx_done_event_data_t *edata, void *user_ctx)
         {
-            QueueHandle_t q = static_cast<QueueHandle_t>(user_ctx);
-            if (!q || !edata)
+            auto ctx = static_cast<esp32ir::Receiver::RxCallbackContext *>(user_ctx);
+            if (!ctx || !ctx->queue || !ctx->overflowFlag || !edata)
             {
                 return false;
             }
             BaseType_t high_task_woken = pdFALSE;
-            xQueueSendFromISR(q, edata, &high_task_woken);
+            if (xQueueSendFromISR(ctx->queue, edata, &high_task_woken) != pdTRUE)
+            {
+                *(ctx->overflowFlag) = true;
+            }
             return high_task_woken == pdTRUE;
         }
 
@@ -126,6 +129,7 @@ namespace esp32ir
             ESP_LOGE(kTag, "RX begin failed: pin not set");
             return false;
         }
+        rxOverflowed_ = false;
         rmt_rx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(rxPin_),
             .clk_src = RMT_CLK_SRC_DEFAULT,
@@ -151,7 +155,7 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
-        rxQueue_ = xQueueCreate(4, sizeof(rmt_rx_done_event_data_t));
+        rxQueue_ = xQueueCreate(8, sizeof(rmt_rx_done_event_data_t));
         if (!rxQueue_)
         {
             ESP_LOGE(kTag, "RX begin failed: queue create");
@@ -159,10 +163,11 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
+        rxCallbackCtx_ = {rxQueue_, &rxOverflowed_};
         rmt_rx_event_callbacks_t cbs = {
             .on_recv_done = rxDoneCallback,
         };
-        if (rmt_rx_register_event_callbacks(rxChannel_, &cbs, rxQueue_) != ESP_OK)
+        if (rmt_rx_register_event_callbacks(rxChannel_, &cbs, &rxCallbackCtx_) != ESP_OK)
         {
             ESP_LOGE(kTag, "RX begin failed: register callbacks");
             vQueueDelete(rxQueue_);
@@ -171,7 +176,7 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
-        rxBuffer_.resize(256);
+        rxBuffer_.resize(512);
         rxConfig_.signal_range_min_ns = 1000;
         rxConfig_.signal_range_max_ns = 100000000;
         if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
@@ -226,6 +231,7 @@ namespace esp32ir
             vQueueDelete(rxQueue_);
             rxQueue_ = nullptr;
         }
+        rxOverflowed_ = false;
         begun_ = false;
         ESP_LOGI(kTag, "RX end");
     }
@@ -288,6 +294,39 @@ namespace esp32ir
             }
             seq.push_back(static_cast<int8_t>(mark ? counts : -static_cast<int>(counts)));
         }
+
+        void normalizeSeq(std::vector<int8_t> &seq)
+        {
+            std::vector<int8_t> out;
+            out.reserve(seq.size());
+            for (int v : seq)
+            {
+                if (v == 0)
+                {
+                    continue;
+                }
+                if (out.empty() || (out.back() > 0) != (v > 0))
+                {
+                    out.push_back(static_cast<int8_t>(v));
+                    continue;
+                }
+                int last = out.back();
+                out.pop_back();
+                int total = last + v;
+                int sign = (total >= 0) ? 1 : -1;
+                int remaining = total * sign;
+                while (remaining > 127)
+                {
+                    out.push_back(static_cast<int8_t>(sign * 127));
+                    remaining -= 127;
+                }
+                if (remaining > 0)
+                {
+                    out.push_back(static_cast<int8_t>(sign * remaining));
+                }
+            }
+            seq.swap(out);
+        }
     } // namespace
 
     bool Receiver::poll(esp32ir::RxResult &out)
@@ -296,11 +335,18 @@ namespace esp32ir
         {
             ESP_LOGW(kTag, "RX poll called before begin");
         }
+        if (!rxQueue_)
+        {
+            return false;
+        }
         rmt_rx_done_event_data_t ev = {};
         if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
             return false;
         }
+        bool truncated = ev.num_symbols >= rxBuffer_.size();
+        bool overflowed = rxOverflowed_;
+        rxOverflowed_ = false;
         std::vector<int8_t> seq;
         seq.reserve(ev.num_symbols * 2);
         for (size_t i = 0; i < ev.num_symbols; ++i)
@@ -324,13 +370,37 @@ namespace esp32ir
         {
             seq.erase(seq.begin());
         }
+        normalizeSeq(seq);
         if (seq.empty() || seq.front() < 0)
         {
             return false;
         }
+        if (truncated)
+        {
+            overflowed = true;
+        }
         esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(seq.size()), seq.data(), 0};
         esp32ir::ITPSBuffer buf;
         buf.addFrame(frame);
+
+        auto fillRaw = [&](esp32ir::RxStatus status) -> bool
+        {
+            out.status = status;
+            out.protocol = esp32ir::Protocol::RAW;
+            out.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
+            out.raw = buf;
+            out.payloadStorage.clear();
+            return true;
+        };
+
+        if (overflowed)
+        {
+            return fillRaw(esp32ir::RxStatus::OVERFLOW);
+        }
+        if (useRawOnly_)
+        {
+            return fillRaw(esp32ir::RxStatus::RAW_ONLY);
+        }
 
         auto protocolsToTry = protocols_;
         if (protocolsToTry.empty())
@@ -506,14 +576,9 @@ namespace esp32ir
             }
         }
         // No decode hit
-        if (useRawPlusKnown_ || useRawOnly_)
+        if (useRawPlusKnown_)
         {
-            out.status = esp32ir::RxStatus::RAW_ONLY;
-            out.protocol = esp32ir::Protocol::RAW;
-            out.message = {esp32ir::Protocol::RAW, nullptr, 0, 0};
-            out.raw = buf;
-            out.payloadStorage.clear();
-            return true;
+            return fillRaw(esp32ir::RxStatus::RAW_ONLY);
         }
         return false;
     }

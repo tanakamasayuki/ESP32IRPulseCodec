@@ -123,6 +123,7 @@ namespace esp32ir
         if (begun_)
             return false;
         gapUs_ = gapUs;
+        gapOverridden_ = true;
         return true;
     }
 
@@ -223,7 +224,7 @@ namespace esp32ir
         ESP_LOGI(kTag, "TX end");
     }
 
-    bool Transmitter::send(const esp32ir::ITPSBuffer &itps)
+    bool Transmitter::sendWithGap(const esp32ir::ITPSBuffer &itps, uint32_t recommendedGapUs)
     {
         if (!begun_)
         {
@@ -235,15 +236,16 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: invalid ITPSBuffer");
             return false;
         }
+        uint32_t gapToUse = gapOverridden_ ? gapUs_ : (recommendedGapUs ? recommendedGapUs : gapUs_);
         std::vector<rmt_symbol_word_t> items;
         for (uint16_t i = 0; i < itps.frameCount(); ++i)
         {
             appendITPSFrame(items, itps.frame(i));
         }
         // enforce trailing gap as Space
-        if (gapUs_ > 0)
+        if (gapToUse > 0)
         {
-            pushSymbol(items, false, gapUs_);
+            pushSymbol(items, false, gapToUse);
         }
         if (items.empty())
         {
@@ -264,12 +266,16 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: rmt_transmit err=%d", err);
             return false;
         }
-        err = rmt_tx_wait_all_done(txChannel_, pdMS_TO_TICKS(gapUs_ / 1000 + 50));
+        err = rmt_tx_wait_all_done(txChannel_, pdMS_TO_TICKS(gapToUse / 1000 + 50));
         if (err != ESP_OK)
         {
             ESP_LOGW(kTag, "TX wait done returned err=%d", err);
         }
         return true;
+    }
+    bool Transmitter::send(const esp32ir::ITPSBuffer &itps)
+    {
+        return sendWithGap(itps, 0);
     }
     bool Transmitter::send(const esp32ir::ProtocolMessage &message)
     {
