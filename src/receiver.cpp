@@ -389,6 +389,8 @@ namespace esp32ir
             esp32ir::RxSplitPolicy splitPolicy;
         };
 
+        RxParams defaultParams(bool rawMode);
+
         void mergeParams(RxParams &base, const RxParams &rec)
         {
             if (rec.frameGapUs > 0)
