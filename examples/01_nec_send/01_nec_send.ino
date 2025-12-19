@@ -16,7 +16,17 @@ void loop()
 {
   // en: send helper is a Transmitter method.
   // ja: 送信ヘルパは Transmitter のメンバ関数です。
-  bool ok = tx.sendNEC(0x00FF, 0xA2);
-  Serial.printf("sendNEC result: %s\n", ok ? "success" : "failed");
+  static uint16_t address = 0x0021;
+  static uint8_t command = 0xA2;
+  bool ok = tx.sendNEC(address, command);
+  Serial.printf("sendNEC address=0x%04X, command=0x%02X, result=%s\n", address, command, ok ? "success" : "failed");
+
+  // en: Change address and command.
+  // ja: アドレスとコマンドを変えていきます。
+  address += 100;
+  command += 5;
+
+  // en: Wait a second before next send.
+  // ja: 次の送信まで1秒待ちます。
   delay(1000);
 }
