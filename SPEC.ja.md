@@ -408,6 +408,13 @@ bool send(const esp32ir::ProtocolMessage& message);
 - 基本値は 40ms（`gapUs`）だが、プロトコル別送信ヘルパは各プロトコルの推奨ギャップを優先する（ユーザーが `setGapUs` で上書きした場合はその値を使う）。
 - フレーム末尾の Space を最低 `gapUs` 確保してから送信完了とみなす。
 - RAW/ProtocolMessage を直接 `send` する場合は、現在設定されている `gapUs` を適用する。
+- 参考推奨値（`setGapUs` 未設定時にヘルパーが使う目安値）  
+  - NEC / Samsung / Apple / Denon / LG / JVC: 40ms  
+  - SONY: 45ms  
+  - AEHA / Panasonic / Pioneer / Toshiba / Mitsubishi / Hitachi: 35ms  
+  - RC5 / RC6: 30ms  
+  - AC 系 (Daikin / Panasonic / Mitsubishi / Toshiba / Fujitsu): 50ms  
+  - その他未分類: 40ms  
 
 ---
 

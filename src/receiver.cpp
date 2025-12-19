@@ -33,6 +33,10 @@ namespace esp32ir
                     *(ctx->overflowFlag) = true;
                 }
             }
+            if (!edata->flags.is_last)
+            {
+                *(ctx->overflowFlag) = true;
+            }
             return high_task_woken == pdTRUE;
         }
 
@@ -550,7 +554,7 @@ namespace esp32ir
             return false;
         }
         bool truncated = ev.num_symbols >= rxBuffer_.size();
-        bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr);
+        bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr) || (!ev.flags.is_last);
         rxOverflowed_ = false;
         std::vector<int8_t> seq;
         seq.reserve(ev.num_symbols * 2);
