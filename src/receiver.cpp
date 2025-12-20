@@ -585,6 +585,31 @@ namespace esp32ir
         bool truncated = ev.num_symbols >= rxBuffer_.size();
         bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr) || (!ev.flags.is_last);
         rxOverflowed_ = false;
+        ESP_LOGV(kTag, "RX RMT symbols=%u last=%d invert=%s T_us=%u",
+                 static_cast<unsigned>(ev.num_symbols),
+                 static_cast<int>(ev.flags.is_last),
+                 invertInput_ ? "true" : "false",
+                 static_cast<unsigned>(quantizeT_));
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+        if (ev.received_symbols)
+        {
+            // Dump first few symbols to help debugging (verbose only).
+            char buf[1024];
+            size_t pos = 0;
+            for (size_t i = 0; i < ev.num_symbols && pos + 30 < sizeof(buf); ++i)
+            {
+                const auto &sym = ev.received_symbols[i];
+                int n = snprintf(buf + pos, sizeof(buf) - pos, "[%u]{%u,%u}{%u,%u} ",
+                                 static_cast<unsigned>(i),
+                                 static_cast<unsigned>(sym.level0), static_cast<unsigned>(sym.duration0),
+                                 static_cast<unsigned>(sym.level1), static_cast<unsigned>(sym.duration1));
+                if (n > 0)
+                    pos += static_cast<size_t>(n);
+            }
+            buf[std::min(pos, sizeof(buf) - 1)] = '\0';
+            ESP_LOGV(kTag, "RX RMT dump: %s%s", buf, (pos + 30 < sizeof(buf)) ? "..." : "");
+        }
+#endif
         std::vector<int8_t> seq;
         seq.reserve(ev.num_symbols * 2);
         for (size_t i = 0; i < ev.num_symbols; ++i)
@@ -592,12 +617,13 @@ namespace esp32ir
             const auto &sym = ev.received_symbols[i];
             if (sym.duration0)
             {
-                bool mark = invertInput_ ? (sym.level0 == 0) : (sym.level0 != 0);
+                // invertInput_ is already applied by RMT hardware (flags.invert_in).
+                bool mark = sym.level0 != 0;
                 pushSeq(seq, mark, sym.duration0, quantizeT_);
             }
             if (sym.duration1)
             {
-                bool mark = invertInput_ ? (sym.level1 == 0) : (sym.level1 != 0);
+                bool mark = sym.level1 != 0;
                 pushSeq(seq, mark, sym.duration1, quantizeT_);
             }
         }
