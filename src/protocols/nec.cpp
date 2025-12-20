@@ -51,13 +51,30 @@ namespace esp32ir
                 ++idx;
                 return true;
             };
-            if (!expect(true, kHdrMarkUs, 25) || !expect(false, kHdrSpaceUs, 25))
+            if (!expect(true, kHdrMarkUs, 25))
                 return false;
-            // NEC repeat frame: header + 2250 space + 560 mark
-            if (pulses.size() - idx <= 3)
+            if (idx >= pulses.size() || pulses[idx].mark)
+                return false;
+
+            bool spaceIsHdr = esp32ir::inRange(pulses[idx].us, kHdrSpaceUs, 25);
+            bool spaceIsRepeatGap = esp32ir::inRange(pulses[idx].us, kRepeatSpaceUs, 30);
+            if (!spaceIsHdr && !spaceIsRepeatGap)
+                return false;
+            ++idx;
+            // NEC repeat frame: 9000 mark + 2250 space + 560 mark
+            if (spaceIsRepeatGap)
             {
-                bool repeatMark = expect(true, kRepeatGapMarkUs, 30);
-                if (repeatMark)
+                if (expect(true, kRepeatGapMarkUs, 30))
+                {
+                    isRepeat = true;
+                    return true;
+                }
+                return false;
+            }
+            // Short frame with normal header space but no data: also treat as repeat.
+            if (pulses.size() - idx <= 2)
+            {
+                if (expect(true, kRepeatGapMarkUs, 30))
                 {
                     isRepeat = true;
                     return true;
