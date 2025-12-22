@@ -2,21 +2,27 @@
 // ja: 受信したIRをJSONテンプレートとして出力（TODO欄はあとで手入力）。
 #include <ESP32IRPulseCodec.h>
 
-esp32ir::Receiver rx(23, /*invert=*/true); // en: Most IR RX modules are inverted / ja: 多くのIR受信モジュールは反転出力
+// en: Receiver instance (many IR RX modules output inverted signals)
+// ja: 受信インスタンス（市販IR受信モジュールは反転出力が多い）
+esp32ir::Receiver rx(23, /*invert=*/true);
 
+// en: Print decoded frame bytes as decimal array
+// ja: デコード済みバイト列を10進配列で出力
 static void printFrameBytes(const esp32ir::ProtocolMessage &msg)
 {
   Serial.print("[");
   for (uint16_t i = 0; i < msg.length; ++i)
   {
     if (i > 0)
-      Serial.print(',');
+      Serial.print(', ');
     uint8_t b = msg.data ? msg.data[i] : 0;
     Serial.print(b); // en: decimal bytes / ja: 10進バイト列
   }
   Serial.print("]");
 }
 
+// en: Dump ITPS frames as JSON array
+// ja: ITPSフレームをJSON配列として出力
 static void printITPS(const esp32ir::ITPSBuffer &raw)
 {
   Serial.print("\"itps\":[");
@@ -24,7 +30,7 @@ static void printITPS(const esp32ir::ITPSBuffer &raw)
   {
     const auto &f = raw.frame(fi);
     if (fi > 0)
-      Serial.print(',');
+      Serial.print(', ');
     Serial.print('{');
     Serial.print("\"T_us\":");
     Serial.print(f.T_us);
@@ -34,7 +40,7 @@ static void printITPS(const esp32ir::ITPSBuffer &raw)
     for (uint16_t i = 0; i < f.len; ++i)
     {
       if (i > 0)
-        Serial.print(',');
+        Serial.print(', ');
       Serial.print(f.seq[i]);
     }
     Serial.print("]}");
@@ -42,6 +48,8 @@ static void printITPS(const esp32ir::ITPSBuffer &raw)
   Serial.print(']');
 }
 
+// en: Emit durationsUs (first frame) reconstructed from ITPS
+// ja: ITPSから復元したdurationsUs（最初のフレーム）を出力
 static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
 {
   if (raw.frameCount() == 0)
@@ -54,39 +62,38 @@ static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
   for (uint16_t i = 0; i < f.len; ++i)
   {
     if (i > 0)
-      Serial.print(',');
+      Serial.print(', ');
     long dur = static_cast<long>(f.seq[i]) * static_cast<long>(f.T_us);
     Serial.print(dur);
   }
   Serial.print("]");
 }
 
+// en: Initialize receiver and wait for captures
+// ja: 受信初期化とキャプチャ待機
 void setup()
 {
   Serial.begin(115200);
+  delay(1000);
 
-  const bool enableDecode = true; // en: true keeps RAW and decoded message / ja: trueでRAWとデコード結果の両方を保持
-  if (enableDecode)
-  {
-    rx.useRawPlusKnown(); // en: decode + keep RAW / ja: デコードしつつRAWも保持
-  }
-  else
-  {
-    rx.useRawOnly(); // en: RAW only, no decode / ja: RAWのみ（デコードなし）
-  }
-
+  rx.useRawPlusKnown(); // en: decode + keep RAW / ja: デコードしつつRAWも保持
   rx.begin();
 
   Serial.println(F("# Waiting for IR capture..."));
 }
 
+// en: Poll RX, decode, and print a JSON record
+// ja: 受信をポーリングし、デコードしてJSONレコードを出力
 void loop()
 {
   esp32ir::RxResult r;
   if (!rx.poll(r))
+  {
+    delay(1);
     return;
+  }
 
-  // decode payload (flat) if available
+  // en: decode payload (flat) if available / ja: デコード可能ならペイロードをフラット形式で取得
   bool decoded = (r.status == esp32ir::RxStatus::DECODED);
   esp32ir::payload::NEC nec{};
   esp32ir::payload::SONY sony{};
@@ -106,6 +113,8 @@ void loop()
 
   if (decoded)
   {
+    // en: Decode payload into flat structs by protocol
+    // ja: プロトコルごとにペイロードをフラット構造体へデコード
     switch (r.protocol)
     {
     case esp32ir::Protocol::NEC:
@@ -172,7 +181,7 @@ void loop()
   Serial.println(F("  ,\"capture\":{"));
   Serial.print(F("    \"durationsUs\":"));
   printDurationsUs(r.raw); // en: Mark/Space durations (us) / ja: Mark/Spaceの長さ[us]
-  Serial.println(F(","));  // en/ja: keep ITPS (quantized) as full RAW
+  Serial.println(F(","));  // en: keep ITPS (quantized) as full RAW / ja: ITPS（量子化RAW）を保持
   Serial.print(F("    "));
   printITPS(r.raw);
   Serial.println();
