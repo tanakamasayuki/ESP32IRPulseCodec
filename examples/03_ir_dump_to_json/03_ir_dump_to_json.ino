@@ -1,5 +1,5 @@
-// en: Capture and dump received IR as a JSON template (fill TODO fields manually).
-// ja: 受信したIRをJSONテンプレートとして出力（TODO欄はあとで手入力）。
+// en: Capture and dump received IR as a JSON template (fill TODO fields manually). Handy as a "dump" to view raw details + decoded info, and as the JSON format needed when adding support for unknown/unsupported protocols.
+// ja: 受信したIRをJSONテンプレートとして出力（TODO欄はあとで手入力）。RAWの詳細とデコード結果を確認するダンプ用途、および未対応フォーマット追加時のJSONひな型として利用可能。
 #include <ESP32IRPulseCodec.h>
 
 // en: Receiver instance (many IR RX modules output inverted signals)
