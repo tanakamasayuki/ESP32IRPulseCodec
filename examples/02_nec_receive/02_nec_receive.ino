@@ -1,18 +1,12 @@
 #include <ESP32IRPulseCodec.h>
 
-// en: Simple NEC RX example
-// ja: NEC受信のシンプルな例
-// en: Adjust GPIO numbers to your board wiring.
-// ja: GPIO番号はご利用環境の配線に合わせて変更してください。
-esp32ir::Receiver rx(23, /*invert=*/true); // 市販IR受信モジュールは反転出力が多い
+// en: Simple NEC RX example (adjust GPIO to your wiring; many IR RX modules invert output)
+// ja: シンプルなNEC受信例（配線に合わせてGPIOを変更。市販IR受信モジュールは反転出力が多い）
+esp32ir::Receiver rx(23, /*invert=*/true);
 
 void setup()
 {
   Serial.begin(115200);
-
-  // en: Keep RAW even when decode fails so you can inspect captures
-  // ja: デコードに失敗してもRAWを保持して、キャプチャ内容を確認できるようにする
-  rx.useRawPlusKnown();
 
   // en: Start receiver
   // ja: 受信開始
@@ -24,6 +18,8 @@ void loop()
   esp32ir::RxResult rxResult;
   if (rx.poll(rxResult))
   {
+    // en: Try NEC decode and print result
+    // ja: NECとしてデコードし、結果を表示
     esp32ir::payload::NEC nec;
     if (esp32ir::decodeNEC(rxResult, nec))
     {
