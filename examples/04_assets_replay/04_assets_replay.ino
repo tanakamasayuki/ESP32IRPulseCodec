@@ -193,11 +193,6 @@ void setup()
       continue;
     }
 
-    std::string protoStr = getStringField(root, "protocol");
-    if (protoStr.empty())
-      protoStr = "RAW";
-    esp32ir::Protocol proto = esp32ir::util::protocolFromString(protoStr);
-
     cJSON *capture = cJSON_GetObjectItemCaseSensitive(root, "capture");
     std::vector<uint8_t> frameBytes = capture ? parseFrameBytes(capture) : std::vector<uint8_t>{};
     esp32ir::ITPSBuffer buf = capture ? buildITPS(capture) : esp32ir::ITPSBuffer{};

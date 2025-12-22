@@ -14,7 +14,7 @@ static void printFrameBytes(const esp32ir::ProtocolMessage &msg)
   for (uint16_t i = 0; i < msg.length; ++i)
   {
     if (i > 0)
-      Serial.print(', ');
+      Serial.print(", ");
     uint8_t b = msg.data ? msg.data[i] : 0;
     Serial.print(b); // en: decimal bytes / ja: 10進バイト列
   }
@@ -30,7 +30,7 @@ static void printITPS(const esp32ir::ITPSBuffer &raw)
   {
     const auto &f = raw.frame(fi);
     if (fi > 0)
-      Serial.print(', ');
+      Serial.print(", ");
     Serial.print('{');
     Serial.print("\"T_us\":");
     Serial.print(f.T_us);
@@ -40,7 +40,7 @@ static void printITPS(const esp32ir::ITPSBuffer &raw)
     for (uint16_t i = 0; i < f.len; ++i)
     {
       if (i > 0)
-        Serial.print(', ');
+        Serial.print(", ");
       Serial.print(f.seq[i]);
     }
     Serial.print("]}");
@@ -62,7 +62,7 @@ static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
   for (uint16_t i = 0; i < f.len; ++i)
   {
     if (i > 0)
-      Serial.print(', ');
+      Serial.print(", ");
     long dur = static_cast<long>(f.seq[i]) * static_cast<long>(f.T_us);
     Serial.print(dur);
   }
@@ -79,7 +79,7 @@ void setup()
   rx.useRawPlusKnown(); // en: decode + keep RAW / ja: デコードしつつRAWも保持
   rx.begin();
 
-  Serial.println(F("# Waiting for IR capture..."));
+  Serial.println("# Waiting for IR capture...");
 }
 
 // en: Poll RX, decode, and print a JSON record
@@ -167,35 +167,35 @@ void loop()
     }
   }
 
-  Serial.println(F("{"));
-  Serial.println(F("  \"version\":\"0.2\","));
-  Serial.println(F("  \"device\":{ \"vendor\":\"TODO\", \"model\":\"TODO\", \"remote\":\"TODO\" },"));
-  Serial.print(F("  \"protocol\":\""));
+  Serial.println("{");
+  Serial.println("  \"version\":\"0.2\",");
+  Serial.println("  \"device\":{ \"vendor\":\"TODO\", \"model\":\"TODO\", \"remote\":\"TODO\" },");
+  Serial.print("  \"protocol\":\"");
   Serial.print(esp32ir::util::protocolToString(r.protocol));
-  Serial.println(F("\","));
-  Serial.print(F("  \"status\":\""));
+  Serial.println("\",");
+  Serial.print("  \"status\":\"");
   Serial.print(esp32ir::util::rxStatusToString(r.status));
-  Serial.println(F("\","));
-  Serial.print(F("  \"timestampMs\":"));
+  Serial.println("\",");
+  Serial.print("  \"timestampMs\":");
   Serial.println(millis());
-  Serial.println(F("  ,\"capture\":{"));
-  Serial.print(F("    \"durationsUs\":"));
+  Serial.println("  ,\"capture\":{");
+  Serial.print("    \"durationsUs\":");
   printDurationsUs(r.raw); // en: Mark/Space durations (us) / ja: Mark/Spaceの長さ[us]
-  Serial.println(F(","));  // en: keep ITPS (quantized) as full RAW / ja: ITPS（量子化RAW）を保持
-  Serial.print(F("    "));
+  Serial.println(",");  // en: keep ITPS (quantized) as full RAW / ja: ITPS（量子化RAW）を保持
+  Serial.print("    ");
   printITPS(r.raw);
   Serial.println();
-  Serial.println(F("  },"));
+  Serial.println("  },");
   if (decoded)
   {
-    Serial.println(F("  \"expected\":{"));
-    Serial.print(F("    \"protocol\":\""));
+    Serial.println("  \"expected\":{");
+    Serial.print("    \"protocol\":\"");
     Serial.print(esp32ir::util::protocolToString(r.protocol));
-    Serial.println(F("\","));
-    Serial.print(F("    \"frameBytes\":"));
+    Serial.println("\", ");
+    Serial.print("    \"frameBytes\":");
     printFrameBytes(r.message);
-    Serial.println(F(","));
-    Serial.print(F("    \"payload\":{"));
+    Serial.println(", ");
+    Serial.print("    \"payload\":{");
     switch (r.protocol)
     {
     case esp32ir::Protocol::NEC:
@@ -247,10 +247,10 @@ void loop()
       Serial.print("\"_note\":\"payload decode not supported\"");
       break;
     }
-    Serial.println(F("}"));
-    Serial.println(F("  },"));
+    Serial.println("}");
+    Serial.println("  },");
   }
-  Serial.println(F("  \"notes\":\"Fill in capabilities/intents manually if needed.\""));
-  Serial.println(F("}"));
+  Serial.println("  \"notes\":\"Fill in capabilities/intents manually if needed.\"");
+  Serial.println("}");
   Serial.println();
 }
