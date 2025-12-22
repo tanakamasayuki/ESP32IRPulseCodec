@@ -353,17 +353,6 @@ namespace esp32ir
             ESP_LOGE(kTag, "TX send failed: protocol payload missing");
             return false;
         }
-        auto checkSizeStub = [&](size_t expected, const char *name) -> bool
-        {
-            if (message.length != expected)
-            {
-                ESP_LOGE(kTag, "TX send %s failed: size mismatch (got %u expected %u)",
-                         name, static_cast<unsigned>(message.length), static_cast<unsigned>(expected));
-                return false;
-            }
-            ESP_LOGW(kTag, "TX send %s stub: encode/HAL not implemented", name);
-            return false;
-        };
         switch (message.protocol)
         {
         case esp32ir::Protocol::NEC:
