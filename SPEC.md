@@ -191,6 +191,14 @@ bool poll(esp32ir::RxResult& out);
   }
   ```
 
+- Decode-only helper (for external ITPS sources / files):
+  ```cpp
+  bool decode(const esp32ir::ITPSBuffer& buf, esp32ir::RxResult& out, bool overflowed=false);
+  ```
+  - Uses the current protocol list / RAW flags exactly like `poll`.
+  - Accepts pre-built ITPS frames (e.g., captured assets) and runs the same decode pipeline.
+  - If `overflowed=true`, returns `OVERFLOW` with raw preserved.
+
 ---
 
 ## 8. RxResult

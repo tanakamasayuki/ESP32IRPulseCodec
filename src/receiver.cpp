@@ -563,189 +563,8 @@ namespace esp32ir
         }
     } // namespace
 
-    bool Receiver::poll(esp32ir::RxResult &out)
+    bool Receiver::decode(const esp32ir::ITPSBuffer &buf, esp32ir::RxResult &out, bool overflowed)
     {
-        if (!begun_)
-        {
-            ESP_LOGW(kTag, "RX poll called before begin");
-        }
-        if (!rxQueue_)
-        {
-            return false;
-        }
-        if (!rxChannel_)
-        {
-            return false;
-        }
-        rmt_rx_done_event_data_t ev = {};
-        if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
-        {
-            return false;
-        }
-        bool truncated = ev.num_symbols >= rxBuffer_.size();
-        bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr) || (!ev.flags.is_last);
-        rxOverflowed_ = false;
-        ESP_LOGV(kTag, "RX RMT symbols=%u last=%d invert=%s T_us=%u",
-                 static_cast<unsigned>(ev.num_symbols),
-                 static_cast<int>(ev.flags.is_last),
-                 invertInput_ ? "true" : "false",
-                 static_cast<unsigned>(quantizeT_));
-#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
-        if (ev.received_symbols)
-        {
-            // Dump first few symbols to help debugging (verbose only).
-            char buf[1024];
-            size_t pos = 0;
-            for (size_t i = 0; i < ev.num_symbols && pos + 30 < sizeof(buf); ++i)
-            {
-                const auto &sym = ev.received_symbols[i];
-                int n = snprintf(buf + pos, sizeof(buf) - pos, "[%u]{%u,%u}{%u,%u} ",
-                                 static_cast<unsigned>(i),
-                                 static_cast<unsigned>(sym.level0), static_cast<unsigned>(sym.duration0),
-                                 static_cast<unsigned>(sym.level1), static_cast<unsigned>(sym.duration1));
-                if (n > 0)
-                    pos += static_cast<size_t>(n);
-            }
-            buf[std::min(pos, sizeof(buf) - 1)] = '\0';
-            ESP_LOGV(kTag, "RX RMT dump: %s%s", buf, (pos + 30 < sizeof(buf)) ? "..." : "");
-        }
-#endif
-        std::vector<int8_t> seq;
-        seq.reserve(ev.num_symbols * 2);
-        for (size_t i = 0; i < ev.num_symbols; ++i)
-        {
-            const auto &sym = ev.received_symbols[i];
-            if (sym.duration0)
-            {
-                // invertInput_ is already applied by RMT hardware (flags.invert_in).
-                bool mark = sym.level0 != 0;
-                pushSeq(seq, mark, sym.duration0, quantizeT_);
-            }
-            if (sym.duration1)
-            {
-                bool mark = sym.level1 != 0;
-                pushSeq(seq, mark, sym.duration1, quantizeT_);
-            }
-        }
-        // restart reception
-        esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
-        if (rxErr != ESP_OK)
-        {
-            ESP_LOGW(kTag, "RX rmt_receive restart failed err=%d", static_cast<int>(rxErr));
-            overflowed = true;
-        }
-
-        while (!seq.empty() && seq.front() < 0)
-        {
-            seq.erase(seq.begin());
-        }
-        normalizeSeq(seq);
-        if (seq.empty() || seq.front() < 0)
-        {
-            return false;
-        }
-        if (truncated)
-        {
-            ESP_LOGW(kTag, "RX buffer truncated (symbols=%zu cap=%zu)", static_cast<size_t>(ev.num_symbols), rxBuffer_.size());
-            overflowed = true;
-        }
-        auto protocolsToTry = protocols_;
-        if (protocolsToTry.empty())
-        {
-            protocolsToTry = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
-        }
-
-        RxParams params{};
-        params.frameGapUs = effFrameGapUs_;
-        params.hardGapUs = effHardGapUs_;
-        params.minFrameUs = effMinFrameUs_;
-        params.maxFrameUs = effMaxFrameUs_;
-        params.minEdges = effMinEdges_;
-        params.frameCountMax = effFrameCountMax_;
-        params.splitPolicy = effSplitPolicy_;
-        if (params.frameGapUs == 0)
-        {
-            RxParams def = defaultParams(useRawOnly_ || useRawPlusKnown_);
-            params = def;
-        }
-
-        std::vector<std::vector<int8_t>> framesData;
-        std::vector<int8_t> current;
-        uint32_t currentTimeUs = 0;
-        auto flush = [&](bool &overflowFlag)
-        {
-            if (!current.empty())
-            {
-                if (!appendFrameIfValid(current, quantizeT_, params, framesData))
-                {
-                    overflowFlag = true;
-                }
-                current.clear();
-                currentTimeUs = 0;
-            }
-        };
-
-        for (size_t i = 0; i < seq.size(); ++i)
-        {
-            int v = seq[i];
-            uint32_t durUs = static_cast<uint32_t>((v < 0 ? -v : v) * quantizeT_);
-            bool isSpace = v < 0;
-
-            bool forceSplit = false;
-            if (isSpace && durUs >= params.hardGapUs)
-            {
-                forceSplit = true;
-            }
-            else if (isSpace && params.maxFrameUs > 0 && (currentTimeUs + durUs) > params.maxFrameUs && !current.empty())
-            {
-                forceSplit = true;
-            }
-
-            if (forceSplit && !current.empty())
-            {
-                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
-                {
-                    current.push_back(static_cast<int8_t>(v));
-                    currentTimeUs += durUs;
-                }
-                flush(overflowed);
-                continue;
-            }
-
-            if (current.empty() && isSpace)
-            {
-                continue;
-            }
-            current.push_back(static_cast<int8_t>(v));
-            currentTimeUs += durUs;
-
-            if (isSpace && durUs >= params.frameGapUs)
-            {
-                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
-                {
-                    flush(overflowed);
-                }
-                else
-                {
-                    current.pop_back(); // drop gap
-                    flush(overflowed);
-                }
-            }
-        }
-        flush(overflowed);
-
-        if (framesData.empty())
-        {
-            return false;
-        }
-
-        esp32ir::ITPSBuffer buf;
-        for (const auto &fseq : framesData)
-        {
-            esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(fseq.size()), fseq.data(), 0};
-            buf.addFrame(frame);
-        }
-
         auto fillRaw = [&](esp32ir::RxStatus status) -> bool
         {
             out.status = status;
@@ -782,6 +601,8 @@ namespace esp32ir
             }
             return true;
         };
+
+        auto protocolsToTry = protocols_.empty() ? (useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols()) : protocols_;
 
         esp32ir::RxResult temp;
         temp.status = esp32ir::RxStatus::RAW_ONLY;
@@ -932,12 +753,191 @@ namespace esp32ir
                 break;
             }
         }
-        // No decode hit
         if (useRawPlusKnown_)
         {
             return fillRaw(esp32ir::RxStatus::RAW_ONLY);
         }
         return false;
+    }
+
+    bool Receiver::poll(esp32ir::RxResult &out)
+    {
+        if (!begun_)
+        {
+            ESP_LOGW(kTag, "RX poll called before begin");
+        }
+        if (!rxQueue_)
+        {
+            return false;
+        }
+        if (!rxChannel_)
+        {
+            return false;
+        }
+        rmt_rx_done_event_data_t ev = {};
+        if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
+        {
+            return false;
+        }
+        bool truncated = ev.num_symbols >= rxBuffer_.size();
+        bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr) || (!ev.flags.is_last);
+        rxOverflowed_ = false;
+        ESP_LOGV(kTag, "RX RMT symbols=%u last=%d invert=%s T_us=%u",
+                 static_cast<unsigned>(ev.num_symbols),
+                 static_cast<int>(ev.flags.is_last),
+                 invertInput_ ? "true" : "false",
+                 static_cast<unsigned>(quantizeT_));
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+        if (ev.received_symbols)
+        {
+            // Dump first few symbols to help debugging (verbose only).
+            char buf[1024];
+            size_t pos = 0;
+            for (size_t i = 0; i < ev.num_symbols && pos + 30 < sizeof(buf); ++i)
+            {
+                const auto &sym = ev.received_symbols[i];
+                int n = snprintf(buf + pos, sizeof(buf) - pos, "[%u]{%u,%u}{%u,%u} ",
+                                 static_cast<unsigned>(i),
+                                 static_cast<unsigned>(sym.level0), static_cast<unsigned>(sym.duration0),
+                                 static_cast<unsigned>(sym.level1), static_cast<unsigned>(sym.duration1));
+                if (n > 0)
+                    pos += static_cast<size_t>(n);
+            }
+            buf[std::min(pos, sizeof(buf) - 1)] = '\0';
+            ESP_LOGV(kTag, "RX RMT dump: %s%s", buf, (pos + 30 < sizeof(buf)) ? "..." : "");
+        }
+#endif
+        std::vector<int8_t> seq;
+        seq.reserve(ev.num_symbols * 2);
+        for (size_t i = 0; i < ev.num_symbols; ++i)
+        {
+            const auto &sym = ev.received_symbols[i];
+            if (sym.duration0)
+            {
+                // invertInput_ is already applied by RMT hardware (flags.invert_in).
+                bool mark = sym.level0 != 0;
+                pushSeq(seq, mark, sym.duration0, quantizeT_);
+            }
+            if (sym.duration1)
+            {
+                bool mark = sym.level1 != 0;
+                pushSeq(seq, mark, sym.duration1, quantizeT_);
+            }
+        }
+        // restart reception
+        esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
+        if (rxErr != ESP_OK)
+        {
+            ESP_LOGW(kTag, "RX rmt_receive restart failed err=%d", static_cast<int>(rxErr));
+            overflowed = true;
+        }
+
+        while (!seq.empty() && seq.front() < 0)
+        {
+            seq.erase(seq.begin());
+        }
+        normalizeSeq(seq);
+        if (seq.empty() || seq.front() < 0)
+        {
+            return false;
+        }
+        if (truncated)
+        {
+            ESP_LOGW(kTag, "RX buffer truncated (symbols=%zu cap=%zu)", static_cast<size_t>(ev.num_symbols), rxBuffer_.size());
+            overflowed = true;
+        }
+
+        RxParams params{};
+        params.frameGapUs = effFrameGapUs_;
+        params.hardGapUs = effHardGapUs_;
+        params.minFrameUs = effMinFrameUs_;
+        params.maxFrameUs = effMaxFrameUs_;
+        params.minEdges = effMinEdges_;
+        params.frameCountMax = effFrameCountMax_;
+        params.splitPolicy = effSplitPolicy_;
+        if (params.frameGapUs == 0)
+        {
+            RxParams def = defaultParams(useRawOnly_ || useRawPlusKnown_);
+            params = def;
+        }
+
+        std::vector<std::vector<int8_t>> framesData;
+        std::vector<int8_t> current;
+        uint32_t currentTimeUs = 0;
+        auto flush = [&](bool &overflowFlag)
+        {
+            if (!current.empty())
+            {
+                if (!appendFrameIfValid(current, quantizeT_, params, framesData))
+                {
+                    overflowFlag = true;
+                }
+                current.clear();
+                currentTimeUs = 0;
+            }
+        };
+
+        for (size_t i = 0; i < seq.size(); ++i)
+        {
+            int v = seq[i];
+            uint32_t durUs = static_cast<uint32_t>((v < 0 ? -v : v) * quantizeT_);
+            bool isSpace = v < 0;
+
+            bool forceSplit = false;
+            if (isSpace && durUs >= params.hardGapUs)
+            {
+                forceSplit = true;
+            }
+            else if (isSpace && params.maxFrameUs > 0 && (currentTimeUs + durUs) > params.maxFrameUs && !current.empty())
+            {
+                forceSplit = true;
+            }
+
+            if (forceSplit && !current.empty())
+            {
+                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
+                {
+                    current.push_back(static_cast<int8_t>(v));
+                    currentTimeUs += durUs;
+                }
+                flush(overflowed);
+                continue;
+            }
+
+            if (current.empty() && isSpace)
+            {
+                continue;
+            }
+            current.push_back(static_cast<int8_t>(v));
+            currentTimeUs += durUs;
+
+            if (isSpace && durUs >= params.frameGapUs)
+            {
+                if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
+                {
+                    flush(overflowed);
+                }
+                else
+                {
+                    current.pop_back(); // drop gap
+                    flush(overflowed);
+                }
+            }
+        }
+        flush(overflowed);
+
+        if (framesData.empty())
+        {
+            return false;
+        }
+
+        esp32ir::ITPSBuffer buf;
+        for (const auto &fseq : framesData)
+        {
+            esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(fseq.size()), fseq.data(), 0};
+            buf.addFrame(frame);
+        }
+        return decode(buf, out, overflowed);
     }
 
 } // namespace esp32ir

@@ -386,6 +386,8 @@ namespace esp32ir
     bool setSplitPolicy(RxSplitPolicy policy);
 
     bool poll(esp32ir::RxResult &out);
+    // Decode given ITPS frames using current protocol settings (can be used with external data sources).
+    bool decode(const esp32ir::ITPSBuffer &buf, esp32ir::RxResult &out, bool overflowed = false);
 
     struct RxCallbackContext
     {

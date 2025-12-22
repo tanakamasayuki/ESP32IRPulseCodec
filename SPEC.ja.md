@@ -191,6 +191,14 @@ bool poll(esp32ir::RxResult& out);
   }
   ```
 
+- デコード専用ヘルパ（外部のITPSデータやファイル用）：
+  ```cpp
+  bool decode(const esp32ir::ITPSBuffer& buf, esp32ir::RxResult& out, bool overflowed=false);
+  ```
+  - `poll` と同じプロトコル設定／RAWフラグを利用し、同じデコードパイプラインを実行
+  - 事前に構築された ITPS（キャプチャ資産など）を入力にできる
+  - `overflowed=true` の場合は raw を保持したまま OVERFLOW を返す
+
 ---
 
 ## 8. RxResult
