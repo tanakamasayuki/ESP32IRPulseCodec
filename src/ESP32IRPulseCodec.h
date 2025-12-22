@@ -57,6 +57,81 @@ namespace esp32ir
     OVERFLOW,
   };
 
+  namespace util
+  {
+    // en: Convert Protocol enum to canonical string (matches spec/JSON)
+    // ja: Protocol列挙体を仕様に沿った文字列へ変換
+    inline const char *protocolToString(Protocol p)
+    {
+      switch (p)
+      {
+      case Protocol::RAW: return "RAW";
+      case Protocol::NEC: return "NEC";
+      case Protocol::SONY: return "SONY";
+      case Protocol::AEHA: return "AEHA";
+      case Protocol::Panasonic: return "Panasonic";
+      case Protocol::JVC: return "JVC";
+      case Protocol::Samsung: return "Samsung";
+      case Protocol::LG: return "LG";
+      case Protocol::Denon: return "Denon";
+      case Protocol::RC5: return "RC5";
+      case Protocol::RC6: return "RC6";
+      case Protocol::Apple: return "Apple";
+      case Protocol::Pioneer: return "Pioneer";
+      case Protocol::Toshiba: return "Toshiba";
+      case Protocol::Mitsubishi: return "Mitsubishi";
+      case Protocol::Hitachi: return "Hitachi";
+      case Protocol::DaikinAC: return "DaikinAC";
+      case Protocol::PanasonicAC: return "PanasonicAC";
+      case Protocol::MitsubishiAC: return "MitsubishiAC";
+      case Protocol::ToshibaAC: return "ToshibaAC";
+      case Protocol::FujitsuAC: return "FujitsuAC";
+      default: return "RAW";
+      }
+    }
+
+    // en: Convert canonical protocol string back to enum (case-sensitive)
+    // ja: 仕様上のプロトコル文字列をenumに変換（大文字小文字は区別）
+    inline Protocol protocolFromString(const std::string &s)
+    {
+      if (s == "RAW") return Protocol::RAW;
+      if (s == "NEC") return Protocol::NEC;
+      if (s == "SONY") return Protocol::SONY;
+      if (s == "AEHA") return Protocol::AEHA;
+      if (s == "Panasonic") return Protocol::Panasonic;
+      if (s == "JVC") return Protocol::JVC;
+      if (s == "Samsung") return Protocol::Samsung;
+      if (s == "LG") return Protocol::LG;
+      if (s == "Denon") return Protocol::Denon;
+      if (s == "RC5") return Protocol::RC5;
+      if (s == "RC6") return Protocol::RC6;
+      if (s == "Apple") return Protocol::Apple;
+      if (s == "Pioneer") return Protocol::Pioneer;
+      if (s == "Toshiba") return Protocol::Toshiba;
+      if (s == "Mitsubishi") return Protocol::Mitsubishi;
+      if (s == "Hitachi") return Protocol::Hitachi;
+      if (s == "DaikinAC") return Protocol::DaikinAC;
+      if (s == "PanasonicAC") return Protocol::PanasonicAC;
+      if (s == "MitsubishiAC") return Protocol::MitsubishiAC;
+      if (s == "ToshibaAC") return Protocol::ToshibaAC;
+      if (s == "FujitsuAC") return Protocol::FujitsuAC;
+      return Protocol::RAW;
+    }
+
+    // en: Convert RxStatus enum to string
+    // ja: 受信ステータスを文字列化
+    inline const char *rxStatusToString(RxStatus s)
+    {
+      switch (s)
+      {
+      case RxStatus::DECODED: return "DECODED";
+      case RxStatus::RAW_ONLY: return "RAW_ONLY";
+      case RxStatus::OVERFLOW: return "OVERFLOW";
+      default: return "UNKNOWN";
+      }
+    }
+  } // namespace util
+
   enum class RxSplitPolicy : uint8_t
   {
     DROP_GAP = 0,

@@ -12,102 +12,11 @@
 #include <cstdio>
 #include <cJSON.h>
 
-// en: Map protocol string to enum (minimal set; extend as needed)
-// ja: プロトコル名文字列をenumに変換（必要に応じて拡張）
-static esp32ir::Protocol toProtocol(const std::string &s)
-{
-  if (s == "NEC")
-    return esp32ir::Protocol::NEC;
-  if (s == "SONY")
-    return esp32ir::Protocol::SONY;
-  if (s == "AEHA")
-    return esp32ir::Protocol::AEHA;
-  if (s == "Panasonic")
-    return esp32ir::Protocol::Panasonic;
-  if (s == "JVC")
-    return esp32ir::Protocol::JVC;
-  if (s == "Samsung")
-    return esp32ir::Protocol::Samsung;
-  if (s == "LG")
-    return esp32ir::Protocol::LG;
-  if (s == "Denon")
-    return esp32ir::Protocol::Denon;
-  if (s == "RC5")
-    return esp32ir::Protocol::RC5;
-  if (s == "RC6")
-    return esp32ir::Protocol::RC6;
-  if (s == "Apple")
-    return esp32ir::Protocol::Apple;
-  if (s == "Pioneer")
-    return esp32ir::Protocol::Pioneer;
-  if (s == "Toshiba")
-    return esp32ir::Protocol::Toshiba;
-  if (s == "Mitsubishi")
-    return esp32ir::Protocol::Mitsubishi;
-  if (s == "Hitachi")
-    return esp32ir::Protocol::Hitachi;
-  if (s == "DaikinAC")
-    return esp32ir::Protocol::DaikinAC;
-  if (s == "PanasonicAC")
-    return esp32ir::Protocol::PanasonicAC;
-  if (s == "MitsubishiAC")
-    return esp32ir::Protocol::MitsubishiAC;
-  if (s == "ToshibaAC")
-    return esp32ir::Protocol::ToshibaAC;
-  if (s == "FujitsuAC")
-    return esp32ir::Protocol::FujitsuAC;
-  return esp32ir::Protocol::RAW;
-}
-
 // en: enum to string (for logs/comparison)
 // ja: enum を文字列化（ログ・比較用）
 static const char *protocolToString(esp32ir::Protocol p)
 {
-  switch (p)
-  {
-  case esp32ir::Protocol::NEC:
-    return "NEC";
-  case esp32ir::Protocol::SONY:
-    return "SONY";
-  case esp32ir::Protocol::AEHA:
-    return "AEHA";
-  case esp32ir::Protocol::Panasonic:
-    return "Panasonic";
-  case esp32ir::Protocol::JVC:
-    return "JVC";
-  case esp32ir::Protocol::Samsung:
-    return "Samsung";
-  case esp32ir::Protocol::LG:
-    return "LG";
-  case esp32ir::Protocol::Denon:
-    return "Denon";
-  case esp32ir::Protocol::RC5:
-    return "RC5";
-  case esp32ir::Protocol::RC6:
-    return "RC6";
-  case esp32ir::Protocol::Apple:
-    return "Apple";
-  case esp32ir::Protocol::Pioneer:
-    return "Pioneer";
-  case esp32ir::Protocol::Toshiba:
-    return "Toshiba";
-  case esp32ir::Protocol::Mitsubishi:
-    return "Mitsubishi";
-  case esp32ir::Protocol::Hitachi:
-    return "Hitachi";
-  case esp32ir::Protocol::DaikinAC:
-    return "DaikinAC";
-  case esp32ir::Protocol::PanasonicAC:
-    return "PanasonicAC";
-  case esp32ir::Protocol::MitsubishiAC:
-    return "MitsubishiAC";
-  case esp32ir::Protocol::ToshibaAC:
-    return "ToshibaAC";
-  case esp32ir::Protocol::FujitsuAC:
-    return "FujitsuAC";
-  default:
-    return "RAW";
-  }
+  return esp32ir::util::protocolToString(p);
 }
 
 // en: read embedded asset into RAM buffer (ESP32 stores in regular addressable memory)
@@ -474,7 +383,7 @@ void setup()
       std::string expProto = getStringField(expected, "protocol");
       std::vector<uint8_t> expBytes = parseFrameBytes(expected);
       cJSON *payloadObj = cJSON_GetObjectItemCaseSensitive(expected, "payload");
-      const char *actualProtoStr = protocolToString(result.protocol);
+    const char *actualProtoStr = protocolToString(result.protocol);
       cJSON *expPayload = nullptr;
       if (payloadObj && actualProtoStr)
       {
