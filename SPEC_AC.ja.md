@@ -94,3 +94,4 @@ IR Transmitter
 - AC向けコードは「Intent/Capabilities → 正規化DeviceState → Protocol Frame → ITPS送信」のパイプラインを保つ。途中で未知ビットを消さない。
 - 受信側は学習RAW（ITPS）を保持しつつ、デコードに成功した場合でも `opaque` を経由して未知領域を温存する。
 - Capabilitiesをもとに正規化/丸めを行い、`useKnownWithoutAC` 等のプリセットとも両立できるように実装を分離する。
+- 公開API案：`bool esp32ir::decodeAC(const esp32ir::RxResult&, const esp32ir::ac::Capabilities&, esp32ir::ac::DeviceState&)` と `bool esp32ir::Transmitter::sendAC(const esp32ir::ac::DeviceState&, const esp32ir::ac::Capabilities&)` を入口にし、ブランド別エンコーダ/デコーダ（例：`encodeDaikinAC`/`decodeDaikinAC`、`encodePanasonicAC`/`decodePanasonicAC` …）は内部ヘルパとして共通型↔ProtocolMessage/ITPSの変換に徹する。

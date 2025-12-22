@@ -122,6 +122,8 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
   - `esp32ir::Protocol`
 - プロトコル別Payload構造体
   - `esp32ir::payload::<Protocol>`（例：NEC, SONY, AEHA, ...。詳細は「対応プロトコルとヘルパー」）
+- AC共通型
+  - `esp32ir::ac::DeviceState` / `esp32ir::ac::Capabilities` / `esp32ir::ac::Intent`（詳細は `SPEC_AC.ja.md`）
 
 ---
 
@@ -294,10 +296,10 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 12. 対応プロトコルとヘルパー
-- AC系の状態モデル・バリデーション・IR仕様の詳細は `SPEC_AC.ja.md` を参照。本節のAC項目はAPIプレースホルダと再送/学習方針の要約のみ。
-- 方針：プロトコルごとにデコード/送信ヘルパを用意し、基本は構造体版＋バラ引数版を揃える（AC系は構造体版のみ）。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
+- AC系の状態モデル/Intent/Capabilities/バリデーションは `SPEC_AC.ja.md` を参照。ライブラリのAC APIは共通型（`esp32ir::ac::DeviceState` 等）＋ブランド別エンコーダ/デコーダの二段構成とし、UI/アプリからは共通型だけを扱う。
+- ユーザー呼び出しは基本 `decodeAC` / `sendAC` の共通APIで完結する想定。ブランド別ヘルパは上級/直接制御/デバッグ用に残すが、共通AC型を入力とし、共通APIから内部委譲して利用する。
+- 方針：プロトコルごとにデコード/送信ヘルパを用意し、基本は構造体版＋バラ引数版を揃える（AC系は共通構造体版のみ）。`addProtocol` を呼ばなければ既知プロトコル全対応＋RAW。
 - 対応状況（○=ヘルパ実装、△=枠のみ/予定、RAWはITPS直扱い）
-  - AC 系は任意データの生成はTBDだが、RAWモードでの学習と受信RAWの再送（構造体版ヘルパ or `send(raw)`）は可能とする想定。
 
 | プロトコル                 | フレーム構造体                    | デコードヘルパ                   | 送信ヘルパ                                  | 状態 |
 |---------------------------|----------------------------------|---------------------------------|--------------------------------------------|------|
@@ -317,11 +319,14 @@ bool send(const esp32ir::ProtocolMessage& message);
 | Toshiba                   | `esp32ir::payload::Toshiba`      | `esp32ir::decodeToshiba`        | `tx.sendToshiba(struct/args)`              | △   |
 | Mitsubishi                | `esp32ir::payload::Mitsubishi`   | `esp32ir::decodeMitsubishi`     | `tx.sendMitsubishi(struct/args)`           | △   |
 | Hitachi                   | `esp32ir::payload::Hitachi`      | `esp32ir::decodeHitachi`        | `tx.sendHitachi(struct/args)`              | △   |
-| Daikin AC                 | `esp32ir::payload::DaikinAC`     | `esp32ir::decodeDaikinAC`       | `tx.sendDaikinAC(struct)`                  | △   |
-| Panasonic AC              | `esp32ir::payload::PanasonicAC`  | `esp32ir::decodePanasonicAC`    | `tx.sendPanasonicAC(struct)`               | △   |
-| Mitsubishi AC             | `esp32ir::payload::MitsubishiAC` | `esp32ir::decodeMitsubishiAC`   | `tx.sendMitsubishiAC(struct)`              | △   |
-| Toshiba AC                | `esp32ir::payload::ToshibaAC`    | `esp32ir::decodeToshibaAC`      | `tx.sendToshibaAC(struct)`                 | △   |
-| Fujitsu AC                | `esp32ir::payload::FujitsuAC`    | `esp32ir::decodeFujitsuAC`      | `tx.sendFujitsuAC(struct)`                 | △   |
+| AC (共通型)               | `esp32ir::ac::DeviceState`       | `esp32ir::decodeAC`             | `tx.sendAC(ac::DeviceState, ac::Capabilities)` | △   |
+| Daikin AC                 | `esp32ir::ac::DeviceState`       | `esp32ir::decodeDaikinAC`       | `tx.sendDaikinAC(ac::DeviceState, ac::Capabilities)` | △※ |
+| Panasonic AC              | `esp32ir::ac::DeviceState`       | `esp32ir::decodePanasonicAC`    | `tx.sendPanasonicAC(ac::DeviceState, ac::Capabilities)` | △※ |
+| Mitsubishi AC             | `esp32ir::ac::DeviceState`       | `esp32ir::decodeMitsubishiAC`   | `tx.sendMitsubishiAC(ac::DeviceState, ac::Capabilities)` | △※ |
+| Toshiba AC                | `esp32ir::ac::DeviceState`       | `esp32ir::decodeToshibaAC`      | `tx.sendToshibaAC(ac::DeviceState, ac::Capabilities)` | △※ |
+| Fujitsu AC                | `esp32ir::ac::DeviceState`       | `esp32ir::decodeFujitsuAC`      | `tx.sendFujitsuAC(ac::DeviceState, ac::Capabilities)` | △※ |
+
+※ ACブランド別ヘルパは共通AC型を入力とし、上級/デバッグ用途。通常利用は `decodeAC` / `sendAC` の共通API経由。
 
 - 構造体とヘルパー詳細
   - RAW  
@@ -387,16 +392,11 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::Hitachi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::payload::Hitachi&);`  
     - `bool esp32ir::Transmitter::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::Transmitter::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
-  - Daikin AC  
-    - 構造体名のみ予約：`esp32ir::payload::DaikinAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);` / `bool esp32ir::Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC&);`
-  - Panasonic AC  
-    - 構造体名のみ予約：`esp32ir::payload::PanasonicAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);` / `bool esp32ir::Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC&);`
-  - Mitsubishi AC  
-    - 構造体名のみ予約：`esp32ir::payload::MitsubishiAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);` / `bool esp32ir::Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC&);`
-  - Toshiba AC  
-    - 構造体名のみ予約：`esp32ir::payload::ToshibaAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);` / `bool esp32ir::Transmitter::sendToshibaAC(const esp32ir::payload::ToshibaAC&);`
-  - Fujitsu AC  
-    - 構造体名のみ予約：`esp32ir::payload::FujitsuAC`（中身TBD）。関数名のみ予約：`bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);` / `bool esp32ir::Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC&);`
+  - AC（共通API＋ブランド別実装）  
+    - 共通型：`esp32ir::ac::DeviceState` / `esp32ir::ac::Capabilities` / `esp32ir::ac::Intent`（`SPEC_AC.ja.md` 準拠、opaque保全）。  
+    - デコード：`bool esp32ir::decodeAC(const esp32ir::RxResult&, const esp32ir::ac::Capabilities&, esp32ir::ac::DeviceState&);`（プロトコル/ブランドを判定し、ブランド別デコーダへ委譲。RAWモードではITPSのみ返却可）。  
+    - 送信：`bool esp32ir::Transmitter::sendAC(const esp32ir::ac::DeviceState&, const esp32ir::ac::Capabilities&);`（CapabilitiesのprotocolHint等でブランド別エンコーダを選択）。  
+    - ブランド別エンコーダ/デコーダ（内部ヘルパ想定）：`encodeDaikinAC` / `decodeDaikinAC`、`encodePanasonicAC` / `decodePanasonicAC`、`encodeMitsubishiAC` / `decodeMitsubishiAC`、`encodeToshibaAC` / `decodeToshibaAC`、`encodeFujitsuAC` / `decodeFujitsuAC` … など。役割は「共通DeviceState ↔ ProtocolMessage/ITPS」の変換に限定する。公開ヘルパ（必要な場合）は共通型を引数にした `send<Brand>AC` / `decode<Brand>AC` とし、共通APIと互換にする。`sendAC` はCapabilitiesからブランド判定してディスパッチするのに対し、`sendDaikinAC` 等は判定を省略して特定ブランド実装を直接呼ぶショートカット（ブランドを呼び出し側が保証する前提）。
 
 ## 13. 共通ポリシー（エラー/時間/ログ/サンプル）
 - **エラーハンドリング**：例外は使わず公開APIは `bool` で成否のみ返す。失敗時は適切なログを出し false を返して処理を終える（不正利用も同様）。動作は継続し、アサート/abort は行わない。送信APIも詳細ステータスは持たない。
