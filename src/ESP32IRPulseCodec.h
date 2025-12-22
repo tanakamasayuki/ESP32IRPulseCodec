@@ -10,6 +10,10 @@
 
 #include "esp32irpulsecodec_version.h"
 #include <vector>
+#include <string>
+#include <optional>
+#include <variant>
+#include <unordered_map>
 #include <driver/rmt_tx.h>
 #include <driver/rmt_rx.h>
 #include <driver/rmt_encoder.h>
@@ -208,24 +212,151 @@ namespace esp32ir
       uint8_t extra;
     };
 
-    // AC payload structs are reserved (fields TBD)
-    struct DaikinAC
+  } // namespace payload
+
+  namespace ac
+  {
+    enum class TemperatureUnit
     {
-    };
-    struct PanasonicAC
-    {
-    };
-    struct MitsubishiAC
-    {
-    };
-    struct ToshibaAC
-    {
-    };
-    struct FujitsuAC
-    {
+      C,
+      F
     };
 
-  } // namespace payload
+    enum class FeatureValueType
+    {
+      Boolean,
+      Number,
+      String,
+      OnOffToggle
+    };
+
+    enum class OutOfRangeTemperaturePolicy
+    {
+      Reject,
+      Coerce
+    };
+
+    enum class UnsupportedModePolicy
+    {
+      Reject,
+      CoerceToAuto,
+      CoerceToOff
+    };
+
+    enum class UnsupportedFanSpeedPolicy
+    {
+      Reject,
+      CoerceToAuto,
+      CoerceToNearest
+    };
+
+    enum class UnsupportedSwingPolicy
+    {
+      Reject,
+      CoerceToOff,
+      CoerceToNearest
+    };
+
+    using FeatureValue = std::variant<bool, double, std::string, std::nullptr_t>;
+
+    struct DeviceRef
+    {
+      std::string vendor;
+      std::string model;
+      std::optional<std::string> brand;
+      std::optional<std::string> protocolHint;
+      std::optional<std::string> notes;
+    };
+
+    struct FanSpeed
+    {
+      bool isAuto{true};
+      int level{0}; // valid only if !isAuto
+    };
+
+    struct Swing
+    {
+      std::optional<std::string> vertical;
+      std::optional<std::string> horizontal;
+    };
+
+    struct Opaque
+    {
+      std::vector<uint8_t> preservedBits;
+      std::optional<std::string> vendorData;
+    };
+
+    struct DeviceState
+    {
+      std::optional<DeviceRef> device;
+      bool power{false};
+      std::string mode;
+      double targetTemperature{0};
+      TemperatureUnit temperatureUnit{TemperatureUnit::C};
+      FanSpeed fanSpeed{};
+      Swing swing{};
+      std::unordered_map<std::string, FeatureValue> features;
+      std::optional<int> sleepTimerMinutes;
+      std::optional<int> clockMinutesSinceMidnight;
+      std::optional<Opaque> opaque;
+    };
+
+    struct TemperatureCaps
+    {
+      double min{0};
+      double max{0};
+      double step{1};
+      std::vector<std::string> units;
+    };
+
+    struct FanCaps
+    {
+      bool autoSupported{true};
+      int levels{0};
+      std::vector<std::string> namedLevels;
+    };
+
+    struct SwingCaps
+    {
+      std::vector<std::string> verticalValues;
+      std::vector<std::string> horizontalValues;
+    };
+
+    struct FeatureCaps
+    {
+      std::vector<std::string> supported;
+      std::vector<std::string> toggleOnly;
+      std::vector<std::vector<std::string>> mutuallyExclusiveSets;
+      std::unordered_map<std::string, FeatureValueType> featureValueTypes;
+    };
+
+    struct PowerBehavior
+    {
+      bool powerRequiredForModeChange{true};
+      bool powerRequiredForTempChange{true};
+    };
+
+    struct ValidationPolicy
+    {
+      OutOfRangeTemperaturePolicy outOfRangeTemperature{OutOfRangeTemperaturePolicy::Reject};
+      UnsupportedModePolicy unsupportedMode{UnsupportedModePolicy::Reject};
+      UnsupportedFanSpeedPolicy unsupportedFanSpeed{UnsupportedFanSpeedPolicy::Reject};
+      UnsupportedSwingPolicy unsupportedSwing{UnsupportedSwingPolicy::Reject};
+    };
+
+    struct Capabilities
+    {
+      DeviceRef device;
+      TemperatureCaps temperature;
+      std::vector<std::string> modes;
+      FanCaps fan;
+      SwingCaps swing;
+      FeatureCaps features;
+      PowerBehavior powerBehavior;
+      ValidationPolicy validationPolicy;
+    };
+
+  } // namespace ac
 
   // Receiver
   class Receiver
@@ -345,11 +476,13 @@ namespace esp32ir
     bool sendMitsubishi(uint16_t address, uint16_t command, uint8_t extra = 0);
     bool sendHitachi(const esp32ir::payload::Hitachi &p);
     bool sendHitachi(uint16_t address, uint16_t command, uint8_t extra = 0);
-    bool sendDaikinAC(const esp32ir::payload::DaikinAC &p);
-    bool sendPanasonicAC(const esp32ir::payload::PanasonicAC &p);
-    bool sendMitsubishiAC(const esp32ir::payload::MitsubishiAC &p);
-    bool sendToshibaAC(const esp32ir::payload::ToshibaAC &p);
-    bool sendFujitsuAC(const esp32ir::payload::FujitsuAC &p);
+    // AC common API + brand-specific (common types)
+    bool sendAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
+    bool sendDaikinAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
+    bool sendPanasonicAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
+    bool sendMitsubishiAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
+    bool sendToshibaAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
+    bool sendFujitsuAC(const esp32ir::ac::DeviceState &state, const esp32ir::ac::Capabilities &capabilities);
 
   private:
     int txPin_{-1};
@@ -382,11 +515,13 @@ namespace esp32ir
   bool decodeToshiba(const esp32ir::RxResult &in, esp32ir::payload::Toshiba &out);
   bool decodeMitsubishi(const esp32ir::RxResult &in, esp32ir::payload::Mitsubishi &out);
   bool decodeHitachi(const esp32ir::RxResult &in, esp32ir::payload::Hitachi &out);
-  bool decodeDaikinAC(const esp32ir::RxResult &in, esp32ir::payload::DaikinAC &out);
-  bool decodePanasonicAC(const esp32ir::RxResult &in, esp32ir::payload::PanasonicAC &out);
-  bool decodeMitsubishiAC(const esp32ir::RxResult &in, esp32ir::payload::MitsubishiAC &out);
-  bool decodeToshibaAC(const esp32ir::RxResult &in, esp32ir::payload::ToshibaAC &out);
-  bool decodeFujitsuAC(const esp32ir::RxResult &in, esp32ir::payload::FujitsuAC &out);
+  // AC common API
+  bool decodeAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
+  bool decodeDaikinAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
+  bool decodePanasonicAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
+  bool decodeMitsubishiAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
+  bool decodeToshibaAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
+  bool decodeFujitsuAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &capabilities, esp32ir::ac::DeviceState &out);
 
 } // namespace esp32ir
 

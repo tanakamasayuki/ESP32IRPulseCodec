@@ -5,16 +5,16 @@
 namespace esp32ir
 {
 
-    bool decodeDaikinAC(const esp32ir::RxResult &in, esp32ir::payload::DaikinAC &out)
+    bool decodeDaikinAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &, esp32ir::ac::DeviceState &)
     {
-        out = {};
-        return decodeMessage(in, esp32ir::Protocol::DaikinAC, out);
+        ESP_LOGW("ESP32IRPulseCodec", "decodeDaikinAC (common AC API) not implemented");
+        return false;
     }
-    bool Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC &p)
+
+    bool Transmitter::sendDaikinAC(const esp32ir::ac::DeviceState &, const esp32ir::ac::Capabilities &)
     {
-        ESP_LOGW("ESP32IRPulseCodec", "send DaikinAC not implemented");
-        // AC payload structs are placeholders; forward ProtocolMessage for future encode support.
-        return send(makeProtocolMessage(esp32ir::Protocol::DaikinAC, p));
+        ESP_LOGW("ESP32IRPulseCodec", "send DaikinAC (common AC API) not implemented");
+        return false;
     }
 
 } // namespace esp32ir

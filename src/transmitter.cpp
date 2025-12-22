@@ -546,16 +546,6 @@ namespace esp32ir
             std::memcpy(&p, message.data, sizeof(p));
             return sendHitachi(p);
         }
-        case esp32ir::Protocol::DaikinAC:
-            return checkSizeStub(sizeof(esp32ir::payload::DaikinAC), "DaikinAC");
-        case esp32ir::Protocol::PanasonicAC:
-            return checkSizeStub(sizeof(esp32ir::payload::PanasonicAC), "PanasonicAC");
-        case esp32ir::Protocol::MitsubishiAC:
-            return checkSizeStub(sizeof(esp32ir::payload::MitsubishiAC), "MitsubishiAC");
-        case esp32ir::Protocol::ToshibaAC:
-            return checkSizeStub(sizeof(esp32ir::payload::ToshibaAC), "ToshibaAC");
-        case esp32ir::Protocol::FujitsuAC:
-            return checkSizeStub(sizeof(esp32ir::payload::FujitsuAC), "FujitsuAC");
         default:
             ESP_LOGW(kTag, "TX send ProtocolMessage stub: encode/HAL not implemented (protocol=%u, len=%u)",
                      static_cast<unsigned>(message.protocol),

@@ -5,15 +5,16 @@
 namespace esp32ir
 {
 
-    bool decodeMitsubishiAC(const esp32ir::RxResult &in, esp32ir::payload::MitsubishiAC &out)
+    bool decodeMitsubishiAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &, esp32ir::ac::DeviceState &)
     {
-        out = {};
-        return decodeMessage(in, esp32ir::Protocol::MitsubishiAC, out);
+        ESP_LOGW("ESP32IRPulseCodec", "decodeMitsubishiAC (common AC API) not implemented");
+        return false;
     }
-    bool Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC &p)
+
+    bool Transmitter::sendMitsubishiAC(const esp32ir::ac::DeviceState &, const esp32ir::ac::Capabilities &)
     {
-        ESP_LOGW("ESP32IRPulseCodec", "send MitsubishiAC not implemented");
-        return send(makeProtocolMessage(esp32ir::Protocol::MitsubishiAC, p));
+        ESP_LOGW("ESP32IRPulseCodec", "send MitsubishiAC (common AC API) not implemented");
+        return false;
     }
 
 } // namespace esp32ir

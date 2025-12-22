@@ -5,15 +5,16 @@
 namespace esp32ir
 {
 
-    bool decodePanasonicAC(const esp32ir::RxResult &in, esp32ir::payload::PanasonicAC &out)
+    bool decodePanasonicAC(const esp32ir::RxResult &in, const esp32ir::ac::Capabilities &, esp32ir::ac::DeviceState &)
     {
-        out = {};
-        return decodeMessage(in, esp32ir::Protocol::PanasonicAC, out);
+        ESP_LOGW("ESP32IRPulseCodec", "decodePanasonicAC (common AC API) not implemented");
+        return false;
     }
-    bool Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC &p)
+
+    bool Transmitter::sendPanasonicAC(const esp32ir::ac::DeviceState &, const esp32ir::ac::Capabilities &)
     {
-        ESP_LOGW("ESP32IRPulseCodec", "send PanasonicAC not implemented");
-        return send(makeProtocolMessage(esp32ir::Protocol::PanasonicAC, p));
+        ESP_LOGW("ESP32IRPulseCodec", "send PanasonicAC (common AC API) not implemented");
+        return false;
     }
 
 } // namespace esp32ir
