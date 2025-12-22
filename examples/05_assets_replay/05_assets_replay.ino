@@ -12,13 +12,6 @@
 #include <cstdio>
 #include <cJSON.h>
 
-// en: enum to string (for logs/comparison)
-// ja: enum を文字列化（ログ・比較用）
-static const char *protocolToString(esp32ir::Protocol p)
-{
-  return esp32ir::util::protocolToString(p);
-}
-
 // en: read embedded asset into RAM buffer (ESP32 stores in regular addressable memory)
 // ja: 埋め込みアセットをRAMに読み込む（ESP32では通常メモリとして扱える）
 static bool loadAssetToBuffer(size_t idx, std::vector<char> &out)
@@ -203,7 +196,7 @@ void setup()
     std::string protoStr = getStringField(root, "protocol");
     if (protoStr.empty())
       protoStr = "RAW";
-    esp32ir::Protocol proto = toProtocol(protoStr);
+    esp32ir::Protocol proto = esp32ir::util::protocolFromString(protoStr);
 
     cJSON *capture = cJSON_GetObjectItemCaseSensitive(root, "capture");
     std::vector<uint8_t> frameBytes = capture ? parseFrameBytes(capture) : std::vector<uint8_t>{};
@@ -295,7 +288,7 @@ void setup()
                    : result.status == esp32ir::RxStatus::RAW_ONLY ? "RAW_ONLY"
                    : result.status == esp32ir::RxStatus::OVERFLOW ? "OVERFLOW"
                                                                   : "UNKNOWN"),
-                  protocolToString(result.protocol),
+                  esp32ir::util::protocolToString(result.protocol),
                   result.raw.frameCount());
     if (!result.payloadStorage.empty())
     {
@@ -383,7 +376,7 @@ void setup()
       std::string expProto = getStringField(expected, "protocol");
       std::vector<uint8_t> expBytes = parseFrameBytes(expected);
       cJSON *payloadObj = cJSON_GetObjectItemCaseSensitive(expected, "payload");
-    const char *actualProtoStr = protocolToString(result.protocol);
+    const char *actualProtoStr = esp32ir::util::protocolToString(result.protocol);
       cJSON *expPayload = nullptr;
       if (payloadObj && actualProtoStr)
       {

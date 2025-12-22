@@ -4,16 +4,6 @@
 
 esp32ir::Receiver rx(23, /*invert=*/true); // en: Most IR RX modules are inverted / ja: 多くのIR受信モジュールは反転出力
 
-static const char *protocolToString(esp32ir::Protocol proto)
-{
-  return esp32ir::util::protocolToString(proto);
-}
-
-static const char *statusToString(esp32ir::RxStatus s)
-{
-  return esp32ir::util::rxStatusToString(s);
-}
-
 static void printFrameBytes(const esp32ir::ProtocolMessage &msg)
 {
   Serial.print("[");
@@ -172,10 +162,10 @@ void loop()
   Serial.println(F("  \"version\":\"0.2\","));
   Serial.println(F("  \"device\":{ \"vendor\":\"TODO\", \"model\":\"TODO\", \"remote\":\"TODO\" },"));
   Serial.print(F("  \"protocol\":\""));
-  Serial.print(protocolToString(r.protocol));
+  Serial.print(esp32ir::util::protocolToString(r.protocol));
   Serial.println(F("\","));
   Serial.print(F("  \"status\":\""));
-  Serial.print(statusToString(r.status));
+  Serial.print(esp32ir::util::rxStatusToString(r.status));
   Serial.println(F("\","));
   Serial.print(F("  \"timestampMs\":"));
   Serial.println(millis());
@@ -191,7 +181,7 @@ void loop()
   {
     Serial.println(F("  \"expected\":{"));
     Serial.print(F("    \"protocol\":\""));
-    Serial.print(protocolToString(r.protocol));
+    Serial.print(esp32ir::util::protocolToString(r.protocol));
     Serial.println(F("\","));
     Serial.print(F("    \"frameBytes\":"));
     printFrameBytes(r.message);
