@@ -102,16 +102,17 @@ IR Transmitter
   - `version`: string, e.g. `"0.1"`.
   - `device`: `{ vendor, model, remote? }` (fill manually).
   - `protocol`: string (e.g., `NEC`, `DaikinAC`); may remain `RAW` if undecoded.
-  - `status`: `DECODED` | `RAW_ONLY` | `OVERFLOW`.
+  - `status`: optional `DECODED` | `RAW_ONLY` | `OVERFLOW` (can be inferred: presence of `frameBytes` ⇒ decoded, otherwise RAW).
   - `timestampMs`: optional capture time (for sequencing).
   - `capture`:
     - `durationsUs`: array of Mark/Space durations (µs) for the first frame (RAW source of truth).
-    - `frameBytes`: array of decimal bytes if decoded (optional; empty array if unknown).
     - `itps`: array of ITPS frames `{ "T_us", "flags", "seq":[...] }` (full RAW, all frames).
   - `expected` (optional, for tests):
     - `protocol`: expected protocol name
-    - `frameBytes`: expected decoded bytes
-    - `payload`: decoded payload object keyed by protocol (e.g., `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`)
+    - `frameBytes`: expected decoded bytes (decimal array)
+    - `payload`: decoded payload object. Either keyed by protocol name *or* flat:
+      - keyed example: `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`
+      - flat example: `{ "address": 0, "command": 162, "repeat": false }` (matched against the detected protocol)
   - `notes`: free text.
 - Usage guidance:
   - Keep `durationsUs` and `itps` as primary replay sources; `frameBytes` is optional helper when decode succeeds.

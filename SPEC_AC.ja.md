@@ -102,13 +102,17 @@ IR Transmitter
   - `version`：例 `"0.1"`
   - `device`：`{ vendor, model, remote? }`（手で埋める）
   - `protocol`：例 `NEC`, `DaikinAC`。未デコードなら `RAW` でもよい。
-  - `status`：`DECODED` | `RAW_ONLY` | `OVERFLOW`
+  - `status`：任意。`DECODED` | `RAW_ONLY` | `OVERFLOW`（`frameBytes` があればDECODEDとみなせるので省略可）
   - `timestampMs`：任意（捕捉時刻/順序が必要なとき）
   - `capture`：
     - `durationsUs`：1フレーム分のMark/Space長[µs]（RAWのソース）
-    - `frameBytes`：デコードできた場合のバイト配列（10進、任意。未知なら空配列でも可）
     - `itps`：ITPSフレーム配列 `{ "T_us", "flags", "seq":[...] }`（全フレームのRAW）
-  - `expected`（任意、テスト用）：`protocol`（期待プロトコル名）、`frameBytes`（期待バイト列）、`payload`（プロトコル名をキーにしたデコード結果オブジェクト。例：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`）
+  - `expected`（任意、テスト用）：
+    - `protocol`：期待プロトコル名
+    - `frameBytes`：期待バイト列（10進配列）
+    - `payload`：デコード結果オブジェクト。プロトコル名でネストしてもフラットでもよい。
+      - 例（ネスト）：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`
+      - 例（フラット）：`{ "address": 0, "command": 162, "repeat": false }`（検出したプロトコルに合わせて突き合わせ）
   - `notes`：任意メモ
 - 運用のヒント：
   - 再送/検証には `durationsUs` と `itps` を主に使い、`frameBytes` はデコード成功時の補助として扱う。

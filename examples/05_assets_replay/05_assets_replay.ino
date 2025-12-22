@@ -7,7 +7,7 @@
 #include "assets_embed.h"
 #include <vector>
 #include <string>
-#include <array>
+#include <algorithm>
 #include <cstring>
 #include <cstdio>
 #include <cJSON.h>
@@ -16,34 +16,106 @@
 // ja: プロトコル名文字列をenumに変換（必要に応じて拡張）
 static esp32ir::Protocol toProtocol(const std::string &s)
 {
-  if (s == "NEC") return esp32ir::Protocol::NEC;
-  if (s == "SONY") return esp32ir::Protocol::SONY;
-  if (s == "AEHA") return esp32ir::Protocol::AEHA;
-  if (s == "Panasonic") return esp32ir::Protocol::Panasonic;
-  if (s == "JVC") return esp32ir::Protocol::JVC;
-  if (s == "Samsung") return esp32ir::Protocol::Samsung;
-  if (s == "LG") return esp32ir::Protocol::LG;
-  if (s == "Denon") return esp32ir::Protocol::Denon;
-  if (s == "RC5") return esp32ir::Protocol::RC5;
-  if (s == "RC6") return esp32ir::Protocol::RC6;
-  if (s == "Apple") return esp32ir::Protocol::Apple;
-  if (s == "Pioneer") return esp32ir::Protocol::Pioneer;
-  if (s == "Toshiba") return esp32ir::Protocol::Toshiba;
-  if (s == "Mitsubishi") return esp32ir::Protocol::Mitsubishi;
-  if (s == "Hitachi") return esp32ir::Protocol::Hitachi;
-  if (s == "DaikinAC") return esp32ir::Protocol::DaikinAC;
-  if (s == "PanasonicAC") return esp32ir::Protocol::PanasonicAC;
-  if (s == "MitsubishiAC") return esp32ir::Protocol::MitsubishiAC;
-  if (s == "ToshibaAC") return esp32ir::Protocol::ToshibaAC;
-  if (s == "FujitsuAC") return esp32ir::Protocol::FujitsuAC;
+  if (s == "NEC")
+    return esp32ir::Protocol::NEC;
+  if (s == "SONY")
+    return esp32ir::Protocol::SONY;
+  if (s == "AEHA")
+    return esp32ir::Protocol::AEHA;
+  if (s == "Panasonic")
+    return esp32ir::Protocol::Panasonic;
+  if (s == "JVC")
+    return esp32ir::Protocol::JVC;
+  if (s == "Samsung")
+    return esp32ir::Protocol::Samsung;
+  if (s == "LG")
+    return esp32ir::Protocol::LG;
+  if (s == "Denon")
+    return esp32ir::Protocol::Denon;
+  if (s == "RC5")
+    return esp32ir::Protocol::RC5;
+  if (s == "RC6")
+    return esp32ir::Protocol::RC6;
+  if (s == "Apple")
+    return esp32ir::Protocol::Apple;
+  if (s == "Pioneer")
+    return esp32ir::Protocol::Pioneer;
+  if (s == "Toshiba")
+    return esp32ir::Protocol::Toshiba;
+  if (s == "Mitsubishi")
+    return esp32ir::Protocol::Mitsubishi;
+  if (s == "Hitachi")
+    return esp32ir::Protocol::Hitachi;
+  if (s == "DaikinAC")
+    return esp32ir::Protocol::DaikinAC;
+  if (s == "PanasonicAC")
+    return esp32ir::Protocol::PanasonicAC;
+  if (s == "MitsubishiAC")
+    return esp32ir::Protocol::MitsubishiAC;
+  if (s == "ToshibaAC")
+    return esp32ir::Protocol::ToshibaAC;
+  if (s == "FujitsuAC")
+    return esp32ir::Protocol::FujitsuAC;
   return esp32ir::Protocol::RAW;
+}
+
+// en: enum to string (for logs/comparison)
+// ja: enum を文字列化（ログ・比較用）
+static const char *protocolToString(esp32ir::Protocol p)
+{
+  switch (p)
+  {
+  case esp32ir::Protocol::NEC:
+    return "NEC";
+  case esp32ir::Protocol::SONY:
+    return "SONY";
+  case esp32ir::Protocol::AEHA:
+    return "AEHA";
+  case esp32ir::Protocol::Panasonic:
+    return "Panasonic";
+  case esp32ir::Protocol::JVC:
+    return "JVC";
+  case esp32ir::Protocol::Samsung:
+    return "Samsung";
+  case esp32ir::Protocol::LG:
+    return "LG";
+  case esp32ir::Protocol::Denon:
+    return "Denon";
+  case esp32ir::Protocol::RC5:
+    return "RC5";
+  case esp32ir::Protocol::RC6:
+    return "RC6";
+  case esp32ir::Protocol::Apple:
+    return "Apple";
+  case esp32ir::Protocol::Pioneer:
+    return "Pioneer";
+  case esp32ir::Protocol::Toshiba:
+    return "Toshiba";
+  case esp32ir::Protocol::Mitsubishi:
+    return "Mitsubishi";
+  case esp32ir::Protocol::Hitachi:
+    return "Hitachi";
+  case esp32ir::Protocol::DaikinAC:
+    return "DaikinAC";
+  case esp32ir::Protocol::PanasonicAC:
+    return "PanasonicAC";
+  case esp32ir::Protocol::MitsubishiAC:
+    return "MitsubishiAC";
+  case esp32ir::Protocol::ToshibaAC:
+    return "ToshibaAC";
+  case esp32ir::Protocol::FujitsuAC:
+    return "FujitsuAC";
+  default:
+    return "RAW";
+  }
 }
 
 // en: read embedded asset into RAM buffer (ESP32 stores in regular addressable memory)
 // ja: 埋め込みアセットをRAMに読み込む（ESP32では通常メモリとして扱える）
 static bool loadAssetToBuffer(size_t idx, std::vector<char> &out)
 {
-  if (idx >= assets_file_count) return false;
+  if (idx >= assets_file_count)
+    return false;
   size_t len = assets_file_sizes[idx];
   out.resize(len + 1);
   memcpy(out.data(), assets_file_data[idx], len);
@@ -56,7 +128,8 @@ static bool loadAssetToBuffer(size_t idx, std::vector<char> &out)
 static std::string getStringField(cJSON *obj, const char *key)
 {
   cJSON *item = cJSON_GetObjectItemCaseSensitive(obj, key);
-  if (cJSON_IsString(item) && item->valuestring) return std::string(item->valuestring);
+  if (cJSON_IsString(item) && item->valuestring)
+    return std::string(item->valuestring);
   return {};
 }
 
@@ -66,15 +139,18 @@ static std::vector<uint8_t> parseFrameBytes(cJSON *capture)
 {
   std::vector<uint8_t> bytes;
   cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "frameBytes");
-  if (!cJSON_IsArray(arr)) return bytes;
+  if (!cJSON_IsArray(arr))
+    return bytes;
   cJSON *it = nullptr;
   cJSON_ArrayForEach(it, arr)
   {
     if (cJSON_IsNumber(it))
     {
       int v = it->valueint;
-      if (v < 0) v = 0;
-      if (v > 255) v = 255;
+      if (v < 0)
+        v = 0;
+      if (v > 255)
+        v = 255;
       bytes.push_back(static_cast<uint8_t>(v));
     }
   }
@@ -91,30 +167,11 @@ static std::string bytesToString(const std::vector<uint8_t> &bytes)
   {
     char buf[6];
     snprintf(buf, sizeof(buf), "%u", bytes[i]);
-    if (i) s += ",";
+    if (i)
+      s += ",";
     s += buf;
   }
   return s;
-}
-
-// en: try decoding NEC from frameBytes by reusing decodeNEC (message path)
-// ja: frameBytes を message として渡し decodeNEC を使ってデコードする
-static bool decodeNECFromFrameBytes(const std::vector<uint8_t> &bytes, esp32ir::payload::NEC &out)
-{
-  if (bytes.size() < 4) return false;
-  esp32ir::payload::NEC payload{};
-  payload.address = static_cast<uint16_t>(bytes[0] | (static_cast<uint16_t>(bytes[1]) << 8));
-  payload.command = bytes[2];
-  payload.repeat = false; // full frame => not repeat burst
-  std::array<uint8_t, sizeof(esp32ir::payload::NEC)> buf{};
-  std::memcpy(buf.data(), &payload, sizeof(payload));
-
-  esp32ir::RxResult rx{};
-  rx.protocol = esp32ir::Protocol::NEC;
-  rx.status = esp32ir::RxStatus::DECODED;
-  rx.message = {esp32ir::Protocol::NEC, buf.data(), static_cast<uint16_t>(buf.size()), 0};
-
-  return esp32ir::decodeNEC(rx, out);
 }
 
 // en: build ITPSBuffer from JSON by cJSON traversal
@@ -122,18 +179,69 @@ static bool decodeNECFromFrameBytes(const std::vector<uint8_t> &bytes, esp32ir::
 static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
 {
   esp32ir::ITPSBuffer buf;
-  cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "itps");
-  if (!cJSON_IsArray(arr)) return buf;
-  cJSON *frameObj = nullptr;
-  cJSON_ArrayForEach(frameObj, arr)
+  // Try durationsUs first (µs list with sign). If present, build one frame using T_us from itps[0] or default 5.
+  std::vector<int32_t> durationsUs;
+  cJSON *durArr = cJSON_GetObjectItemCaseSensitive(capture, "durationsUs");
+  if (cJSON_IsArray(durArr))
   {
-    if (!cJSON_IsObject(frameObj)) continue;
+    cJSON *dv = nullptr;
+    cJSON_ArrayForEach(dv, durArr)
+    {
+      if (cJSON_IsNumber(dv))
+        durationsUs.push_back(dv->valueint);
+    }
+  }
+
+  cJSON *itpsArr = cJSON_GetObjectItemCaseSensitive(capture, "itps");
+  auto quantizeSeq = [](const std::vector<int32_t> &usList, uint16_t T_us) {
+    std::vector<int8_t> seq;
+    for (int32_t us : usList)
+    {
+      bool mark = us > 0;
+      int mag = us < 0 ? -us : us;
+      int count = (mag + (T_us / 2)) / T_us; // round to nearest
+      if (count < 1)
+        count = 1;
+      while (count > 127)
+      {
+        seq.push_back(static_cast<int8_t>((mark ? 1 : -1) * 127));
+        count -= 127;
+      }
+      seq.push_back(static_cast<int8_t>((mark ? 1 : -1) * count));
+    }
+    return seq;
+  };
+
+  if (!durationsUs.empty())
+  {
+    uint16_t T_us = 5;
+    if (cJSON_IsArray(itpsArr))
+    {
+      cJSON *first = cJSON_GetArrayItem(itpsArr, 0);
+      cJSON *t = first ? cJSON_GetObjectItemCaseSensitive(first, "T_us") : nullptr;
+      if (t && cJSON_IsNumber(t))
+        T_us = static_cast<uint16_t>(t->valueint);
+    }
+    std::vector<int8_t> seq = quantizeSeq(durationsUs, T_us);
+    esp32ir::ITPSFrame frame{T_us, static_cast<uint16_t>(seq.size()), seq.data(), 0};
+    buf.addFrame(frame);
+    return buf;
+  }
+
+  if (!cJSON_IsArray(itpsArr))
+    return buf;
+
+  cJSON *frameObj = nullptr;
+  cJSON_ArrayForEach(frameObj, itpsArr)
+  {
+    if (!cJSON_IsObject(frameObj))
+      continue;
     cJSON *t = cJSON_GetObjectItemCaseSensitive(frameObj, "T_us");
-    uint16_t T_us = t && cJSON_IsNumber(t) ? static_cast<uint16_t>(t->valueint) : 0;
+    uint16_t T_us = t && cJSON_IsNumber(t) ? static_cast<uint16_t>(t->valueint) : 5;
     cJSON *f = cJSON_GetObjectItemCaseSensitive(frameObj, "flags");
     uint8_t flags = f && cJSON_IsNumber(f) ? static_cast<uint8_t>(f->valueint) : 0;
 
-    std::vector<int8_t> seq;
+    std::vector<int32_t> seqUs;
     cJSON *seqArr = cJSON_GetObjectItemCaseSensitive(frameObj, "seq");
     if (cJSON_IsArray(seqArr))
     {
@@ -141,14 +249,10 @@ static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
       cJSON_ArrayForEach(sv, seqArr)
       {
         if (cJSON_IsNumber(sv))
-        {
-          int v = sv->valueint;
-          if (v < -128) v = -128;
-          if (v > 127) v = 127;
-          seq.push_back(static_cast<int8_t>(v));
-        }
+          seqUs.push_back(sv->valueint);
       }
     }
+    std::vector<int8_t> seq = quantizeSeq(seqUs, T_us);
     esp32ir::ITPSFrame frame{T_us, static_cast<uint16_t>(seq.size()), seq.data(), flags};
     buf.addFrame(frame);
   }
@@ -161,6 +265,9 @@ void setup()
   delay(500);
 
   Serial.println(F("# assets replay start"));
+
+  esp32ir::Receiver decoder;
+  decoder.useRawPlusKnown(); // keep raw alongside decoded for tests
 
   size_t total = 0;
   size_t passed = 0;
@@ -185,23 +292,23 @@ void setup()
     }
 
     std::string protoStr = getStringField(root, "protocol");
-    if (protoStr.empty()) protoStr = "RAW";
+    if (protoStr.empty())
+      protoStr = "RAW";
     esp32ir::Protocol proto = toProtocol(protoStr);
 
     cJSON *capture = cJSON_GetObjectItemCaseSensitive(root, "capture");
     std::vector<uint8_t> frameBytes = capture ? parseFrameBytes(capture) : std::vector<uint8_t>{};
+    esp32ir::ITPSBuffer buf = capture ? buildITPS(capture) : esp32ir::ITPSBuffer{};
 
-    esp32ir::RxResult rx{};
-    rx.status = frameBytes.empty() ? esp32ir::RxStatus::RAW_ONLY : esp32ir::RxStatus::DECODED;
-    rx.protocol = proto;
-    rx.payloadStorage.assign(frameBytes.begin(), frameBytes.end());
-    // en: message points to protocol payload; for assets we keep it null to force decode from raw
-    // ja: messageはプロトコルのペイロードを指すので、資産読み込み時はnullにしてrawデコードを優先
-    rx.message = {proto, nullptr, 0, 0};
-    rx.raw = capture ? buildITPS(capture) : esp32ir::ITPSBuffer{};
+    // en: configure decoder protocols (limit when protocol specified)
+    // ja: 指定プロトコルがある場合はデコード対象を限定
+    decoder.clearProtocols(); // en/ja: try all protocols; do not restrict by JSON proto
 
-    bool decoded = false;
-    // decoded payload holders
+    esp32ir::RxResult result{};
+    decoder.decode(buf, result, false);
+
+    // decode payload based on result.protocol
+    bool payloadDecoded = false;
     esp32ir::payload::NEC nec{};
     esp32ir::payload::SONY sony{};
     esp32ir::payload::AEHA aeha{};
@@ -218,155 +325,144 @@ void setup()
     esp32ir::payload::Mitsubishi mitsu{};
     esp32ir::payload::Hitachi hitachi{};
 
-    switch (proto)
+    if (result.status == esp32ir::RxStatus::DECODED)
     {
-    case esp32ir::Protocol::NEC:
-    {
-      decoded = esp32ir::decodeNEC(rx, nec);
-      // en: fallback to frameBytes if raw decode fails (use decodeNEC message path)
-      // ja: rawデコードに失敗したらframeBytesをmessageとしてdecodeNECを再実行
-      if (!decoded && !frameBytes.empty())
+      switch (result.protocol)
       {
-        decoded = decodeNECFromFrameBytes(frameBytes, nec);
+      case esp32ir::Protocol::NEC:
+        payloadDecoded = esp32ir::decodeNEC(result, nec);
+        break;
+      case esp32ir::Protocol::SONY:
+        payloadDecoded = esp32ir::decodeSONY(result, sony);
+        break;
+      case esp32ir::Protocol::AEHA:
+        payloadDecoded = esp32ir::decodeAEHA(result, aeha);
+        break;
+      case esp32ir::Protocol::Panasonic:
+        payloadDecoded = esp32ir::decodePanasonic(result, pana);
+        break;
+      case esp32ir::Protocol::JVC:
+        payloadDecoded = esp32ir::decodeJVC(result, jvc);
+        break;
+      case esp32ir::Protocol::Samsung:
+        payloadDecoded = esp32ir::decodeSamsung(result, samsung);
+        break;
+      case esp32ir::Protocol::LG:
+        payloadDecoded = esp32ir::decodeLG(result, lg);
+        break;
+      case esp32ir::Protocol::Denon:
+        payloadDecoded = esp32ir::decodeDenon(result, denon);
+        break;
+      case esp32ir::Protocol::RC5:
+        payloadDecoded = esp32ir::decodeRC5(result, rc5);
+        break;
+      case esp32ir::Protocol::RC6:
+        payloadDecoded = esp32ir::decodeRC6(result, rc6);
+        break;
+      case esp32ir::Protocol::Apple:
+        payloadDecoded = esp32ir::decodeApple(result, apple);
+        break;
+      case esp32ir::Protocol::Pioneer:
+        payloadDecoded = esp32ir::decodePioneer(result, pioneer);
+        break;
+      case esp32ir::Protocol::Toshiba:
+        payloadDecoded = esp32ir::decodeToshiba(result, toshiba);
+        break;
+      case esp32ir::Protocol::Mitsubishi:
+        payloadDecoded = esp32ir::decodeMitsubishi(result, mitsu);
+        break;
+      case esp32ir::Protocol::Hitachi:
+        payloadDecoded = esp32ir::decodeHitachi(result, hitachi);
+        break;
+      default:
+        break;
       }
-      if (decoded)
+    }
+
+    // en: output decode summary
+    // ja: デコード結果サマリを出力
+    Serial.printf("status=%s protocol=%s rawFrames=%u\n",
+                  (result.status == esp32ir::RxStatus::DECODED    ? "DECODED"
+                   : result.status == esp32ir::RxStatus::RAW_ONLY ? "RAW_ONLY"
+                   : result.status == esp32ir::RxStatus::OVERFLOW ? "OVERFLOW"
+                                                                  : "UNKNOWN"),
+                  protocolToString(result.protocol),
+                  result.raw.frameCount());
+    if (!result.payloadStorage.empty())
+    {
+      std::string fb = bytesToString(result.payloadStorage);
+      Serial.printf("frameBytes=[%s]\n", fb.c_str());
+    }
+    if (payloadDecoded)
+    {
+      switch (result.protocol)
       {
-        std::string fb = bytesToString(frameBytes);
-        Serial.printf("NEC decoded: addr=0x%04X(%u) cmd=0x%02X(%u) repeat=%s frameBytes=[%s]\n",
+      case esp32ir::Protocol::NEC:
+        Serial.printf("NEC payload: addr=0x%04X(%u) cmd=0x%02X(%u) repeat=%s\n",
                       nec.address, nec.address, nec.command, nec.command,
-                      nec.repeat ? "true" : "false", fb.c_str());
+                      nec.repeat ? "true" : "false");
+        break;
+      case esp32ir::Protocol::SONY:
+        Serial.printf("SONY payload: addr=0x%04X(%u) cmd=0x%04X(%u) bits=%u\n",
+                      sony.address, sony.address, sony.command, sony.command, sony.bits);
+        break;
+      case esp32ir::Protocol::AEHA:
+        Serial.printf("AEHA payload: addr=0x%04X(%u) data=0x%08lX bits=%u\n",
+                      aeha.address, aeha.address, static_cast<unsigned long>(aeha.data), aeha.nbits);
+        break;
+      case esp32ir::Protocol::Panasonic:
+        Serial.printf("Panasonic payload: addr=0x%04X(%u) data=0x%08lX bits=%u\n",
+                      pana.address, pana.address, static_cast<unsigned long>(pana.data), pana.nbits);
+        break;
+      case esp32ir::Protocol::JVC:
+        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
+                      jvc.address, jvc.address, jvc.command, jvc.command);
+        break;
+      case esp32ir::Protocol::Samsung:
+        Serial.printf("Samsung payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
+                      samsung.address, samsung.address, samsung.command, samsung.command);
+        break;
+      case esp32ir::Protocol::LG:
+        Serial.printf("LG payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
+                      lg.address, lg.address, lg.command, lg.command);
+        break;
+      case esp32ir::Protocol::Denon:
+        Serial.printf("Denon payload: addr=0x%04X(%u) cmd=0x%04X(%u) repeat=%s\n",
+                      denon.address, denon.address, denon.command, denon.command, denon.repeat ? "true" : "false");
+        break;
+      case esp32ir::Protocol::RC5:
+        Serial.printf("RC5 payload: cmd=0x%04X(%u) toggle=%s\n",
+                      rc5.command, rc5.command, rc5.toggle ? "true" : "false");
+        break;
+      case esp32ir::Protocol::RC6:
+        Serial.printf("RC6 payload: cmd=0x%08lX(%lu) mode=%u toggle=%s\n",
+                      static_cast<unsigned long>(rc6.command), static_cast<unsigned long>(rc6.command),
+                      rc6.mode, rc6.toggle ? "true" : "false");
+        break;
+      case esp32ir::Protocol::Apple:
+        Serial.printf("Apple payload: addr=0x%04X(%u) cmd=0x%02X(%u)\n",
+                      apple.address, apple.address, apple.command, apple.command);
+        break;
+      case esp32ir::Protocol::Pioneer:
+        Serial.printf("Pioneer payload: addr=0x%04X(%u) cmd=0x%04X(%u) extra=0x%02X(%u)\n",
+                      pioneer.address, pioneer.address, pioneer.command, pioneer.command, pioneer.extra, pioneer.extra);
+        break;
+      case esp32ir::Protocol::Toshiba:
+        Serial.printf("Toshiba payload: addr=0x%04X(%u) cmd=0x%04X(%u) extra=0x%02X(%u)\n",
+                      toshiba.address, toshiba.address, toshiba.command, toshiba.command, toshiba.extra, toshiba.extra);
+        break;
+      case esp32ir::Protocol::Mitsubishi:
+        Serial.printf("Mitsubishi payload: addr=0x%04X(%u) cmd=0x%04X(%u) extra=0x%02X(%u)\n",
+                      mitsu.address, mitsu.address, mitsu.command, mitsu.command, mitsu.extra, mitsu.extra);
+        break;
+      case esp32ir::Protocol::Hitachi:
+        Serial.printf("Hitachi payload: addr=0x%04X(%u) cmd=0x%04X(%u) extra=0x%02X(%u)\n",
+                      hitachi.address, hitachi.address, hitachi.command, hitachi.command, hitachi.extra, hitachi.extra);
+        break;
+      default:
+        Serial.println(F("payload: (not decoded in sample)"));
+        break;
       }
-      break;
-    }
-    case esp32ir::Protocol::SONY:
-    {
-      esp32ir::payload::SONY p{};
-      decoded = esp32ir::decodeSONY(rx, p);
-      if (decoded)
-        Serial.printf("SONY decoded: addr=0x%04X cmd=0x%04X bits=%u\n", p.address, p.command, p.bits);
-      sony = p;
-      break;
-    }
-    case esp32ir::Protocol::AEHA:
-    {
-      esp32ir::payload::AEHA p{};
-      decoded = esp32ir::decodeAEHA(rx, p);
-      if (decoded)
-        Serial.printf("AEHA decoded: addr=0x%04X data=0x%08lX nbits=%u\n", p.address, static_cast<unsigned long>(p.data), p.nbits);
-      aeha = p;
-      break;
-    }
-    case esp32ir::Protocol::Panasonic:
-    {
-      esp32ir::payload::Panasonic p{};
-      decoded = esp32ir::decodePanasonic(rx, p);
-      if (decoded)
-        Serial.printf("Panasonic decoded: addr=0x%04X data=0x%08lX nbits=%u\n", p.address, static_cast<unsigned long>(p.data), p.nbits);
-      pana = p;
-      break;
-    }
-    case esp32ir::Protocol::JVC:
-    {
-      esp32ir::payload::JVC p{};
-      decoded = esp32ir::decodeJVC(rx, p);
-      if (decoded)
-        Serial.printf("JVC decoded: addr=0x%04X cmd=0x%04X\n", p.address, p.command);
-      jvc = p;
-      break;
-    }
-    case esp32ir::Protocol::Samsung:
-    {
-      esp32ir::payload::Samsung p{};
-      decoded = esp32ir::decodeSamsung(rx, p);
-      if (decoded)
-        Serial.printf("Samsung decoded: addr=0x%04X cmd=0x%04X\n", p.address, p.command);
-      samsung = p;
-      break;
-    }
-    case esp32ir::Protocol::LG:
-    {
-      esp32ir::payload::LG p{};
-      decoded = esp32ir::decodeLG(rx, p);
-      if (decoded)
-        Serial.printf("LG decoded: addr=0x%04X cmd=0x%04X\n", p.address, p.command);
-      lg = p;
-      break;
-    }
-    case esp32ir::Protocol::Denon:
-    {
-      esp32ir::payload::Denon p{};
-      decoded = esp32ir::decodeDenon(rx, p);
-      if (decoded)
-        Serial.printf("Denon decoded: addr=0x%04X cmd=0x%04X repeat=%s\n", p.address, p.command, p.repeat ? "true" : "false");
-      denon = p;
-      break;
-    }
-    case esp32ir::Protocol::RC5:
-    {
-      esp32ir::payload::RC5 p{};
-      decoded = esp32ir::decodeRC5(rx, p);
-      if (decoded)
-        Serial.printf("RC5 decoded: cmd=0x%04X toggle=%s\n", p.command, p.toggle ? "true" : "false");
-      rc5 = p;
-      break;
-    }
-    case esp32ir::Protocol::RC6:
-    {
-      esp32ir::payload::RC6 p{};
-      decoded = esp32ir::decodeRC6(rx, p);
-      if (decoded)
-        Serial.printf("RC6 decoded: cmd=0x%08lX mode=%u toggle=%s\n", static_cast<unsigned long>(p.command), p.mode, p.toggle ? "true" : "false");
-      rc6 = p;
-      break;
-    }
-    case esp32ir::Protocol::Apple:
-    {
-      esp32ir::payload::Apple p{};
-      decoded = esp32ir::decodeApple(rx, p);
-      if (decoded)
-        Serial.printf("Apple decoded: addr=0x%04X cmd=0x%02X\n", p.address, p.command);
-      apple = p;
-      break;
-    }
-    case esp32ir::Protocol::Pioneer:
-    {
-      esp32ir::payload::Pioneer p{};
-      decoded = esp32ir::decodePioneer(rx, p);
-      if (decoded)
-        Serial.printf("Pioneer decoded: addr=0x%04X cmd=0x%04X extra=0x%02X\n", p.address, p.command, p.extra);
-      pioneer = p;
-      break;
-    }
-    case esp32ir::Protocol::Toshiba:
-    {
-      esp32ir::payload::Toshiba p{};
-      decoded = esp32ir::decodeToshiba(rx, p);
-      if (decoded)
-        Serial.printf("Toshiba decoded: addr=0x%04X cmd=0x%04X extra=0x%02X\n", p.address, p.command, p.extra);
-      toshiba = p;
-      break;
-    }
-    case esp32ir::Protocol::Mitsubishi:
-    {
-      esp32ir::payload::Mitsubishi p{};
-      decoded = esp32ir::decodeMitsubishi(rx, p);
-      if (decoded)
-        Serial.printf("Mitsubishi decoded: addr=0x%04X cmd=0x%04X extra=0x%02X\n", p.address, p.command, p.extra);
-      mitsu = p;
-      break;
-    }
-    case esp32ir::Protocol::Hitachi:
-    {
-      esp32ir::payload::Hitachi p{};
-      decoded = esp32ir::decodeHitachi(rx, p);
-      if (decoded)
-        Serial.printf("Hitachi decoded: addr=0x%04X cmd=0x%04X extra=0x%02X\n", p.address, p.command, p.extra);
-      hitachi = p;
-      break;
-    }
-    default:
-      Serial.println(F("decode skipped (protocol not handled in sample)"));
-      break;
     }
 
     bool ok = true;
@@ -375,13 +471,19 @@ void setup()
     {
       // en: show expected info for visibility
       // ja: 想定値を事前に表示
-      // protocol check
       std::string expProto = getStringField(expected, "protocol");
       std::vector<uint8_t> expBytes = parseFrameBytes(expected);
       cJSON *payloadObj = cJSON_GetObjectItemCaseSensitive(expected, "payload");
-      cJSON *necObj = payloadObj ? cJSON_GetObjectItemCaseSensitive(payloadObj, "NEC") : nullptr;
+      const char *actualProtoStr = protocolToString(result.protocol);
+      cJSON *expPayload = nullptr;
+      if (payloadObj && actualProtoStr)
+      {
+        // if payload is nested under protocol name, pick that; otherwise treat payload object as-is
+        cJSON *maybe = cJSON_GetObjectItemCaseSensitive(payloadObj, actualProtoStr);
+        expPayload = cJSON_IsObject(maybe) ? maybe : payloadObj;
+      }
 
-      if (!expProto.empty() || !expBytes.empty() || necObj)
+      if (!expProto.empty() || !expBytes.empty() || expPayload)
       {
         Serial.print(F("expected: "));
         bool first = true;
@@ -393,38 +495,51 @@ void setup()
         if (!expBytes.empty())
         {
           std::string fb = bytesToString(expBytes);
-          if (!first) Serial.print(F(", "));
+          if (!first)
+            Serial.print(F(", "));
           Serial.printf("frameBytes=[%s]", fb.c_str());
           first = false;
         }
-        if (necObj && cJSON_IsObject(necObj))
+        if (expPayload && cJSON_IsObject(expPayload))
         {
-          cJSON *a = cJSON_GetObjectItemCaseSensitive(necObj, "address");
-          cJSON *c = cJSON_GetObjectItemCaseSensitive(necObj, "command");
-          cJSON *r = cJSON_GetObjectItemCaseSensitive(necObj, "repeat");
-          if ((!first) && (cJSON_IsNumber(a) || cJSON_IsNumber(c) || cJSON_IsBool(r))) Serial.print(F(", "));
-          std::string addrStr = "-";
-          std::string cmdStr = "-";
-          if (cJSON_IsNumber(a))
+          if (!first)
+            Serial.print(F(", "));
+          Serial.printf("%s payload: ", actualProtoStr);
+          auto printNum = [&](const char *key) -> bool
           {
-            char buf[16];
-            snprintf(buf, sizeof(buf), "0x%04X", static_cast<uint16_t>(a->valueint));
-            addrStr = std::to_string(a->valueint) + " (" + buf + ")";
-          }
-          if (cJSON_IsNumber(c))
+            cJSON *v = cJSON_GetObjectItemCaseSensitive(expPayload, key);
+            if (cJSON_IsNumber(v))
+            {
+              Serial.printf("%s=%d ", key, v->valueint);
+              return true;
+            }
+            return false;
+          };
+          auto printBool = [&](const char *key) -> bool
           {
-            char buf[16];
-            snprintf(buf, sizeof(buf), "0x%02X", static_cast<uint8_t>(c->valueint));
-            cmdStr = std::to_string(c->valueint) + " (" + buf + ")";
-          }
-          const char *repStr = cJSON_IsBool(r) ? (cJSON_IsTrue(r) ? "true" : "false") : "-";
-          Serial.printf("NEC payload: addr=%s cmd=%s repeat=%s",
-                        addrStr.c_str(), cmdStr.c_str(), repStr);
+            cJSON *v = cJSON_GetObjectItemCaseSensitive(expPayload, key);
+            if (cJSON_IsBool(v))
+            {
+              Serial.printf("%s=%s ", key, cJSON_IsTrue(v) ? "true" : "false");
+              return true;
+            }
+            return false;
+          };
+          // print known fields in generic way
+          printNum("address");
+          printNum("command");
+          printNum("data");
+          printNum("nbits");
+          printNum("bits");
+          printNum("mode");
+          printNum("extra");
+          printBool("repeat");
+          printBool("toggle");
         }
         Serial.println();
       }
 
-      if (!expProto.empty() && expProto != protoStr)
+      if (!expProto.empty() && expProto != actualProtoStr)
       {
         ok = false;
         Serial.println(F("FAIL: protocol mismatch"));
@@ -432,58 +547,233 @@ void setup()
       // frameBytes check
       if (!expBytes.empty())
       {
-        if (expBytes.size() != rx.payloadStorage.size() ||
-            !std::equal(expBytes.begin(), expBytes.end(), rx.payloadStorage.begin()))
+        if (expBytes.size() != result.payloadStorage.size() ||
+            !std::equal(expBytes.begin(), expBytes.end(), result.payloadStorage.begin()))
         {
           ok = false;
           Serial.println(F("FAIL: frameBytes mismatch"));
         }
       }
-      // payload check (supported: NEC)
+      // payload check (protocol-specific, if expected is provided)
       if (payloadObj && cJSON_IsObject(payloadObj))
       {
-        if (necObj && cJSON_IsObject(necObj) && proto == esp32ir::Protocol::NEC)
+        auto getNum = [](cJSON *o, const char *k, int &out) -> bool
         {
-          cJSON *a = cJSON_GetObjectItemCaseSensitive(necObj, "address");
-          cJSON *c = cJSON_GetObjectItemCaseSensitive(necObj, "command");
-          cJSON *r = cJSON_GetObjectItemCaseSensitive(necObj, "repeat");
-          bool hasAddr = cJSON_IsNumber(a);
-          bool hasCmd = cJSON_IsNumber(c);
-          bool hasRep = cJSON_IsBool(r);
-          int expAddr = hasAddr ? a->valueint : 0;
-          int expCmd = hasCmd ? c->valueint : 0;
-          bool expRepeat = hasRep ? cJSON_IsTrue(r) : false;
-          if (!decoded ||
-              (hasAddr && nec.address != expAddr) ||
-              (hasCmd && nec.command != expCmd) ||
-              (hasRep && nec.repeat != expRepeat))
+          cJSON *v = cJSON_GetObjectItemCaseSensitive(o, k);
+          if (cJSON_IsNumber(v))
+          {
+            out = v->valueint;
+            return true;
+          }
+          return false;
+        };
+        auto getBool = [](cJSON *o, const char *k, bool &out) -> bool
+        {
+          cJSON *v = cJSON_GetObjectItemCaseSensitive(o, k);
+          if (cJSON_IsBool(v))
+          {
+            out = cJSON_IsTrue(v);
+            return true;
+          }
+          return false;
+        };
+
+        if (expPayload && cJSON_IsObject(expPayload))
+        {
+          if (!payloadDecoded)
           {
             ok = false;
-            Serial.println(F("FAIL: NEC payload mismatch"));
-            std::string expAddrStr = hasAddr ? std::to_string(expAddr) : "-";
-            std::string expCmdStr = hasCmd ? std::to_string(expCmd) : "-";
-            Serial.printf("actual NEC: addr=%u (0x%04X) cmd=%u (0x%02X) repeat=%s\n",
-                          nec.address, nec.address, nec.command, nec.command,
-                          nec.repeat ? "true" : "false");
-            Serial.printf("expect NEC: addr=%s cmd=%s repeat=%s\n",
-                          expAddrStr.c_str(),
-                          expCmdStr.c_str(),
-                          hasRep ? (expRepeat ? "true" : "false") : "-");
+            Serial.println(F("FAIL: payload expected but decode failed"));
+          }
+          else
+          {
+            switch (result.protocol)
+            {
+            case esp32ir::Protocol::NEC:
+            {
+              int a = 0, c = 0;
+              bool r = false, ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), hr = getBool(expPayload, "repeat", r);
+              if ((ha && nec.address != a) || (hc && nec.command != c) || (hr && nec.repeat != r))
+              {
+                ok = false;
+                Serial.println(F("FAIL: NEC payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::SONY:
+            {
+              int a = 0, c = 0, b = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), hb = getNum(expPayload, "bits", b);
+              if ((ha && sony.address != a) || (hc && sony.command != c) || (hb && sony.bits != b))
+              {
+                ok = false;
+                Serial.println(F("FAIL: SONY payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::AEHA:
+            {
+              int a = 0, d = 0, b = 0;
+              bool ha = getNum(expPayload, "address", a), hd = getNum(expPayload, "data", d), hb = getNum(expPayload, "nbits", b);
+              if ((ha && aeha.address != a) || (hd && static_cast<int>(aeha.data) != d) || (hb && aeha.nbits != b))
+              {
+                ok = false;
+                Serial.println(F("FAIL: AEHA payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Panasonic:
+            {
+              int a = 0, d = 0, b = 0;
+              bool ha = getNum(expPayload, "address", a), hd = getNum(expPayload, "data", d), hb = getNum(expPayload, "nbits", b);
+              if ((ha && pana.address != a) || (hd && static_cast<int>(pana.data) != d) || (hb && pana.nbits != b))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Panasonic payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::JVC:
+            {
+              int a = 0, c = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c);
+              if ((ha && jvc.address != a) || (hc && jvc.command != c))
+              {
+                ok = false;
+                Serial.println(F("FAIL: JVC payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Samsung:
+            {
+              int a = 0, c = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c);
+              if ((ha && samsung.address != a) || (hc && samsung.command != c))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Samsung payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::LG:
+            {
+              int a = 0, c = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c);
+              if ((ha && lg.address != a) || (hc && lg.command != c))
+              {
+                ok = false;
+                Serial.println(F("FAIL: LG payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Denon:
+            {
+              int a = 0, c = 0;
+              bool r = false, ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), hr = getBool(expPayload, "repeat", r);
+              if ((ha && denon.address != a) || (hc && denon.command != c) || (hr && denon.repeat != r))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Denon payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::RC5:
+            {
+              int c = 0;
+              bool t = false, hc = getNum(expPayload, "command", c), ht = getBool(expPayload, "toggle", t);
+              if ((hc && rc5.command != c) || (ht && rc5.toggle != t))
+              {
+                ok = false;
+                Serial.println(F("FAIL: RC5 payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::RC6:
+            {
+              int c = 0, m = 0;
+              bool t = false, hc = getNum(expPayload, "command", c), hm = getNum(expPayload, "mode", m), ht = getBool(expPayload, "toggle", t);
+              if ((hc && static_cast<int>(rc6.command) != c) || (hm && rc6.mode != m) || (ht && rc6.toggle != t))
+              {
+                ok = false;
+                Serial.println(F("FAIL: RC6 payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Apple:
+            {
+              int a = 0, c = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c);
+              if ((ha && apple.address != a) || (hc && apple.command != c))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Apple payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Pioneer:
+            {
+              int a = 0, c = 0, e = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), he = getNum(expPayload, "extra", e);
+              if ((ha && pioneer.address != a) || (hc && pioneer.command != c) || (he && pioneer.extra != e))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Pioneer payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Toshiba:
+            {
+              int a = 0, c = 0, e = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), he = getNum(expPayload, "extra", e);
+              if ((ha && toshiba.address != a) || (hc && toshiba.command != c) || (he && toshiba.extra != e))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Toshiba payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Mitsubishi:
+            {
+              int a = 0, c = 0, e = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), he = getNum(expPayload, "extra", e);
+              if ((ha && mitsu.address != a) || (hc && mitsu.command != c) || (he && mitsu.extra != e))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Mitsubishi payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Hitachi:
+            {
+              int a = 0, c = 0, e = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), he = getNum(expPayload, "extra", e);
+              if ((ha && hitachi.address != a) || (hc && hitachi.command != c) || (he && hitachi.extra != e))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Hitachi payload mismatch"));
+              }
+              break;
+            }
+            default:
+              // AC and others not decoded here yet
+              break;
+            }
           }
         }
       }
     }
 
     Serial.print(F("raw frames: "));
-    Serial.println(rx.raw.frameCount());
+    Serial.println(result.raw.frameCount());
     Serial.print(F("decoded: "));
-    Serial.println(decoded ? "true" : "false");
+    Serial.println(result.status == esp32ir::RxStatus::DECODED ? "true" : "false");
     Serial.print(F("result: "));
     Serial.println(ok ? "PASS" : "FAIL");
     Serial.println();
 
     total++;
-    if (ok) passed++;
+    if (ok)
+      passed++;
     cJSON_Delete(root);
   }
 
