@@ -25,8 +25,8 @@ void loop()
   if (rx.poll(rxResult))
   {
     Serial.printf("Received IR frame:\n");
-    Serial.printf(" status=%u\n", static_cast<uint8_t>(rxResult.status));
-    Serial.printf(" protocol=%u\n", static_cast<uint16_t>(rxResult.protocol));
+    Serial.printf(" status=%s\n", esp32ir::util::rxStatusToString(rxResult.status));
+    Serial.printf(" protocol=%s\n", esp32ir::util::protocolToString(rxResult.protocol));
     Serial.printf(" payloadStorage=%u bytes ", static_cast<unsigned>(rxResult.payloadStorage.size()));
     for (size_t i = 0; i < rxResult.payloadStorage.size(); ++i)
     {
