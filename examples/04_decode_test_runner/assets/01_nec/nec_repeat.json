@@ -1,0 +1,61 @@
+{
+  "version": "0.2",
+  "device": {
+    "vendor": "TODO",
+    "model": "TODO",
+    "remote": "TODO"
+  },
+  "protocol": "NEC",
+  "status": "DECODED",
+  "timestampMs": 145316,
+  "capture": {
+    "durationsUs": [
+      9060,
+      -2255,
+      575
+    ],
+    "itps": [
+      {
+        "T_us": 5,
+        "flags": 0,
+        "seq": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          34,
+          -127,
+          -127,
+          -127,
+          -70,
+          115
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "protocol": "NEC",
+    "frameBytes": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "payload": {
+      "address": 0,
+      "command": 0,
+      "repeat": true
+    }
+  },
+  "notes": "repeat"
+}

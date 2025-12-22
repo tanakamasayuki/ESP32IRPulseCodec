@@ -4,7 +4,7 @@
 
 // en: Receiver instance (many IR RX modules output inverted signals)
 // ja: 受信インスタンス（市販IR受信モジュールは反転出力が多い）
-esp32ir::Receiver rx(23, /*invert=*/true);
+esp32ir::Receiver rx(32, /*invert=*/true);
 
 // en: Print decoded frame bytes as decimal array
 // ja: デコード済みバイト列を10進配列で出力
@@ -59,12 +59,34 @@ static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
   }
   const auto &f = raw.frame(0);
   Serial.print("[");
+  int32_t accCounts = 0; // accumulate same-polarity counts to undo ±127 splits
+  int prevSign = 0;
+  uint16_t printed = 0;
   for (uint16_t i = 0; i < f.len; ++i)
   {
-    if (i > 0)
+    int8_t c = f.seq[i];
+    int sign = (c > 0) ? 1 : -1;
+    if (prevSign != 0 && sign != prevSign)
+    {
+      long durUs = static_cast<long>(accCounts) * static_cast<long>(f.T_us);
+      if (prevSign < 0)
+        durUs = -durUs;
+      if (printed++ > 0)
+        Serial.print(", ");
+      Serial.print(durUs);
+      accCounts = 0;
+    }
+    accCounts += (c > 0) ? c : -c; // store as positive counts
+    prevSign = sign;
+  }
+  if (accCounts != 0)
+  {
+    long durUs = static_cast<long>(accCounts) * static_cast<long>(f.T_us);
+    if (prevSign < 0)
+      durUs = -durUs;
+    if (printed++ > 0)
       Serial.print(", ");
-    long dur = static_cast<long>(f.seq[i]) * static_cast<long>(f.T_us);
-    Serial.print(dur);
+    Serial.print(durUs);
   }
   Serial.print("]");
 }
@@ -181,7 +203,7 @@ void loop()
   Serial.println("  ,\"capture\":{");
   Serial.print("    \"durationsUs\":");
   printDurationsUs(r.raw); // en: Mark/Space durations (us) / ja: Mark/Spaceの長さ[us]
-  Serial.println(",");  // en: keep ITPS (quantized) as full RAW / ja: ITPS（量子化RAW）を保持
+  Serial.println(",");     // en: keep ITPS (quantized) as full RAW / ja: ITPS（量子化RAW）を保持
   Serial.print("    ");
   printITPS(r.raw);
   Serial.println();

@@ -2,7 +2,7 @@
 
 // en: Simple NEC RX example (adjust GPIO to your wiring; many IR RX modules invert output)
 // ja: シンプルなNEC受信例（配線に合わせてGPIOを変更。市販IR受信モジュールは反転出力が多い）
-esp32ir::Receiver rx(23, /*invert=*/true);
+esp32ir::Receiver rx(32, /*invert=*/true);
 
 void setup()
 {

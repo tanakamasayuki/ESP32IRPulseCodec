@@ -109,7 +109,15 @@ namespace esp32ir
             appendSpace(seq, kHdrSpaceUs);
 
             // NEC32: addr low, addr high, cmd, ~cmd (LSB first)
-            uint32_t data = static_cast<uint32_t>(address);
+            uint8_t addrLo = static_cast<uint8_t>(address & 0xFF);
+            uint8_t addrHi = static_cast<uint8_t>((address >> 8) & 0xFF);
+            // If caller passes 8-bit address (common NEC), auto-fill inverted high byte.
+            if (address <= 0xFF)
+            {
+                addrHi = static_cast<uint8_t>(~addrLo);
+            }
+            uint32_t data = static_cast<uint32_t>(addrLo);
+            data |= static_cast<uint32_t>(addrHi) << 8;
             data |= static_cast<uint32_t>(command) << 16;
             data |= static_cast<uint32_t>(~command & 0xFF) << 24;
 
@@ -160,8 +168,19 @@ namespace esp32ir
             out.repeat = true;
             return true;
         }
-        out.address = static_cast<uint16_t>(data & 0xFFFF);
-        out.command = static_cast<uint8_t>((data >> 16) & 0xFF);
+        uint8_t addrLo = static_cast<uint8_t>(data & 0xFF);
+        uint8_t addrHi = static_cast<uint8_t>((data >> 8) & 0xFF);
+        uint8_t cmd = static_cast<uint8_t>((data >> 16) & 0xFF);
+        uint8_t cmdInv = static_cast<uint8_t>((data >> 24) & 0xFF);
+        // Reject if command inverse mismatches (avoids garbage decode).
+        if (cmdInv != static_cast<uint8_t>(~cmd))
+        {
+            return false;
+        }
+        bool has8bitAddress = (addrHi == static_cast<uint8_t>(~addrLo));
+        out.address = has8bitAddress ? static_cast<uint16_t>(addrLo)
+                                     : static_cast<uint16_t>((addrHi << 8) | addrLo);
+        out.command = cmd;
         out.repeat = false;
         return true;
     }
