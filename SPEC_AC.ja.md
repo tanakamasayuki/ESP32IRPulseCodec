@@ -95,3 +95,40 @@ IR Transmitter
 - 受信側は学習RAW（ITPS）を保持しつつ、デコードに成功した場合でも `opaque` を経由して未知領域を温存する。
 - Capabilitiesをもとに正規化/丸めを行い、`useKnownWithoutAC` 等のプリセットとも両立できるように実装を分離する。
 - 公開API案：`bool esp32ir::decodeAC(const esp32ir::RxResult&, const esp32ir::ac::Capabilities&, esp32ir::ac::DeviceState&)` と `bool esp32ir::Transmitter::sendAC(const esp32ir::ac::DeviceState&, const esp32ir::ac::Capabilities&)` を入口にし、ブランド別エンコーダ/デコーダ（例：`encodeDaikinAC`/`decodeDaikinAC`、`encodePanasonicAC`/`decodePanasonicAC` …）は内部ヘルパとして共通型↔ProtocolMessage/ITPSの変換に徹する。
+
+## 8. キャプチャJSONフォーマット（サンプル/資産用）
+- 目的：テスト・資産用のポータブルなキャプチャフォーマット。`version` は**書式/スキーマのバージョン**（波形やプロトコルのバージョンではない）。
+- 推奨トップレベル項目：
+  - `version`：例 `"0.1"`
+  - `device`：`{ vendor, model, remote? }`（手で埋める）
+  - `protocol`：例 `NEC`, `DaikinAC`。未デコードなら `RAW` でもよい。
+  - `status`：`DECODED` | `RAW_ONLY` | `OVERFLOW`
+  - `timestampMs`：任意（捕捉時刻/順序が必要なとき）
+  - `capture`：
+    - `durationsUs`：1フレーム分のMark/Space長[µs]（RAWのソース）
+    - `frameBytes`：デコードできた場合のバイト配列（10進、任意。未知なら空配列でも可）
+    - `itps`：ITPSフレーム配列 `{ "T_us", "flags", "seq":[...] }`（全フレームのRAW）
+  - `notes`：任意メモ
+- 運用のヒント：
+  - 再送/検証には `durationsUs` と `itps` を主に使い、`frameBytes` はデコード成功時の補助として扱う。
+  - 1キャプチャ1ファイルを `assets/<protocol>/...json` に置き、TODO項目は取得後に手で埋める。
+  - `durationsUs` は符号付きのマイクロ秒値（`+`=Mark, `-`=Space）として扱い、ITPSとの整合と復元を簡易にする。
+
+### 8.1 JSON例（NECデコード済み）
+```json
+{
+  "version": "0.1",
+  "device": { "vendor": "Example", "model": "TV-A1", "remote": "RM123" },
+  "protocol": "NEC",
+  "status": "DECODED",
+  "timestampMs": 12345,
+  "capture": {
+    "durationsUs": [9000,-4500,560,-560,560,-560,560,-1690,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560],
+    "frameBytes": [0, 255, 162, 93],
+    "itps": [
+      { "T_us": 5, "flags": 0, "seq": [1800,-900,112,-112,112,-112,112,-338,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112] }
+    ]
+  },
+  "notes": "Example NEC capture; fill real device info as needed."
+}
+```

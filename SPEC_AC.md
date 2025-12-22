@@ -95,3 +95,40 @@ IR Transmitter
 - RX should keep learned RAW (ITPS); even on successful decode, preserve unknown areas via `opaque`.
 - Normalize/round using Capabilities; keep compatibility with presets like `useKnownWithoutAC`.
 - Public API proposal: `bool esp32ir::decodeAC(const esp32ir::RxResult&, const esp32ir::ac::Capabilities&, esp32ir::ac::DeviceState&)` and `bool esp32ir::Transmitter::sendAC(const esp32ir::ac::DeviceState&, const esp32ir::ac::Capabilities&)` as entry points. Brand encoders/decoders (e.g., `encodeDaikinAC`/`decodeDaikinAC`, `encodePanasonicAC`/`decodePanasonicAC`, …) stay internal helpers that only convert between the common types and ProtocolMessage/ITPS.
+
+## 8. Capture JSON format (for samples/assets)
+- Purpose: portable capture format for tests/assets. `version` is the **format/schema** version (not waveform/protocol version).
+- Top-level fields (recommended):
+  - `version`: string, e.g. `"0.1"`.
+  - `device`: `{ vendor, model, remote? }` (fill manually).
+  - `protocol`: string (e.g., `NEC`, `DaikinAC`); may remain `RAW` if undecoded.
+  - `status`: `DECODED` | `RAW_ONLY` | `OVERFLOW`.
+  - `timestampMs`: optional capture time (for sequencing).
+  - `capture`:
+    - `durationsUs`: array of Mark/Space durations (µs) for the first frame (RAW source of truth).
+    - `frameBytes`: array of decimal bytes if decoded (optional; empty array if unknown).
+    - `itps`: array of ITPS frames `{ "T_us", "flags", "seq":[...] }` (full RAW, all frames).
+  - `notes`: free text.
+- Usage guidance:
+  - Keep `durationsUs` and `itps` as primary replay sources; `frameBytes` is optional helper when decode succeeds.
+  - Store one capture per file under `assets/<protocol>/...json`; fill TODO fields manually after capture.
+  - `durationsUs` uses signed microseconds (`+` = Mark, `-` = Space) to align with ITPS and simplify reconstruction.
+
+### 8.1 JSON example (NEC, decoded)
+```json
+{
+  "version": "0.1",
+  "device": { "vendor": "Example", "model": "TV-A1", "remote": "RM123" },
+  "protocol": "NEC",
+  "status": "DECODED",
+  "timestampMs": 12345,
+  "capture": {
+    "durationsUs": [9000,-4500,560,-560,560,-560,560,-1690,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560],
+    "frameBytes": [0, 255, 162, 93],
+    "itps": [
+      { "T_us": 5, "flags": 0, "seq": [1800,-900,112,-112,112,-112,112,-338,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112] }
+    ]
+  },
+  "notes": "Example NEC capture; replace device info as needed."
+}
+```
