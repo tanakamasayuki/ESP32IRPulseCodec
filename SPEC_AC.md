@@ -108,6 +108,10 @@ IR Transmitter
     - `durationsUs`: array of Mark/Space durations (µs) for the first frame (RAW source of truth).
     - `frameBytes`: array of decimal bytes if decoded (optional; empty array if unknown).
     - `itps`: array of ITPS frames `{ "T_us", "flags", "seq":[...] }` (full RAW, all frames).
+  - `expected` (optional, for tests):
+    - `protocol`: expected protocol name
+    - `frameBytes`: expected decoded bytes
+    - `payload`: decoded payload object keyed by protocol (e.g., `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`)
   - `notes`: free text.
 - Usage guidance:
   - Keep `durationsUs` and `itps` as primary replay sources; `frameBytes` is optional helper when decode succeeds.

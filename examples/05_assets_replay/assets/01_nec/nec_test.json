@@ -1,92 +1,75 @@
 {
-    "version": "0.1",
-    "device": {
-        "vendor": "Example",
-        "model": "TV-A1",
-        "remote": "RM123"
-    },
-    "protocol": "NEC",
-    "status": "DECODED",
-    "timestampMs": 12345,
-    "capture": {
-        "durationsUs": [
-            9000,
-            -4500,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -1690,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560,
-            -560,
-            560
-        ],
-        "frameBytes": [
-            0,
-            255,
-            162,
-            93
-        ],
-        "itps": [
-            {
-                "T_us": 5,
-                "flags": 0,
-                "seq": [
-                    1800,
-                    -900,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -338,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112,
-                    -112,
-                    112
-                ]
-            }
+  "version": "0.2",
+  "device": {
+    "vendor": "Example",
+    "model": "TV-A1",
+    "remote": "RM123"
+  },
+  "protocol": "NEC",
+  "status": "DECODED",
+  "capture": {
+    "durationsUs": [
+      9000,
+      -4500,
+      560,
+      -560,
+      560,
+      -560,
+      560,
+      -1690,
+      560,
+      -560,
+      560,
+      -560,
+      560,
+      -560,
+      560
+    ],
+    "frameBytes": [
+      255,
+      0,
+      162,
+      93
+    ],
+    "itps": [
+      {
+        "T_us": 5,
+        "flags": 0,
+        "seq": [
+          1800,
+          -900,
+          112,
+          -112,
+          112,
+          -112,
+          112,
+          -338,
+          112,
+          -112,
+          112,
+          -112,
+          112,
+          -112,
+          112
         ]
-    },
-    "notes": "Example NEC capture; fill real device info as needed."
+      }
+    ]
+  },
+  "expected": {
+    "protocol": "NEC",
+    "frameBytes": [
+      255,
+      0,
+      162,
+      93
+    ],
+    "payload": {
+      "NEC": {
+        "address": 255,
+        "command": 162,
+        "repeat": false
+      }
+    }
+  },
+  "notes": "Example NEC capture for replay test"
 }

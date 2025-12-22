@@ -108,6 +108,7 @@ IR Transmitter
     - `durationsUs`：1フレーム分のMark/Space長[µs]（RAWのソース）
     - `frameBytes`：デコードできた場合のバイト配列（10進、任意。未知なら空配列でも可）
     - `itps`：ITPSフレーム配列 `{ "T_us", "flags", "seq":[...] }`（全フレームのRAW）
+  - `expected`（任意、テスト用）：`protocol`（期待プロトコル名）、`frameBytes`（期待バイト列）、`payload`（プロトコル名をキーにしたデコード結果オブジェクト。例：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`）
   - `notes`：任意メモ
 - 運用のヒント：
   - 再送/検証には `durationsUs` と `itps` を主に使い、`frameBytes` はデコード成功時の補助として扱う。
