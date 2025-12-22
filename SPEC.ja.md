@@ -479,6 +479,49 @@ void loop() {
 }
 ```
 
+AC 送信（共通AC APIの例）
+```cpp
+#include <ESP32IRPulseCodec.h>
+
+// Capabilities は実機に合わせて設定すること
+const esp32ir::ac::Capabilities AC_CAP = {
+  .device = { .vendor = "ExampleVendor", .model = "X100" },
+  .temperature = { .min = 18, .max = 30, .step = 1, .units = { "C" } },
+  .modes = { "auto", "cool", "heat", "dry", "fan", "off" },
+  .fan = { .autoSupported = true, .levels = 5 },
+  .swing = { .verticalValues = { "off", "auto" }, .horizontalValues = { "off", "auto" } },
+  .features = { .supported = { "eco" } },
+  .powerBehavior = { .powerRequiredForModeChange = true, .powerRequiredForTempChange = true },
+  .validationPolicy = {
+    .outOfRangeTemperature = "coerce",
+    .unsupportedMode = "reject",
+    .unsupportedFanSpeed = "coerceToNearest",
+    .unsupportedSwing = "coerceToOff"
+  }
+};
+
+esp32ir::Transmitter tx(25);
+
+void setup() {
+  tx.begin();
+
+  esp32ir::ac::DeviceState state{
+    .device = AC_CAP.device,
+    .power = true,
+    .mode = "cool",
+    .targetTemperature = 26,
+    .temperatureUnit = "C",
+    .fanSpeed = "auto",
+    .swing = { .vertical = "auto", .horizontal = "off" }
+  };
+
+  // 共通ACエントリ。Capabilitiesを見てブランド別エンコーダにディスパッチする
+  tx.sendAC(state, AC_CAP);
+}
+
+void loop() { delay(1000); }
+```
+
 ### 17.2 期待挙動（ユースケース）
 - **デフォルト（プロトコル無指定/KNOWN_ONLY）**：既知プロトコルを自動でデコードし、成功時は `status=DECODED` のみを返す。RAW は返さない（RAWが必要なら `useRawPlusKnown()` / `useRawOnly()` を明示）。
 - **NECデコード**：デフォルト設定で `status=DECODED` の ProtocolMessage を返し、`decodeNEC` が true を返す。`useRawPlusKnown()` 指定時は raw も添付。

@@ -477,6 +477,49 @@ void loop() {
 }
 ```
 
+AC send (common AC API example)
+```cpp
+#include <ESP32IRPulseCodec.h>
+
+// Capabilities must match your actual model; adjust values accordingly.
+const esp32ir::ac::Capabilities AC_CAP = {
+  .device = { .vendor = "ExampleVendor", .model = "X100" },
+  .temperature = { .min = 18, .max = 30, .step = 1, .units = { "C" } },
+  .modes = { "auto", "cool", "heat", "dry", "fan", "off" },
+  .fan = { .autoSupported = true, .levels = 5 },
+  .swing = { .verticalValues = { "off", "auto" }, .horizontalValues = { "off", "auto" } },
+  .features = { .supported = { "eco" } },
+  .powerBehavior = { .powerRequiredForModeChange = true, .powerRequiredForTempChange = true },
+  .validationPolicy = {
+    .outOfRangeTemperature = "coerce",
+    .unsupportedMode = "reject",
+    .unsupportedFanSpeed = "coerceToNearest",
+    .unsupportedSwing = "coerceToOff"
+  }
+};
+
+esp32ir::Transmitter tx(25);
+
+void setup() {
+  tx.begin();
+
+  esp32ir::ac::DeviceState state{
+    .device = AC_CAP.device,
+    .power = true,
+    .mode = "cool",
+    .targetTemperature = 26,
+    .temperatureUnit = "C",
+    .fanSpeed = "auto",
+    .swing = { .vertical = "auto", .horizontal = "off" }
+  };
+
+  // Common AC entry point; internally dispatches to brand encoder per Capabilities.
+  tx.sendAC(state, AC_CAP);
+}
+
+void loop() { delay(1000); }
+```
+
 ### 17.2 Expected behavior (use cases)
 - **Default (no protocol specified / KNOWN_ONLY)**: Decodes all known protocols and returns `status=DECODED` only. No RAW unless explicitly `useRawPlusKnown()` / `useRawOnly()`.
 - **NEC decode**: With defaults, returns `status=DECODED` ProtocolMessage and `decodeNEC` returns true. `useRawPlusKnown()` attaches RAW as well.
