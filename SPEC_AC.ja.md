@@ -1,7 +1,7 @@
-# SPEC_AC（エアコンIR仕様サマリ）
+# SPEC_AC（エアコンIR仕様）
 
 ## 0. 概要と位置づけ
-- 本書はESP32IRPulseCodecのエアコンIR仕様を独立させたドキュメント。
+- 本書はESP32IRPulseCodecのエアコンIR仕様を独立させたドキュメント。`SPEC.ja.md` にあったAC関連をベースに再構成し、参照なしで読めるようにした。
 - 目的：ベンダー非依存でエアコンのIR制御を記述する。「既存ライブラリ互換」を狙わず、クリーンな抽象化と拡張性を優先する。
 - 方針：送信は「完全なデバイス状態」を表現するフレームのみ。未知ビットは必ず保持し、部分的な上書きで壊さない。
 - レイヤ：Intent → 正規化DeviceState → Protocol Frame（bytes/bits） → IR Waveform（ITPS） → 送信。ITPSの扱い・送受信フローは `SPEC.ja.md` を準拠。
