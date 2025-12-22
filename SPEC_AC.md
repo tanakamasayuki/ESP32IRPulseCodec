@@ -113,6 +113,7 @@ IR Transmitter
     - `payload`: decoded payload object. Either keyed by protocol name *or* flat:
       - keyed example: `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`
       - flat example: `{ "address": 0, "command": 162, "repeat": false }` (matched against the detected protocol)
+    - `irremote`: optional compatibility view for IRremoteESP8266 `{ "code": "0x...", "bits": 32 }` (currently NEC only; code is MSB-first as printed by IRremoteESP8266).
   - `notes`: free text.
 - Usage guidance:
   - Keep `durationsUs` and `itps` as primary replay sources; `frameBytes` is optional helper when decode succeeds.
@@ -129,10 +130,15 @@ IR Transmitter
   "timestampMs": 12345,
   "capture": {
     "durationsUs": [9000,-4500,560,-560,560,-560,560,-1690,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560],
-    "frameBytes": [0, 255, 162, 93],
     "itps": [
       { "T_us": 5, "flags": 0, "seq": [1800,-900,112,-112,112,-112,112,-338,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112] }
     ]
+  },
+  "expected": {
+    "protocol": "NEC",
+    "frameBytes": [0, 255, 162, 93],
+    "payload": { "address": 0, "command": 162, "repeat": false },
+    "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },
   "notes": "Example NEC capture; replace device info as needed."
 }

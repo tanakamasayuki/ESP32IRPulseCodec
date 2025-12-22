@@ -7,12 +7,12 @@
   },
   "protocol": "NEC",
   "status": "DECODED",
-  "timestampMs": 145316,
+  "timestampMs": 148671,
   "capture": {
     "durationsUs": [
-      9060,
-      -2255,
-      575
+      9050,
+      -2285,
+      580
     ],
     "itps": [
       {
@@ -33,12 +33,12 @@
           127,
           127,
           127,
-          34,
+          32,
           -127,
           -127,
           -127,
-          -70,
-          115
+          -76,
+          116
         ]
       }
     ]
@@ -55,7 +55,11 @@
       "address": 0,
       "command": 0,
       "repeat": true
+    },
+    "irremote": {
+      "code": "0x00FF00FF",
+      "bits": 32
     }
   },
-  "notes": "repeat"
+  "notes": "Fill in capabilities/intents manually if needed."
 }

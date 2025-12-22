@@ -21,6 +21,39 @@ static void printFrameBytes(const esp32ir::ProtocolMessage &msg)
   Serial.print("]");
 }
 
+// en: Reverse bit order in 32-bit value (LSB↔MSB)
+// ja: 32bit値のビット順を反転（LSB/MSB入れ替え）
+static uint32_t reverseBits32(uint32_t v)
+{
+  v = ((v >> 1) & 0x55555555u) | ((v & 0x55555555u) << 1);
+  v = ((v >> 2) & 0x33333333u) | ((v & 0x33333333u) << 2);
+  v = ((v >> 4) & 0x0F0F0F0Fu) | ((v & 0x0F0F0F0Fu) << 4);
+  v = ((v >> 8) & 0x00FF00FFu) | ((v & 0x00FF00FFu) << 8);
+  v = (v >> 16) | (v << 16);
+  return v;
+}
+
+// en: Emit IRremoteESP8266-style code for NEC (addr/!addr/cmd/!cmd, MSB-first hex)
+// ja: NEC用のIRremoteESP8266形式コードを出力（addr, ~addr, cmd, ~cmd を並べた32bit）
+static void printIrremoteCodeNEC(const esp32ir::payload::NEC &nec)
+{
+  uint8_t addrLo = static_cast<uint8_t>(nec.address & 0xFF);
+  uint8_t addrHi = static_cast<uint8_t>((nec.address >> 8) & 0xFF);
+  // If only 8-bit address, fill high byte with complement (standard NEC)
+  if (nec.address <= 0xFF)
+  {
+    addrHi = static_cast<uint8_t>(~addrLo);
+  }
+  // Internal order: LSB-first per byte (TX/RX canonical)
+  uint32_t codeLsbFirst = static_cast<uint32_t>(addrLo) |
+                          (static_cast<uint32_t>(addrHi) << 8) |
+                          (static_cast<uint32_t>(nec.command) << 16) |
+                          (static_cast<uint32_t>(~nec.command & 0xFF) << 24);
+  // IRremoteESP8266 displays bits MSB-first; reverse to match its printed value.
+  uint32_t codeIrremote = reverseBits32(codeLsbFirst);
+  Serial.printf("\"irremote\":{ \"code\":\"0x%08lX\", \"bits\":32 }", static_cast<unsigned long>(codeIrremote));
+}
+
 // en: Dump ITPS frames as JSON array
 // ja: ITPSフレームをJSON配列として出力
 static void printITPS(const esp32ir::ITPSBuffer &raw)
@@ -270,6 +303,15 @@ void loop()
       break;
     }
     Serial.println("}");
+    // en: Also include IRremoteESP8266 style code (currently NEC only)
+    // ja: IRremoteESP8266形式コードも併記（現状NECのみ）
+    if (r.protocol == esp32ir::Protocol::NEC)
+    {
+      Serial.println("    ,");
+      Serial.print("    ");
+      printIrremoteCodeNEC(nec);
+    }
+    Serial.println();
     Serial.println("  },");
   }
   Serial.println("  \"notes\":\"Fill in capabilities/intents manually if needed.\"");

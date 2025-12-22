@@ -113,6 +113,7 @@ IR Transmitter
     - `payload`：デコード結果オブジェクト。プロトコル名でネストしてもフラットでもよい。
       - 例（ネスト）：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`
       - 例（フラット）：`{ "address": 0, "command": 162, "repeat": false }`（検出したプロトコルに合わせて突き合わせ）
+    - `irremote`：IRremoteESP8266互換の表示 `{ "code": "0x...", "bits": 32 }`（現状NECのみ対応。コードはIRremoteESP8266表示に合わせてMSB順）
   - `notes`：任意メモ
 - 運用のヒント：
   - 再送/検証には `durationsUs` と `itps` を主に使い、`frameBytes` はデコード成功時の補助として扱う。
@@ -129,10 +130,15 @@ IR Transmitter
   "timestampMs": 12345,
   "capture": {
     "durationsUs": [9000,-4500,560,-560,560,-560,560,-1690,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560],
-    "frameBytes": [0, 255, 162, 93],
     "itps": [
       { "T_us": 5, "flags": 0, "seq": [1800,-900,112,-112,112,-112,112,-338,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112] }
     ]
+  },
+  "expected": {
+    "protocol": "NEC",
+    "frameBytes": [0, 255, 162, 93],
+    "payload": { "address": 0, "command": 162, "repeat": false },
+    "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },
   "notes": "Example NEC capture; fill real device info as needed."
 }
