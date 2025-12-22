@@ -8,52 +8,32 @@
 #include <vector>
 #include <string>
 #include <cstring>
-#include <cstdlib>
+#include <cJSON.h>
 
 // en: Map protocol string to enum (minimal set; extend as needed)
 // ja: プロトコル名文字列をenumに変換（必要に応じて拡張）
 static esp32ir::Protocol toProtocol(const std::string &s)
 {
-  if (s == "NEC")
-    return esp32ir::Protocol::NEC;
-  if (s == "SONY")
-    return esp32ir::Protocol::SONY;
-  if (s == "AEHA")
-    return esp32ir::Protocol::AEHA;
-  if (s == "Panasonic")
-    return esp32ir::Protocol::Panasonic;
-  if (s == "JVC")
-    return esp32ir::Protocol::JVC;
-  if (s == "Samsung")
-    return esp32ir::Protocol::Samsung;
-  if (s == "LG")
-    return esp32ir::Protocol::LG;
-  if (s == "Denon")
-    return esp32ir::Protocol::Denon;
-  if (s == "RC5")
-    return esp32ir::Protocol::RC5;
-  if (s == "RC6")
-    return esp32ir::Protocol::RC6;
-  if (s == "Apple")
-    return esp32ir::Protocol::Apple;
-  if (s == "Pioneer")
-    return esp32ir::Protocol::Pioneer;
-  if (s == "Toshiba")
-    return esp32ir::Protocol::Toshiba;
-  if (s == "Mitsubishi")
-    return esp32ir::Protocol::Mitsubishi;
-  if (s == "Hitachi")
-    return esp32ir::Protocol::Hitachi;
-  if (s == "DaikinAC")
-    return esp32ir::Protocol::DaikinAC;
-  if (s == "PanasonicAC")
-    return esp32ir::Protocol::PanasonicAC;
-  if (s == "MitsubishiAC")
-    return esp32ir::Protocol::MitsubishiAC;
-  if (s == "ToshibaAC")
-    return esp32ir::Protocol::ToshibaAC;
-  if (s == "FujitsuAC")
-    return esp32ir::Protocol::FujitsuAC;
+  if (s == "NEC") return esp32ir::Protocol::NEC;
+  if (s == "SONY") return esp32ir::Protocol::SONY;
+  if (s == "AEHA") return esp32ir::Protocol::AEHA;
+  if (s == "Panasonic") return esp32ir::Protocol::Panasonic;
+  if (s == "JVC") return esp32ir::Protocol::JVC;
+  if (s == "Samsung") return esp32ir::Protocol::Samsung;
+  if (s == "LG") return esp32ir::Protocol::LG;
+  if (s == "Denon") return esp32ir::Protocol::Denon;
+  if (s == "RC5") return esp32ir::Protocol::RC5;
+  if (s == "RC6") return esp32ir::Protocol::RC6;
+  if (s == "Apple") return esp32ir::Protocol::Apple;
+  if (s == "Pioneer") return esp32ir::Protocol::Pioneer;
+  if (s == "Toshiba") return esp32ir::Protocol::Toshiba;
+  if (s == "Mitsubishi") return esp32ir::Protocol::Mitsubishi;
+  if (s == "Hitachi") return esp32ir::Protocol::Hitachi;
+  if (s == "DaikinAC") return esp32ir::Protocol::DaikinAC;
+  if (s == "PanasonicAC") return esp32ir::Protocol::PanasonicAC;
+  if (s == "MitsubishiAC") return esp32ir::Protocol::MitsubishiAC;
+  if (s == "ToshibaAC") return esp32ir::Protocol::ToshibaAC;
+  if (s == "FujitsuAC") return esp32ir::Protocol::FujitsuAC;
   return esp32ir::Protocol::RAW;
 }
 
@@ -61,8 +41,7 @@ static esp32ir::Protocol toProtocol(const std::string &s)
 // ja: 埋め込みアセットをRAMに読み込む（ESP32では通常メモリとして扱える）
 static bool loadAssetToBuffer(size_t idx, std::vector<char> &out)
 {
-  if (idx >= assets_file_count)
-    return false;
+  if (idx >= assets_file_count) return false;
   size_t len = assets_file_sizes[idx];
   out.resize(len + 1);
   memcpy(out.data(), assets_file_data[idx], len);
@@ -70,134 +49,70 @@ static bool loadAssetToBuffer(size_t idx, std::vector<char> &out)
   return true;
 }
 
-// en: parse next integer list from a substring "[...]" (signed), append to vector
-// ja: "[...]" の整数配列をパースしてベクタに追加
-static void parseIntArray(const char *start, std::vector<int> &out)
+// en: get string field from JSON (cJSON)
+// ja: cJSON から文字列フィールドを取得
+static std::string getStringField(cJSON *obj, const char *key)
 {
-  const char *p = strchr(start, '[');
-  if (!p)
-    return;
-  ++p;
-  while (*p && *p != ']')
-  {
-    char *end = nullptr;
-    long v = strtol(p, &end, 10);
-    if (p == end)
-      break;
-    out.push_back(static_cast<int>(v));
-    p = end;
-    while (*p && *p != ']' && (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t'))
-      ++p;
-  }
+  cJSON *item = cJSON_GetObjectItemCaseSensitive(obj, key);
+  if (cJSON_IsString(item) && item->valuestring) return std::string(item->valuestring);
+  return {};
 }
 
 // en: parse frameBytes array (decimal) if present
 // ja: frameBytes 配列（10進）をパース
-static std::vector<uint8_t> parseFrameBytes(const char *json)
+static std::vector<uint8_t> parseFrameBytes(cJSON *capture)
 {
   std::vector<uint8_t> bytes;
-  const char *p = strstr(json, "\"frameBytes\"");
-  if (!p)
-    return bytes;
-  std::vector<int> tmp;
-  parseIntArray(p, tmp);
-  bytes.reserve(tmp.size());
-  for (int v : tmp)
+  cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "frameBytes");
+  if (!cJSON_IsArray(arr)) return bytes;
+  cJSON *it = nullptr;
+  cJSON_ArrayForEach(it, arr)
   {
-    if (v < 0)
-      v = 0;
-    if (v > 255)
-      v = 255;
-    bytes.push_back(static_cast<uint8_t>(v));
+    if (cJSON_IsNumber(it))
+    {
+      int v = it->valueint;
+      if (v < 0) v = 0;
+      if (v > 255) v = 255;
+      bytes.push_back(static_cast<uint8_t>(v));
+    }
   }
   return bytes;
 }
 
-// en: naive JSON field extraction for protocol string
-// ja: プロトコル名を素朴に抽出
-static std::string extractStringField(const char *json, const char *key)
-{
-  std::string pat = std::string("\"") + key + "\"";
-  const char *p = strstr(json, pat.c_str());
-  if (!p)
-    return {};
-  p = strchr(p + pat.size(), '"');
-  if (!p)
-    return {};
-  ++p;
-  const char *q = strchr(p, '"');
-  if (!q)
-    return {};
-  return std::string(p, q);
-}
-
-// en: build ITPSBuffer from JSON by simple pattern matching
-// ja: 簡易パースでJSONからITPSBufferを構築
-static esp32ir::ITPSBuffer buildITPS(const char *json)
+// en: build ITPSBuffer from JSON by cJSON traversal
+// ja: cJSONでitps配列を辿ってITPSBufferを構築
+static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
 {
   esp32ir::ITPSBuffer buf;
-  const char *itpsPos = strstr(json, "\"itps\"");
-  if (!itpsPos)
-    return buf;
-  const char *p = strchr(itpsPos, '[');
-  if (!p)
-    return buf;
-  while (p && *p)
+  cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "itps");
+  if (!cJSON_IsArray(arr)) return buf;
+  cJSON *frameObj = nullptr;
+  cJSON_ArrayForEach(frameObj, arr)
   {
-    p = strchr(p, '{');
-    if (!p)
-      break;
-    const char *frameEnd = strchr(p, '}');
-    if (!frameEnd)
-      break;
+    if (!cJSON_IsObject(frameObj)) continue;
+    cJSON *t = cJSON_GetObjectItemCaseSensitive(frameObj, "T_us");
+    uint16_t T_us = t && cJSON_IsNumber(t) ? static_cast<uint16_t>(t->valueint) : 0;
+    cJSON *f = cJSON_GetObjectItemCaseSensitive(frameObj, "flags");
+    uint8_t flags = f && cJSON_IsNumber(f) ? static_cast<uint8_t>(f->valueint) : 0;
 
-    // slice for this frame
-    std::string frameStr(p, frameEnd + 1);
-
-    // T_us
-    uint16_t T_us = 0;
-    {
-      const char *t = strstr(frameStr.c_str(), "\"T_us\"");
-      if (t)
-      {
-        t = strchr(t, ':');
-        if (t)
-          T_us = static_cast<uint16_t>(atoi(t + 1));
-      }
-    }
-
-    // flags
-    uint8_t flags = 0;
-    {
-      const char *t = strstr(frameStr.c_str(), "\"flags\"");
-      if (t)
-      {
-        t = strchr(t, ':');
-        if (t)
-          flags = static_cast<uint8_t>(atoi(t + 1));
-      }
-    }
-
-    // seq
-    std::vector<int> seqInt;
-    {
-      const char *t = strstr(frameStr.c_str(), "\"seq\"");
-      if (t)
-        parseIntArray(t, seqInt);
-    }
     std::vector<int8_t> seq;
-    seq.reserve(seqInt.size());
-    for (int v : seqInt)
-      seq.push_back(static_cast<int8_t>(v));
-
+    cJSON *seqArr = cJSON_GetObjectItemCaseSensitive(frameObj, "seq");
+    if (cJSON_IsArray(seqArr))
+    {
+      cJSON *sv = nullptr;
+      cJSON_ArrayForEach(sv, seqArr)
+      {
+        if (cJSON_IsNumber(sv))
+        {
+          int v = sv->valueint;
+          if (v < -128) v = -128;
+          if (v > 127) v = 127;
+          seq.push_back(static_cast<int8_t>(v));
+        }
+      }
+    }
     esp32ir::ITPSFrame frame{T_us, static_cast<uint16_t>(seq.size()), seq.data(), flags};
     buf.addFrame(frame);
-
-    p = frameEnd + 1;
-    // move to next frame or end of array
-    p = strchr(p, '{');
-    if (p && p[-1] == ']')
-      break;
   }
   return buf;
 }
@@ -205,7 +120,7 @@ static esp32ir::ITPSBuffer buildITPS(const char *json)
 void setup()
 {
   Serial.begin(115200);
-  delay(1000);
+  delay(500);
 
   Serial.println(F("# assets replay start"));
 
@@ -221,17 +136,21 @@ void setup()
       continue;
     }
 
-    // en: naive parsing (protocol + itps only)
-    // ja: プロトコルとitpsだけを簡易パース
-    std::string protoStr = extractStringField(jsonBuf.data(), "protocol"); // en: default RAW if missing / ja: 無ければRAW扱い
-    if (protoStr.empty())
-      protoStr = "RAW";
+    cJSON *root = cJSON_Parse(jsonBuf.data());
+    if (!root)
+    {
+      Serial.println(F("parse error"));
+      continue;
+    }
+
+    std::string protoStr = getStringField(root, "protocol");
+    if (protoStr.empty()) protoStr = "RAW";
     esp32ir::Protocol proto = toProtocol(protoStr);
 
-    // frameBytes (optional decoded payload)
-    std::vector<uint8_t> frameBytes = parseFrameBytes(jsonBuf.data());
+    cJSON *capture = cJSON_GetObjectItemCaseSensitive(root, "capture");
+    std::vector<uint8_t> frameBytes = capture ? parseFrameBytes(capture) : std::vector<uint8_t>{};
 
-    esp32ir::RxResult rx{}; // en: synthetic RxResult from asset / ja: アセットから擬似RxResultを生成
+    esp32ir::RxResult rx{};
     rx.status = frameBytes.empty() ? esp32ir::RxStatus::RAW_ONLY : esp32ir::RxStatus::DECODED;
     rx.protocol = proto;
     rx.payloadStorage.assign(frameBytes.begin(), frameBytes.end());
@@ -239,7 +158,7 @@ void setup()
                   rx.payloadStorage.empty() ? nullptr : rx.payloadStorage.data(),
                   static_cast<uint16_t>(rx.payloadStorage.size()),
                   0};
-    rx.raw = buildITPS(jsonBuf.data());
+    rx.raw = capture ? buildITPS(capture) : esp32ir::ITPSBuffer{};
 
     bool decoded = false;
     switch (proto)
@@ -254,18 +173,18 @@ void setup()
     }
     case esp32ir::Protocol::SONY:
     {
-      esp32ir::payload::SONY sony{};
-      decoded = esp32ir::decodeSONY(rx, sony);
+      esp32ir::payload::SONY p{};
+      decoded = esp32ir::decodeSONY(rx, p);
       if (decoded)
-        Serial.printf("SONY decoded: addr=0x%04X cmd=0x%04X bits=%u\n", sony.address, sony.command, sony.bits);
+        Serial.printf("SONY decoded: addr=0x%04X cmd=0x%04X bits=%u\n", p.address, p.command, p.bits);
       break;
     }
     case esp32ir::Protocol::AEHA:
     {
-      esp32ir::payload::AEHA aeha{};
-      decoded = esp32ir::decodeAEHA(rx, aeha);
+      esp32ir::payload::AEHA p{};
+      decoded = esp32ir::decodeAEHA(rx, p);
       if (decoded)
-        Serial.printf("AEHA decoded: addr=0x%04X data=0x%08lX nbits=%u\n", aeha.address, static_cast<unsigned long>(aeha.data), aeha.nbits);
+        Serial.printf("AEHA decoded: addr=0x%04X data=0x%08lX nbits=%u\n", p.address, static_cast<unsigned long>(p.data), p.nbits);
       break;
     }
     case esp32ir::Protocol::Panasonic:
@@ -374,6 +293,8 @@ void setup()
     Serial.print(F("decoded: "));
     Serial.println(decoded ? "true" : "false");
     Serial.println();
+
+    cJSON_Delete(root);
   }
 }
 
