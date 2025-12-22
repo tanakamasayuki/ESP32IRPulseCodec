@@ -459,7 +459,7 @@ NEC 受信（デコードヘルパ使用例）
 ```cpp
 #include <ESP32IRPulseCodec.h>
 
-esp32ir::Receiver rx(23);
+esp32ir::Receiver rx(23, /*invert=*/true);  // 市販IR受信モジュールは反転出力が多い
 
 void setup() {
   rx.addProtocol(esp32ir::Protocol::NEC);  // NECのみを対象にする例

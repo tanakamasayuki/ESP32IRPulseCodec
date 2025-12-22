@@ -4,15 +4,11 @@
 // ja: NEC受信のシンプルな例
 // en: Adjust GPIO numbers to your board wiring.
 // ja: GPIO番号はご利用環境の配線に合わせて変更してください。
-esp32ir::Receiver rx(32);
+esp32ir::Receiver rx(23, /*invert=*/true); // 市販IR受信モジュールは反転出力が多い
 
 void setup()
 {
   Serial.begin(115200);
-
-  // en: Invert if your IR demod output is active-low (most modules are)
-  // ja: 受信モジュールの出力がアクティブローの場合は反転させる（多くのモジュールはそうなっている）
-  rx.setInvertInput(true);
 
   // en: Keep RAW even when decode fails so you can inspect captures
   // ja: デコードに失敗してもRAWを保持して、キャプチャ内容を確認できるようにする

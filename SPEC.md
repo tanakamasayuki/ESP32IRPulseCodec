@@ -457,7 +457,7 @@ NEC receive (decode helper)
 ```cpp
 #include <ESP32IRPulseCodec.h>
 
-esp32ir::Receiver rx(23);
+esp32ir::Receiver rx(23, /*invert=*/true);  // Many IR RX modules output inverted signal
 
 void setup() {
   rx.addProtocol(esp32ir::Protocol::NEC);  // target NEC only
