@@ -8,6 +8,7 @@
 - Receive: polling only / Transmit: blocking send
 - Quantization (`T_us` decision) and noise cleanup are assumed to be done before producing ITPS
 - Spec focuses on how users consume the API and expected behavior, not low-level implementation details
+- AC details (state model / Intent / Capabilities / validation) are split to `SPEC_AC.md`. This spec keeps AC API overview.
 - Do not use `using namespace`; always fully qualify with `esp32ir::` (keep namespace nesting shallow)
 
 ## 1. Goals and Non-goals
@@ -119,6 +120,8 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
   - `esp32ir::ITPSFrame`
   - `esp32ir::ITPSBuffer`
   - `esp32ir::Protocol`
+- AC common types
+  - `esp32ir::ac::DeviceState` / `esp32ir::ac::Capabilities` / `esp32ir::ac::Intent` (see `SPEC_AC.md`)
 - Protocol payload structs
   - `esp32ir::payload::<Protocol>` (e.g., NEC, SONY, AEHA, ...; see “Supported Protocols and Helpers”)
 
@@ -292,33 +295,36 @@ bool send(const esp32ir::ProtocolMessage& message);
 ---
 
 ## 12. Supported Protocols and Helpers
-- Policy: Provide decode/send helpers per protocol; normally both struct and bare-argument versions (AC: struct only). If `addProtocol` is not called, enable all known protocols + RAW.
-- Status legend (○=helper implemented, △=stub/planned, RAW is ITPS direct)
-  - AC: arbitrary payload generation is TBD, but RAW-mode learning and RAW resend (struct helper or `send(raw)`) are expected to work.
+- AC state model / Intent / Capabilities / validation: see `SPEC_AC.md`. AC API is “common types + brand-specific encoders/decoders.” Users normally call the common API; brand-specific helpers remain for advanced/debug use and take the same common types.
+- Policy: Provide decode/send helpers per protocol; normally both struct and bare-argument versions (AC: common struct only). If `addProtocol` is not called, enable all known protocols + RAW.
+- Status legend (○=implemented & verified, ▲=implemented but untested, △=stub/planned, RAW is ITPS direct)
 
 | Protocol                 | Payload struct                     | Decode helper                   | Send helper                                | Status |
 |--------------------------|------------------------------------|---------------------------------|--------------------------------------------|--------|
 | RAW (ITPS)               | none (ITPSBuffer direct)           | -                               | `tx.send(ITPSBuffer)`                      | ○      |
-| NEC                      | `esp32ir::payload::NEC`            | `esp32ir::decodeNEC`            | `tx.sendNEC(struct/args)`                   | ○      |
-| SONY (SIRC 12/15/20)     | `esp32ir::payload::SONY`           | `esp32ir::decodeSONY`           | `tx.sendSONY(struct/args)`                  | ○      |
-| AEHA (Japanese Home Elec)| `esp32ir::payload::AEHA`           | `esp32ir::decodeAEHA`           | `tx.sendAEHA(struct/args)`                  | △      |
-| Panasonic/Kaseikaden     | `esp32ir::payload::Panasonic`      | `esp32ir::decodePanasonic`      | `tx.sendPanasonic(struct/args)`             | △      |
-| JVC                      | `esp32ir::payload::JVC`            | `esp32ir::decodeJVC`            | `tx.sendJVC(struct/args)`                   | △      |
-| Samsung                  | `esp32ir::payload::Samsung`        | `esp32ir::decodeSamsung`        | `tx.sendSamsung(struct/args)`               | △      |
-| LG                       | `esp32ir::payload::LG`             | `esp32ir::decodeLG`             | `tx.sendLG(struct/args)`                    | △      |
-| Denon/Sharp              | `esp32ir::payload::Denon`          | `esp32ir::decodeDenon`          | `tx.sendDenon(struct/args)`                 | △      |
-| RC5                      | `esp32ir::payload::RC5`            | `esp32ir::decodeRC5`            | `tx.sendRC5(struct/args)`                   | △      |
-| RC6                      | `esp32ir::payload::RC6`            | `esp32ir::decodeRC6`            | `tx.sendRC6(struct/args)`                   | △      |
-| Apple (NEC ext.)         | `esp32ir::payload::Apple`          | `esp32ir::decodeApple`          | `tx.sendApple(struct/args)`                 | △      |
-| Pioneer                  | `esp32ir::payload::Pioneer`        | `esp32ir::decodePioneer`        | `tx.sendPioneer(struct/args)`               | △      |
-| Toshiba                  | `esp32ir::payload::Toshiba`        | `esp32ir::decodeToshiba`        | `tx.sendToshiba(struct/args)`               | △      |
-| Mitsubishi               | `esp32ir::payload::Mitsubishi`     | `esp32ir::decodeMitsubishi`     | `tx.sendMitsubishi(struct/args)`            | △      |
-| Hitachi                  | `esp32ir::payload::Hitachi`        | `esp32ir::decodeHitachi`        | `tx.sendHitachi(struct/args)`               | △      |
-| Daikin AC                | `esp32ir::payload::DaikinAC`       | `esp32ir::decodeDaikinAC`       | `tx.sendDaikinAC(struct)`                   | △      |
-| Panasonic AC             | `esp32ir::payload::PanasonicAC`    | `esp32ir::decodePanasonicAC`    | `tx.sendPanasonicAC(struct)`                | △      |
-| Mitsubishi AC            | `esp32ir::payload::MitsubishiAC`   | `esp32ir::decodeMitsubishiAC`   | `tx.sendMitsubishiAC(struct)`               | △      |
-| Toshiba AC               | `esp32ir::payload::ToshibaAC`      | `esp32ir::decodeToshibaAC`      | `tx.sendToshibaAC(struct)`                  | △      |
-| Fujitsu AC               | `esp32ir::payload::FujitsuAC`      | `esp32ir::decodeFujitsuAC`      | `tx.sendFujitsuAC(struct)`                  | △      |
+| NEC                      | `esp32ir::payload::NEC`            | `esp32ir::decodeNEC`            | `tx.sendNEC(struct/args)`                  | ○      |
+| SONY (SIRC 12/15/20)     | `esp32ir::payload::SONY`           | `esp32ir::decodeSONY`           | `tx.sendSONY(struct/args)`                 | ▲      |
+| AEHA (Japanese Home Elec)| `esp32ir::payload::AEHA`           | `esp32ir::decodeAEHA`           | `tx.sendAEHA(struct/args)`                 | ▲      |
+| Panasonic/Kaseikaden     | `esp32ir::payload::Panasonic`      | `esp32ir::decodePanasonic`      | `tx.sendPanasonic(struct/args)`            | ▲      |
+| JVC                      | `esp32ir::payload::JVC`            | `esp32ir::decodeJVC`            | `tx.sendJVC(struct/args)`                  | ▲      |
+| Samsung                  | `esp32ir::payload::Samsung`        | `esp32ir::decodeSamsung`        | `tx.sendSamsung(struct/args)`              | ▲      |
+| LG                       | `esp32ir::payload::LG`             | `esp32ir::decodeLG`             | `tx.sendLG(struct/args)`                   | ▲      |
+| Denon/Sharp              | `esp32ir::payload::Denon`          | `esp32ir::decodeDenon`          | `tx.sendDenon(struct/args)`                | ▲      |
+| RC5                      | `esp32ir::payload::RC5`            | `esp32ir::decodeRC5`            | `tx.sendRC5(struct/args)`                  | ▲      |
+| RC6                      | `esp32ir::payload::RC6`            | `esp32ir::decodeRC6`            | `tx.sendRC6(struct/args)`                  | ▲      |
+| Apple (NEC ext.)         | `esp32ir::payload::Apple`          | `esp32ir::decodeApple`          | `tx.sendApple(struct/args)`                | ▲      |
+| Pioneer                  | `esp32ir::payload::Pioneer`        | `esp32ir::decodePioneer`        | `tx.sendPioneer(struct/args)`              | ▲      |
+| Toshiba                  | `esp32ir::payload::Toshiba`        | `esp32ir::decodeToshiba`        | `tx.sendToshiba(struct/args)`              | ▲      |
+| Mitsubishi               | `esp32ir::payload::Mitsubishi`     | `esp32ir::decodeMitsubishi`     | `tx.sendMitsubishi(struct/args)`           | ▲      |
+| Hitachi                  | `esp32ir::payload::Hitachi`        | `esp32ir::decodeHitachi`        | `tx.sendHitachi(struct/args)`              | ▲      |
+| AC (common types)        | `esp32ir::ac::DeviceState`         | `esp32ir::decodeAC`             | `tx.sendAC(ac::DeviceState, ac::Capabilities)` | △      |
+| Daikin AC                | `esp32ir::ac::DeviceState`         | `esp32ir::decodeDaikinAC`       | `tx.sendDaikinAC(ac::DeviceState, ac::Capabilities)` | △※   |
+| Panasonic AC             | `esp32ir::ac::DeviceState`         | `esp32ir::decodePanasonicAC`    | `tx.sendPanasonicAC(ac::DeviceState, ac::Capabilities)` | △※   |
+| Mitsubishi AC            | `esp32ir::ac::DeviceState`         | `esp32ir::decodeMitsubishiAC`   | `tx.sendMitsubishiAC(ac::DeviceState, ac::Capabilities)` | △※   |
+| Toshiba AC               | `esp32ir::ac::DeviceState`         | `esp32ir::decodeToshibaAC`      | `tx.sendToshibaAC(ac::DeviceState, ac::Capabilities)` | △※   |
+| Fujitsu AC               | `esp32ir::ac::DeviceState`         | `esp32ir::decodeFujitsuAC`      | `tx.sendFujitsuAC(ac::DeviceState, ac::Capabilities)` | △※   |
+
+※ AC brand-specific helpers take the common AC types and are mainly for advanced/debug use. Typical usage should go through the common `decodeAC` / `sendAC` dispatch.
 
 - Structs and helper details
   - RAW  
@@ -384,16 +390,11 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::Hitachi { uint16_t address; uint16_t command; uint8_t extra; };`  
     - `bool esp32ir::decodeHitachi(const esp32ir::RxResult&, esp32ir::payload::Hitachi&);`  
     - `bool esp32ir::Transmitter::sendHitachi(const esp32ir::payload::Hitachi&);` / `bool esp32ir::Transmitter::sendHitachi(uint16_t address, uint16_t command, uint8_t extra=0);`
-  - Daikin AC  
-    - Struct reserved: `esp32ir::payload::DaikinAC` (fields TBD). Functions reserved: `bool esp32ir::decodeDaikinAC(const esp32ir::RxResult&, esp32ir::payload::DaikinAC&);` / `bool esp32ir::Transmitter::sendDaikinAC(const esp32ir::payload::DaikinAC&);`
-  - Panasonic AC  
-    - Struct reserved: `esp32ir::payload::PanasonicAC` (fields TBD). Functions reserved: `bool esp32ir::decodePanasonicAC(const esp32ir::RxResult&, esp32ir::payload::PanasonicAC&);` / `bool esp32ir::Transmitter::sendPanasonicAC(const esp32ir::payload::PanasonicAC&);`
-  - Mitsubishi AC  
-    - Struct reserved: `esp32ir::payload::MitsubishiAC` (fields TBD). Functions reserved: `bool esp32ir::decodeMitsubishiAC(const esp32ir::RxResult&, esp32ir::payload::MitsubishiAC&);` / `bool esp32ir::Transmitter::sendMitsubishiAC(const esp32ir::payload::MitsubishiAC&);`
-  - Toshiba AC  
-    - Struct reserved: `esp32ir::payload::ToshibaAC` (fields TBD). Functions reserved: `bool esp32ir::decodeToshibaAC(const esp32ir::RxResult&, esp32ir::payload::ToshibaAC&);` / `bool esp32ir::Transmitter::sendToshibaAC(const esp32ir::payload::ToshibaAC&);`
-  - Fujitsu AC  
-    - Struct reserved: `esp32ir::payload::FujitsuAC` (fields TBD). Functions reserved: `bool esp32ir::decodeFujitsuAC(const esp32ir::RxResult&, esp32ir::payload::FujitsuAC&);` / `bool esp32ir::Transmitter::sendFujitsuAC(const esp32ir::payload::FujitsuAC&);`
+  - AC (common API + brand implementations)  
+    - Common types: `esp32ir::ac::DeviceState` / `esp32ir::ac::Capabilities` / `esp32ir::ac::Intent` (per `SPEC_AC.md`, preserves `opaque`).  
+    - Decode: `bool esp32ir::decodeAC(const esp32ir::RxResult&, const esp32ir::ac::Capabilities&, esp32ir::ac::DeviceState&);` (detect protocol/brand and dispatch to brand decoder; RAW mode may return ITPS only).  
+    - Send: `bool esp32ir::Transmitter::sendAC(const esp32ir::ac::DeviceState&, const esp32ir::ac::Capabilities&);` (choose brand encoder via `Capabilities` protocolHint, etc.).  
+    - Brand encoders/decoders (internal helpers): `encodeDaikinAC` / `decodeDaikinAC`, `encodePanasonicAC` / `decodePanasonicAC`, `encodeMitsubishiAC` / `decodeMitsubishiAC`, `encodeToshibaAC` / `decodeToshibaAC`, `encodeFujitsuAC` / `decodeFujitsuAC`, etc. They only transform between common DeviceState and ProtocolMessage/ITPS. Public brand helpers (if offered) should take the same common types (`send<Brand>AC` / `decode<Brand>AC`) and mirror the common API; they are shortcuts that skip brand detection.
 
 ## 13. Common Policies (Error/Timing/Log/Samples)
 - **Error handling**: No exceptions. Public APIs return `bool` success only. On failure, log appropriately and return false (including misuse). Keep running; no assert/abort. TX APIs also do not expose detailed status.
@@ -412,8 +413,8 @@ bool send(const esp32ir::ProtocolMessage& message);
   - SONY: 45ms
   - AEHA / Panasonic / Pioneer / Toshiba / Mitsubishi / Hitachi: 35ms
   - RC5 / RC6: 30ms
-  - AC系 (Daikin/Panasonic/Mitsubishi/Toshiba/Fujitsu): 50ms
-  - その他未分類: 40ms
+  - AC (Daikin/Panasonic/Mitsubishi/Toshiba/Fujitsu): 50ms
+  - Others: 40ms
 
 ---
 
