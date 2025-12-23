@@ -24,7 +24,7 @@ ITPSFrame holds:
 - `T_us` is mandatory and scales `seq` counts to actual time (us).
 - For ITPS, `T_us` is assumed **common within the frame array**. Missing or inconsistent values are not allowed.
 - `T_us` itself has no logical meaning; decode/encode should convert to real time for judgment.
-- Selection guideline (reference): RX quantization is typically 1–10us. For long AC waveforms, ~5us; for short remotes, near 1us. If a protocol defines a resolution (e.g., NEC TX), use that. Smaller `T_us` reduces error but increases data length; larger reduces length but increases error. Do not over-optimize for size.
+- Selection guideline (reference): recommend RX quantization around 1–20us; in most cases ~10us is accurate enough. For long AC waveforms, around 10us; for short remotes, around 1–5us. If a protocol defines a resolution (e.g., NEC TX), use that. Smaller `T_us` reduces error but increases data length; larger reduces length but increases error. Do not over-optimize for size.
 - Time range: use at least 32-bit unsigned for `abs(seq[i]) * T_us` and frame totals. Even with hundreds of ms to seconds per frame, `T_us≈5us` fits well in 32-bit.
 
 ### 2.2 Frame Boundaries and Gaps
