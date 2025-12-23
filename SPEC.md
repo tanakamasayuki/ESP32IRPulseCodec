@@ -98,7 +98,7 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
   - `splitPolicy`: `DROP_GAP` (for decoding, do not include gap) / `KEEP_GAP_IN_FRAME` (for RAW).
   - If `frameCountMax` is exceeded, notify as `OVERFLOW` and still return whatever RAW was captured.
   - ITPS normalization follows SPEC_ITPS: starts with Mark, `seq[i]` never 0, range `1..127/-1..-127`, long segments split at ±127, unnecessary splits removed, polarity not inverted.
-- `T_us` is common across frames; default assumption 5us (adjust earlier if needed).
+- `T_us` is common across frames; default assumption 10us (adjust earlier if needed).
 - Parameter selection
   - Each protocol has recommended params (`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`). On begin, merge recommendations from enabled protocols to form defaults.
   - Merge guideline:
@@ -132,9 +132,9 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
 ### 6.1 Constructors
 ```cpp
 esp32ir::Receiver();
-esp32ir::Receiver(int rxPin, bool invert=false, uint16_t T_us_rx=5);
+esp32ir::Receiver(int rxPin, bool invert=false, uint16_t T_us_rx=10);
 ```
-- Defaults (assumed): no-arg means you will set pin etc. later. Arg version lets you set pin, and optional defaults for `invert=false`, `T_us_rx=5us`.
+- Defaults (assumed): no-arg means you will set pin etc. later. Arg version lets you set pin, and optional defaults for `invert=false`, `T_us_rx=10us`.
 
 ### 6.2 Setters (only before begin)
 ```cpp
@@ -142,7 +142,7 @@ bool setPin(int rxPin);
 bool setInvertInput(bool invert);
 bool setQuantizeT(uint16_t T_us_rx);
 ```
-- Defaults (assumed): `invert=false`, `T_us_rx=5us`
+- Defaults (assumed): `invert=false`, `T_us_rx=10us`
 
 ### 6.3 begin/end
 ```cpp

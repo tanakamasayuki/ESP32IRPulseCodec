@@ -81,7 +81,7 @@ static std::string bytesToString(const std::vector<uint8_t> &bytes)
 static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
 {
   esp32ir::ITPSBuffer buf;
-  // Try durationsUs first (µs list with sign). If present, build one frame using T_us from itps[0] or default 5.
+  // Try durationsUs first (µs list with sign). If present, build one frame using T_us from itps[0] or default 10.
   std::vector<int32_t> durationsUs;
   cJSON *durArr = cJSON_GetObjectItemCaseSensitive(capture, "durationsUs");
   if (cJSON_IsArray(durArr))
@@ -116,7 +116,7 @@ static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
 
   if (!durationsUs.empty())
   {
-    uint16_t T_us = 5;
+    uint16_t T_us = 10;
     if (cJSON_IsArray(itpsArr))
     {
       cJSON *first = cJSON_GetArrayItem(itpsArr, 0);
@@ -139,7 +139,7 @@ static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
     if (!cJSON_IsObject(frameObj))
       continue;
     cJSON *t = cJSON_GetObjectItemCaseSensitive(frameObj, "T_us");
-    uint16_t T_us = t && cJSON_IsNumber(t) ? static_cast<uint16_t>(t->valueint) : 5;
+    uint16_t T_us = t && cJSON_IsNumber(t) ? static_cast<uint16_t>(t->valueint) : 10;
     cJSON *f = cJSON_GetObjectItemCaseSensitive(frameObj, "flags");
     uint8_t flags = f && cJSON_IsNumber(f) ? static_cast<uint8_t>(f->valueint) : 0;
 

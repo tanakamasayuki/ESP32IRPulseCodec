@@ -98,7 +98,7 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
   - `splitPolicy`：`DROP_GAP`（デコード向け、ギャップをフレームに含めない） / `KEEP_GAP_IN_FRAME`（RAW向け）。
   - `frameCountMax` 超過時は `OVERFLOW` として通知し、取得できたRAWを返す。
   - ITPS 化では SPEC_ITPS 準拠で正規化（Mark開始・`seq[i]` は0禁止かつ `1..127/-1..-127` の範囲、長区間は ±127 分割、不要分割は除去）し、反転は扱わない。
-- `T_us` は全フレーム共通の量子化値とし、既定は 5us を想定（前段で調整）。
+- `T_us` は全フレーム共通の量子化値とし、既定は 10us を想定（前段で調整）。
 - パラメータの決め方
   - 各プロトコルは推奨値（例：`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`）を持ち、受信開始時に有効プロトコルから自動マージしてデフォルトを生成する。
   - マージ例（推奨）：
@@ -132,9 +132,9 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
 ### 6.1 コンストラクタ
 ```cpp
 esp32ir::Receiver();
-esp32ir::Receiver(int rxPin, bool invert=false, uint16_t T_us_rx=5);
+esp32ir::Receiver(int rxPin, bool invert=false, uint16_t T_us_rx=10);
 ```
-- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `T_us_rx=5us`）を指定可能。
+- デフォルト値（想定）：引数なしは後で `setPin` 等で設定する前提。引数ありはピン以外はデフォルト（`invert=false`, `T_us_rx=10us`）を指定可能。
 
 ### 6.2 セッター（begin前のみ有効）
 ```cpp
@@ -142,7 +142,7 @@ bool setPin(int rxPin);
 bool setInvertInput(bool invert);
 bool setQuantizeT(uint16_t T_us_rx);
 ```
-- デフォルト値（想定）：`invert=false`、`T_us_rx=5`us
+- デフォルト値（想定）：`invert=false`、`T_us_rx=10`us
 
 ### 6.3 begin/end
 ```cpp
