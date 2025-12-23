@@ -31,7 +31,7 @@
 - **ITPS**: Normalized intermediate format (`SPEC_ITPS.md`)
 - **ITPSFrame / ITPSBuffer**: ITPS frame / frame array
 - **ProtocolMessage**: Protocol-agnostic logical message (`Protocol` + raw byte array)
-- **TxBitstream**: Protocol-ordered on-wire bitstream derived from `ProtocolMessage` (bit order/endian/parity applied before ITPS)
+- **TxBitstream**: On-wire bitstream obtained by reordering `ProtocolMessage` into the protocol’s shift order (bit order/endian/parity/CRC applied), i.e., the form right before ITPS generation.
 - **Protocol**: `esp32ir::Protocol` (NEC/SONY etc.)
 - **ProtocolPayload struct**: `esp32ir::payload::<Protocol>` (decoded result / TX parameters)
 - **HAL**: ESP32-specific layer (RMT, GPIO, carrier, inversion)
@@ -233,7 +233,7 @@ struct ProtocolMessage {
 ```
 
 - Protocol-specific payload structs live in `esp32ir::payload::<Protocol>` (e.g., `payload::NEC`). On RX, use decode helpers (`decodeNEC`, etc.) to convert ProtocolMessage → `payload::<Protocol>`. On TX, send helpers (`Transmitter::sendNEC`, etc.) build ProtocolMessage → ITPS from `payload::<Protocol>`.
-- **TxBitstream**: bit sequence reordered into the protocol’s on-wire shift order (LSB/MSB, parity/CRC applied) derived from `ProtocolMessage`; encoder builds this internally before generating ITPS.
+- **TxBitstream**: bit sequence reordered into the protocol’s on-wire shift order (LSB/MSB, endian, parity/CRC applied) derived from `ProtocolMessage`; encoder builds this internally before generating ITPS.
 
 ---
 
@@ -555,10 +555,10 @@ void loop() { delay(1000); }
   - `expected` (optional, for tests):
     - `protocol`: expected protocol name
     - `messageBytes`: expected ProtocolMessage bytes (decimal array, logical order)
+    - `decodedText`: optional free-form verification string (e.g., `protocol=NEC,address=0x00,command=0xA2`, or ProtocolMessage hex / TxBitstream summary)
     - `payload`: decoded payload object, either keyed by protocol name or flat  
       - keyed example: `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`  
       - flat example: `{ "address": 0, "command": 162, "repeat": false }` (matched to detected protocol)
-    - `irremote`: optional IRremoteESP8266 view `{ "code": "0x...", "bits": 32 }` (currently NEC only; MSB-first as printed by IRremoteESP8266)
   - `notes`: free text
 - Usage tips:
   - Use `durationsUs` and `itps` as primary replay sources; treat `messageBytes` as optional helper when decode succeeds.
@@ -582,8 +582,8 @@ void loop() { delay(1000); }
   "expected": {
     "protocol": "NEC",
     "messageBytes": [0, 255, 162, 93],
+    "decodedText": "protocol=NEC,address=0x00,command=0xA2,repeat=false,ProtocolMessage=0x00,0xFF,0xA2,0x5D,TxBitstream(lsb-first)=0x00,0xFF,0xA2,0x5D",
     "payload": { "address": 0, "command": 162, "repeat": false },
-    "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },
   "notes": "Example NEC capture; replace device info as needed."
 }

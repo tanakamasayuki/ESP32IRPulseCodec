@@ -51,14 +51,11 @@
       0,
       1
     ],
+    "decodedText": "protocol=NEC,address=0x0000,command=0x00,repeat=true,ProtocolMessage=0x00,0x00,0x00,0x01,TxBitstream(lsb-first)=0x00,0x00,0x00,0x01",
     "payload": {
       "address": 0,
       "command": 0,
       "repeat": true
-    },
-    "irremote": {
-      "code": "0x00FF00FF",
-      "bits": 32
     }
   },
   "notes": "Fill in capabilities/intents manually if needed."

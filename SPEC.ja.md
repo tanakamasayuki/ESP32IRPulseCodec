@@ -31,7 +31,7 @@
 - **ITPS**：正規化済み中間フォーマット（`SPEC_ITPS.ja.md`）
 - **ITPSFrame / ITPSBuffer**：ITPSのフレーム／フレーム配列
 - **ProtocolMessage**：プロトコル共通の論理メッセージ（`Protocol` + 生データバイト列）
-- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル規定の送信順に並べたビット列（ビット順/エンディアン/パリティ適用後、ITPS化直前の形）
+- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル規定のシフト順（ビット順/エンディアン/パリティ/CRC適用後）に並べたビット列。ITPS化直前の形。
 - **Protocol**：`esp32ir::Protocol`（NEC/SONY等）
 - **ProtocolPayload構造体**：`esp32ir::payload::<Protocol>`（デコード結果/送信パラメータ）
 - **HAL**：ESP32固有層（RMT、GPIO、キャリア、反転）
@@ -233,7 +233,7 @@ struct ProtocolMessage {
 ```
 
 - プロトコル固有のPayload構造体は `esp32ir::payload::<Protocol>` に用意する（例：`payload::NEC`）。受信時はデコードヘルパ（`decodeNEC` 等）で `ProtocolMessage` から `payload::<Protocol>` へ変換し、送信時は送信ヘルパ（`sendNEC` 等）が `payload::<Protocol>` から `ProtocolMessage`（→ITPS）を組み立てる。
-- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル定義のオンワイヤ順（LSB/MSB、パリティ/CRC適用済み）に並べ直したビット列。ITPS生成前にエンコーダが内部で組み立てる段階を指す。
+- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル定義のオンワイヤ順（LSB/MSB、エンディアン、パリティ/CRC適用済み）に並べ直したビット列。ITPS生成前にエンコーダが内部で組み立てる段階を指す（ProtocolMessageと同一とは限らない）。
 
 ---
 
@@ -557,10 +557,10 @@ void loop() { delay(1000); }
   - `expected`（任意、テスト用）：
     - `protocol`：期待プロトコル名
     - `messageBytes`：ProtocolMessage の論理順バイト列（10進配列）
+    - `decodedText`：確認用の任意文字列（例：`protocol=NEC,address=0x00,command=0xA2`、ProtocolMessage hex、TxBitstream要約など自由形式）
     - `payload`：デコード結果オブジェクト。プロトコル名でネストでもフラットでもよい  
       - 例（ネスト）：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`  
       - 例（フラット）：`{ "address": 0, "command": 162, "repeat": false }`（検出したプロトコルに合わせて突き合わせ）
-    - `irremote`：IRremoteESP8266互換 `{ "code": "0x...", "bits": 32 }`（現状NECのみ。MSB順でIRremoteESP8266表示に合わせる）
   - `notes`：任意メモ
 - 運用のヒント：
   - 再送/検証には `durationsUs` と `itps` を主に使い、`messageBytes` はデコード成功時の補助として扱う。
@@ -584,8 +584,8 @@ void loop() { delay(1000); }
   "expected": {
     "protocol": "NEC",
     "messageBytes": [0, 255, 162, 93],
+    "decodedText": "protocol=NEC,address=0x00,command=0xA2,repeat=false,ProtocolMessage=0x00,0xFF,0xA2,0x5D,TxBitstream(lsb-first)=0x00,0xFF,0xA2,0x5D",
     "payload": { "address": 0, "command": 162, "repeat": false },
-    "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },
   "notes": "Example NEC capture; fill real device info as needed."
 }

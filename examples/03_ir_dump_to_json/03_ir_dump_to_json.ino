@@ -21,37 +21,27 @@ static void printMessageBytes(const esp32ir::ProtocolMessage &msg)
   Serial.print("]");
 }
 
-// en: Reverse bit order in 32-bit value (LSB↔MSB)
-// ja: 32bit値のビット順を反転（LSB/MSB入れ替え）
-static uint32_t reverseBits32(uint32_t v)
+// en: format hex with 0x prefix
+// ja: 0x付きの16進文字列を生成
+static std::string toHex(uint32_t v, int width)
 {
-  v = ((v >> 1) & 0x55555555u) | ((v & 0x55555555u) << 1);
-  v = ((v >> 2) & 0x33333333u) | ((v & 0x33333333u) << 2);
-  v = ((v >> 4) & 0x0F0F0F0Fu) | ((v & 0x0F0F0F0Fu) << 4);
-  v = ((v >> 8) & 0x00FF00FFu) | ((v & 0x00FF00FFu) << 8);
-  v = (v >> 16) | (v << 16);
-  return v;
+  char buf[16];
+  snprintf(buf, sizeof(buf), "0x%0*X", width, static_cast<unsigned>(v));
+  return std::string(buf);
 }
 
-// en: Emit IRremoteESP8266-style code for NEC (addr/!addr/cmd/!cmd, MSB-first hex)
-// ja: NEC用のIRremoteESP8266形式コードを出力（addr, ~addr, cmd, ~cmd を並べた32bit）
-static void printIrremoteCodeNEC(const esp32ir::payload::NEC &nec)
+// en: convert ProtocolMessage bytes to comma-separated hex string
+// ja: ProtocolMessageのバイト列をカンマ区切りHEX文字列にする
+static std::string protocolMessageHex(const esp32ir::ProtocolMessage &msg)
 {
-  uint8_t addrLo = static_cast<uint8_t>(nec.address & 0xFF);
-  uint8_t addrHi = static_cast<uint8_t>((nec.address >> 8) & 0xFF);
-  // If only 8-bit address, fill high byte with complement (standard NEC)
-  if (nec.address <= 0xFF)
+  std::string out;
+  for (uint16_t i = 0; i < msg.length; ++i)
   {
-    addrHi = static_cast<uint8_t>(~addrLo);
+    if (i)
+      out += ",";
+    out += toHex(msg.data ? msg.data[i] : 0, 2);
   }
-  // Internal order: LSB-first per byte (TX/RX canonical)
-  uint32_t codeLsbFirst = static_cast<uint32_t>(addrLo) |
-                          (static_cast<uint32_t>(addrHi) << 8) |
-                          (static_cast<uint32_t>(nec.command) << 16) |
-                          (static_cast<uint32_t>(~nec.command & 0xFF) << 24);
-  // IRremoteESP8266 displays bits MSB-first; reverse to match its printed value.
-  uint32_t codeIrremote = reverseBits32(codeLsbFirst);
-  Serial.printf("\"irremote\":{ \"code\":\"0x%08lX\", \"bits\":32 }", static_cast<unsigned long>(codeIrremote));
+  return out;
 }
 
 // en: Dump ITPS frames as JSON array
@@ -250,68 +240,94 @@ void loop()
     Serial.print("    \"messageBytes\":");
     printMessageBytes(r.message);
     Serial.println(", ");
+
+    std::string decodedText = std::string("protocol=") + esp32ir::util::protocolToString(r.protocol);
+    decodedText += ",ProtocolMessage=" + protocolMessageHex(r.message);
+    decodedText += ",TxBitstream(lsb-first)=" + protocolMessageHex(r.message); // on-wire shift order
+
     Serial.print("    \"payload\":{");
     switch (r.protocol)
     {
     case esp32ir::Protocol::NEC:
       Serial.printf("\"address\":%u,\"command\":%u,\"repeat\":%s", nec.address, nec.command, nec.repeat ? "true" : "false");
+      decodedText += ",address=" + toHex(nec.address, 4) + ",command=" + toHex(nec.command, 2) +
+                     ",repeat=" + std::string(nec.repeat ? "true" : "false");
       break;
     case esp32ir::Protocol::SONY:
       Serial.printf("\"address\":%u,\"command\":%u,\"bits\":%u", sony.address, sony.command, sony.bits);
+      decodedText += ",address=" + toHex(sony.address, 4) + ",command=" + toHex(sony.command, 4) +
+                     ",bits=" + std::to_string(sony.bits);
       break;
     case esp32ir::Protocol::AEHA:
       Serial.printf("\"address\":%u,\"data\":%lu,\"nbits\":%u", aeha.address, static_cast<unsigned long>(aeha.data), aeha.nbits);
+      decodedText += ",address=" + toHex(aeha.address, 4) + ",data=" + toHex(aeha.data, 8) +
+                     ",bits=" + std::to_string(aeha.nbits);
       break;
     case esp32ir::Protocol::Panasonic:
       Serial.printf("\"address\":%u,\"data\":%lu,\"nbits\":%u", pana.address, static_cast<unsigned long>(pana.data), pana.nbits);
+      decodedText += ",address=" + toHex(pana.address, 4) + ",data=" + toHex(pana.data, 8) +
+                     ",bits=" + std::to_string(pana.nbits);
       break;
     case esp32ir::Protocol::JVC:
       Serial.printf("\"address\":%u,\"command\":%u", jvc.address, jvc.command);
+      decodedText += ",address=" + toHex(jvc.address, 4) + ",command=" + toHex(jvc.command, 4);
       break;
     case esp32ir::Protocol::Samsung:
       Serial.printf("\"address\":%u,\"command\":%u", samsung.address, samsung.command);
+      decodedText += ",address=" + toHex(samsung.address, 4) + ",command=" + toHex(samsung.command, 4);
       break;
     case esp32ir::Protocol::LG:
       Serial.printf("\"address\":%u,\"command\":%u", lg.address, lg.command);
+      decodedText += ",address=" + toHex(lg.address, 4) + ",command=" + toHex(lg.command, 4);
       break;
     case esp32ir::Protocol::Denon:
       Serial.printf("\"address\":%u,\"command\":%u,\"repeat\":%s", denon.address, denon.command, denon.repeat ? "true" : "false");
+      decodedText += ",address=" + toHex(denon.address, 4) + ",command=" + toHex(denon.command, 4) +
+                     ",repeat=" + std::string(denon.repeat ? "true" : "false");
       break;
     case esp32ir::Protocol::RC5:
       Serial.printf("\"command\":%u,\"toggle\":%s", rc5.command, rc5.toggle ? "true" : "false");
+      decodedText += ",command=" + toHex(rc5.command, 4) + ",toggle=" + std::string(rc5.toggle ? "true" : "false");
       break;
     case esp32ir::Protocol::RC6:
       Serial.printf("\"command\":%lu,\"mode\":%u,\"toggle\":%s", static_cast<unsigned long>(rc6.command), rc6.mode, rc6.toggle ? "true" : "false");
+      decodedText += ",command=" + toHex(rc6.command, 8) + ",mode=" + std::to_string(rc6.mode) +
+                     ",toggle=" + std::string(rc6.toggle ? "true" : "false");
       break;
     case esp32ir::Protocol::Apple:
       Serial.printf("\"address\":%u,\"command\":%u", apple.address, apple.command);
+      decodedText += ",address=" + toHex(apple.address, 4) + ",command=" + toHex(apple.command, 2);
       break;
     case esp32ir::Protocol::Pioneer:
       Serial.printf("\"address\":%u,\"command\":%u,\"extra\":%u", pioneer.address, pioneer.command, pioneer.extra);
+      decodedText += ",address=" + toHex(pioneer.address, 4) + ",command=" + toHex(pioneer.command, 4) +
+                     ",extra=" + toHex(pioneer.extra, 2);
       break;
     case esp32ir::Protocol::Toshiba:
       Serial.printf("\"address\":%u,\"command\":%u,\"extra\":%u", toshiba.address, toshiba.command, toshiba.extra);
+      decodedText += ",address=" + toHex(toshiba.address, 4) + ",command=" + toHex(toshiba.command, 4) +
+                     ",extra=" + toHex(toshiba.extra, 2);
       break;
     case esp32ir::Protocol::Mitsubishi:
       Serial.printf("\"address\":%u,\"command\":%u,\"extra\":%u", mitsu.address, mitsu.command, mitsu.extra);
+      decodedText += ",address=" + toHex(mitsu.address, 4) + ",command=" + toHex(mitsu.command, 4) +
+                     ",extra=" + toHex(mitsu.extra, 2);
       break;
     case esp32ir::Protocol::Hitachi:
       Serial.printf("\"address\":%u,\"command\":%u,\"extra\":%u", hitachi.address, hitachi.command, hitachi.extra);
+      decodedText += ",address=" + toHex(hitachi.address, 4) + ",command=" + toHex(hitachi.command, 4) +
+                     ",extra=" + toHex(hitachi.extra, 2);
       break;
     default:
       Serial.print("\"_note\":\"payload decode not supported\"");
       break;
     }
     Serial.println("}");
-    // en: Also include IRremoteESP8266 style code (currently NEC only)
-    // ja: IRremoteESP8266形式コードも併記（現状NECのみ）
-    if (r.protocol == esp32ir::Protocol::NEC)
-    {
-      Serial.println("    ,");
-      Serial.print("    ");
-      printIrremoteCodeNEC(nec);
-    }
-    Serial.println();
+    Serial.println("    ,");
+    Serial.print("    \"decodedText\":\"");
+    Serial.print(decodedText.c_str());
+    Serial.println("\",");
+    Serial.println("    \"notes\":\"TODO: fill device/protocol details manually\"");
     Serial.println("  },");
   }
   Serial.println("  \"notes\":\"Fill in capabilities/intents manually if needed.\"");
