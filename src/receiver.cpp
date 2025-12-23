@@ -34,6 +34,25 @@ namespace esp32ir
                 return false;
             }
             BaseType_t high_task_woken = pdFALSE;
+            uint8_t bufIdx = 0xFF;
+            for (uint8_t i = 0; i < 2; ++i)
+            {
+                if (ctx->buffers[i] == edata->received_symbols)
+                {
+                    bufIdx = i;
+                    break;
+                }
+            }
+            if (bufIdx > 1)
+            {
+                *(ctx->overflowFlag) = true;
+            }
+            else
+            {
+                uint8_t mask = *(ctx->pendingMask);
+                mask |= static_cast<uint8_t>(1u << bufIdx);
+                *(ctx->pendingMask) = mask;
+            }
             if (xQueueSendFromISR(ctx->queue, edata, &high_task_woken) != pdTRUE)
             {
                 // Drop oldest to make room (spec: older entries are dropped on overflow).
@@ -51,6 +70,35 @@ namespace esp32ir
             if (!edata->flags.is_last)
             {
                 *(ctx->overflowFlag) = true;
+            }
+            // Attempt to re-arm reception using a free buffer
+            int freeIdx = -1;
+            uint8_t mask = *(ctx->pendingMask);
+            for (uint8_t i = 0; i < 2; ++i)
+            {
+                if ((mask & (1u << i)) == 0 && ctx->buffers[i])
+                {
+                    freeIdx = static_cast<int>(i);
+                    break;
+                }
+            }
+            if (freeIdx >= 0 && ctx->channel && ctx->rxConfig)
+            {
+                esp_err_t err = rmt_receive(ctx->channel, ctx->buffers[freeIdx], ctx->bufferLenSymbols * sizeof(rmt_symbol_word_t), ctx->rxConfig);
+                if (err != ESP_OK)
+                {
+                    *(ctx->overflowFlag) = true;
+                    if (ctx->needRestart)
+                        *(ctx->needRestart) = true;
+                }
+                else if (ctx->needRestart)
+                {
+                    *(ctx->needRestart) = false;
+                }
+            }
+            else if (ctx->needRestart)
+            {
+                *(ctx->needRestart) = true;
             }
             return high_task_woken == pdTRUE;
         }
@@ -343,7 +391,20 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
-        rxCallbackCtx_ = {rxQueue_, &rxOverflowed_};
+        rxPendingMask_ = 0;
+        rxNeedRestart_ = false;
+        rxBuffers_[0].assign(rxBufferSymbols_, {});
+        rxBuffers_[1].assign(rxBufferSymbols_, {});
+        rxCallbackCtx_ = {};
+        rxCallbackCtx_.queue = rxQueue_;
+        rxCallbackCtx_.overflowFlag = &rxOverflowed_;
+        rxCallbackCtx_.buffers[0] = rxBuffers_[0].data();
+        rxCallbackCtx_.buffers[1] = rxBuffers_[1].data();
+        rxCallbackCtx_.bufferLenSymbols = rxBufferSymbols_;
+        rxCallbackCtx_.pendingMask = &rxPendingMask_;
+        rxCallbackCtx_.rxConfig = &rxConfig_;
+        rxCallbackCtx_.channel = rxChannel_;
+        rxCallbackCtx_.needRestart = &rxNeedRestart_;
         rmt_rx_event_callbacks_t cbs = {
             .on_recv_done = rxDoneCallback,
         };
@@ -399,10 +460,9 @@ namespace esp32ir
         uint64_t scaledMaxNs = kRmtBaseMaxNs * std::max<uint16_t>(1, quantizeT_);
         if (desiredMaxNs > scaledMaxNs)
             desiredMaxNs = scaledMaxNs;
-        rxBuffer_.resize(512);
         rxConfig_.signal_range_min_ns = 1000;
         rxConfig_.signal_range_max_ns = desiredMaxNs;
-        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
+        if (rmt_receive(rxChannel_, rxBuffers_[0].data(), rxBufferSymbols_ * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
         {
             ESP_LOGE(kTag, "RX begin failed: rmt_receive");
             vQueueDelete(rxQueue_);
@@ -468,6 +528,7 @@ namespace esp32ir
             vQueueDelete(rxQueue_);
             rxQueue_ = nullptr;
         }
+        pendingSegments_.clear();
         rxOverflowed_ = false;
         begun_ = false;
         ESP_LOGI(kTag, "RX end");
@@ -565,7 +626,7 @@ namespace esp32ir
             seq.swap(out);
         }
 
-        bool appendFrameIfValid(const std::vector<int8_t> &seq, uint16_t T_us, const RxParams &params, std::vector<std::vector<int8_t>> &outFrames)
+        bool appendFrameIfValid(const std::vector<int8_t> &seq, uint16_t T_us, const RxParams &params, std::vector<std::vector<int8_t>> &outFrames, bool allowShort = false)
         {
             if (seq.empty())
             {
@@ -577,7 +638,7 @@ namespace esp32ir
                 int mag = v < 0 ? -v : v;
                 totalUs += static_cast<uint32_t>(mag) * static_cast<uint32_t>(T_us);
             }
-            if (seq.size() < params.minEdges || totalUs < params.minFrameUs)
+            if (!allowShort && (seq.size() < params.minEdges || totalUs < params.minFrameUs))
             {
                 return true; // treat as noise; not an error
             }
@@ -801,12 +862,27 @@ namespace esp32ir
         {
             return false;
         }
+        if (!pendingSegments_.empty())
+        {
+            auto pending = std::move(pendingSegments_.front());
+            pendingSegments_.pop_front();
+            return decode(pending.raw, out, pending.overflowed);
+        }
         rmt_rx_done_event_data_t ev = {};
         if (xQueueReceive(rxQueue_, &ev, 0) != pdTRUE)
         {
             return false;
         }
-        bool truncated = ev.num_symbols >= rxBuffer_.size();
+        int bufferIndex = -1;
+        for (uint8_t i = 0; i < 2; ++i)
+        {
+            if (rxBuffers_[i].data() == ev.received_symbols)
+            {
+                bufferIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        bool truncated = ev.num_symbols >= rxBufferSymbols_;
         bool overflowed = rxOverflowed_ || (ev.num_symbols == 0) || (ev.received_symbols == nullptr) || (!ev.flags.is_last);
         rxOverflowed_ = false;
         ESP_LOGV(kTag, "RX RMT symbols=%u last=%d invert=%s T_us=%u",
@@ -854,11 +930,32 @@ namespace esp32ir
             }
         }
         // restart reception
-        esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_);
-        if (rxErr != ESP_OK)
+        // rmt_receive is re-armed in ISR; if pending buffers exhausted and restart flagged, try here.
+        if (rxNeedRestart_)
         {
-            ESP_LOGW(kTag, "RX rmt_receive restart failed err=%d", static_cast<int>(rxErr));
-            overflowed = true;
+            int freeIdx = -1;
+            uint8_t mask = rxPendingMask_;
+            for (uint8_t i = 0; i < 2; ++i)
+            {
+                if ((mask & (1u << i)) == 0)
+                {
+                    freeIdx = static_cast<int>(i);
+                    break;
+                }
+            }
+            if (freeIdx >= 0)
+            {
+                esp_err_t rxErr = rmt_receive(rxChannel_, rxBuffers_[freeIdx].data(), rxBufferSymbols_ * sizeof(rmt_symbol_word_t), &rxConfig_);
+                if (rxErr == ESP_OK)
+                {
+                    rxNeedRestart_ = false;
+                }
+                else
+                {
+                    ESP_LOGW(kTag, "RX rmt_receive restart failed err=%d", static_cast<int>(rxErr));
+                    overflowed = true;
+                }
+            }
         }
 
         while (!seq.empty() && seq.front() < 0)
@@ -872,7 +969,7 @@ namespace esp32ir
         }
         if (truncated)
         {
-            ESP_LOGW(kTag, "RX buffer truncated (symbols=%zu cap=%zu)", static_cast<size_t>(ev.num_symbols), rxBuffer_.size());
+            ESP_LOGW(kTag, "RX buffer truncated (symbols=%zu cap=%zu)", static_cast<size_t>(ev.num_symbols), rxBufferSymbols_);
             overflowed = true;
         }
 
@@ -895,13 +992,40 @@ namespace esp32ir
         uint32_t currentTimeUs = 0;
         uint32_t spaceRunUs = 0;
         size_t spaceRunStartIndex = 0;
-        auto flush = [&](bool &overflowFlag)
+        uint32_t maxSpaceRunUs = 0;
+        // Allow a small tolerance when deciding gaps to cope with measurement jitter.
+        const uint32_t gapToleranceUs = params.frameGapUs ? std::max<uint32_t>(quantizeT_, params.frameGapUs / 20) : quantizeT_;
+        const uint32_t hardGapToleranceUs = params.hardGapUs ? std::max<uint32_t>(quantizeT_, params.hardGapUs / 20) : quantizeT_;
+        ESP_LOGD(kTag, "RX split params frameGapUs=%u hardGapUs=%u tol=%u/%u splitPolicy=%s",
+                 static_cast<unsigned>(params.frameGapUs),
+                 static_cast<unsigned>(params.hardGapUs),
+                 static_cast<unsigned>(gapToleranceUs),
+                 static_cast<unsigned>(hardGapToleranceUs),
+                 splitPolicyName(params.splitPolicy));
+        auto totalTimeUs = [&](const std::vector<int8_t> &s) -> uint32_t {
+            uint32_t total = 0;
+            for (int v : s)
+            {
+                int mag = v < 0 ? -v : v;
+                total += static_cast<uint32_t>(mag) * static_cast<uint32_t>(quantizeT_);
+            }
+            return total;
+        };
+        auto flush = [&](bool &overflowFlag, bool allowShort)
         {
             if (!current.empty())
             {
-                if (!appendFrameIfValid(current, quantizeT_, params, framesData))
+                size_t before = framesData.size();
+                if (!appendFrameIfValid(current, quantizeT_, params, framesData, allowShort))
                 {
                     overflowFlag = true;
+                }
+                if (framesData.size() > before)
+                {
+                    ESP_LOGD(kTag, "RX frame appended edges=%u time_us=%u allowShort=%d",
+                             static_cast<unsigned>(framesData.back().size()),
+                             static_cast<unsigned>(totalTimeUs(framesData.back())),
+                             allowShort ? 1 : 0);
                 }
                 current.clear();
                 currentTimeUs = 0;
@@ -921,6 +1045,10 @@ namespace esp32ir
                     spaceRunStartIndex = current.size();
                 }
                 spaceRunUs += durUs;
+                if (spaceRunUs > maxSpaceRunUs)
+                {
+                    maxSpaceRunUs = spaceRunUs;
+                }
             }
             else
             {
@@ -928,7 +1056,7 @@ namespace esp32ir
             }
 
             bool forceSplit = false;
-            if (isSpace && spaceRunUs >= params.hardGapUs)
+            if (isSpace && params.hardGapUs > 0 && (spaceRunUs + hardGapToleranceUs) >= params.hardGapUs)
             {
                 forceSplit = true;
             }
@@ -939,6 +1067,14 @@ namespace esp32ir
 
             if (forceSplit && !current.empty())
             {
+                ESP_LOGD(kTag, "RX split by %s: spaceRunUs=%u durUs=%u frameGapUs=%u hardGapUs=%u currEdges=%u currTimeUs=%u",
+                         (params.hardGapUs > 0 && (spaceRunUs + hardGapToleranceUs) >= params.hardGapUs) ? "hardGap" : "maxFrame",
+                         static_cast<unsigned>(spaceRunUs),
+                         static_cast<unsigned>(durUs),
+                         static_cast<unsigned>(params.frameGapUs),
+                         static_cast<unsigned>(params.hardGapUs),
+                         static_cast<unsigned>(current.size()),
+                         static_cast<unsigned>(currentTimeUs));
                 if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
                 {
                     current.push_back(static_cast<int8_t>(v));
@@ -960,7 +1096,7 @@ namespace esp32ir
                         currentTimeUs = 0;
                     }
                 }
-                flush(overflowed);
+                flush(overflowed, /*allowShort=*/true);
                 spaceRunUs = 0;
                 continue;
             }
@@ -973,11 +1109,17 @@ namespace esp32ir
             current.push_back(static_cast<int8_t>(v));
             currentTimeUs += durUs;
 
-            if (isSpace && spaceRunUs >= params.frameGapUs)
+            if (isSpace && params.frameGapUs > 0 && (spaceRunUs + gapToleranceUs) >= params.frameGapUs)
             {
+                ESP_LOGD(kTag, "RX gap flush: spaceRunUs=%u frameGapUs=%u tol=%u edges=%u timeUs=%u",
+                         static_cast<unsigned>(spaceRunUs),
+                         static_cast<unsigned>(params.frameGapUs),
+                         static_cast<unsigned>(gapToleranceUs),
+                         static_cast<unsigned>(current.size()),
+                         static_cast<unsigned>(currentTimeUs));
                 if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
                 {
-                    flush(overflowed);
+                    flush(overflowed, /*allowShort=*/true);
                 }
                 else
                 {
@@ -994,25 +1136,57 @@ namespace esp32ir
                     {
                         currentTimeUs = 0;
                     }
-                    flush(overflowed);
+                    flush(overflowed, /*allowShort=*/true);
                 }
                 spaceRunUs = 0;
             }
         }
-        flush(overflowed);
+        bool allowShortFinal = (current.size() < params.minEdges) && (currentTimeUs >= params.minFrameUs);
+        ESP_LOGD(kTag, "RX split loop end edges=%u timeUs=%u maxSpaceRunUs=%u frameGapUs=%u hardGapUs=%u allowShortFinal=%d",
+                 static_cast<unsigned>(current.size()),
+                 static_cast<unsigned>(currentTimeUs),
+                 static_cast<unsigned>(maxSpaceRunUs),
+                 static_cast<unsigned>(params.frameGapUs),
+                 static_cast<unsigned>(params.hardGapUs),
+                 allowShortFinal ? 1 : 0);
+        flush(overflowed, /*allowShort=*/allowShortFinal);
 
         if (framesData.empty())
         {
+            if (bufferIndex >= 0)
+            {
+                rxPendingMask_ &= static_cast<uint8_t>(~(1u << bufferIndex));
+            }
             return false;
         }
-
-        esp32ir::ITPSBuffer buf;
+        std::vector<PendingSegment> newSegments;
+        newSegments.reserve(framesData.size());
         for (const auto &fseq : framesData)
         {
+            esp32ir::ITPSBuffer buf;
             esp32ir::ITPSFrame frame{quantizeT_, static_cast<uint16_t>(fseq.size()), fseq.data(), 0};
             buf.addFrame(frame);
+            newSegments.push_back({std::move(buf), overflowed});
         }
-        return decode(buf, out, overflowed);
+        if (newSegments.empty())
+        {
+            if (bufferIndex >= 0)
+            {
+                rxPendingMask_ &= static_cast<uint8_t>(~(1u << bufferIndex));
+            }
+            return false;
+        }
+        ESP_LOGD(kTag, "RX segmented frames=%u pending_before=%u", static_cast<unsigned>(newSegments.size()), static_cast<unsigned>(pendingSegments_.size()));
+        PendingSegment first = std::move(newSegments.front());
+        for (size_t i = 1; i < newSegments.size(); ++i)
+        {
+            pendingSegments_.push_back(std::move(newSegments[i]));
+        }
+        if (bufferIndex >= 0)
+        {
+            rxPendingMask_ &= static_cast<uint8_t>(~(1u << bufferIndex));
+        }
+        return decode(first.raw, out, first.overflowed);
     }
 
 } // namespace esp32ir

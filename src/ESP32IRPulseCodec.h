@@ -10,6 +10,8 @@
 
 #include "esp32irpulsecodec_version.h"
 #include <vector>
+#include <array>
+#include <deque>
 #include <string>
 #include <optional>
 #include <variant>
@@ -519,6 +521,12 @@ namespace esp32ir
     {
       QueueHandle_t queue;
       volatile bool *overflowFlag;
+      rmt_symbol_word_t *buffers[2];
+      size_t bufferLenSymbols;
+      volatile uint8_t *pendingMask;
+      const rmt_receive_config_t *rxConfig;
+      rmt_channel_handle_t channel;
+      volatile bool *needRestart;
     };
 
   private:
@@ -548,10 +556,19 @@ namespace esp32ir
     std::vector<esp32ir::Protocol> protocols_;
     rmt_channel_handle_t rxChannel_{nullptr};
     QueueHandle_t rxQueue_{nullptr};
-    std::vector<rmt_symbol_word_t> rxBuffer_;
+    std::array<std::vector<rmt_symbol_word_t>, 2> rxBuffers_;
+    size_t rxBufferSymbols_{512};
+    volatile uint8_t rxPendingMask_{0};
+    volatile bool rxNeedRestart_{false};
     rmt_receive_config_t rxConfig_{};
     RxCallbackContext rxCallbackCtx_{};
     volatile bool rxOverflowed_{false};
+    struct PendingSegment
+    {
+      esp32ir::ITPSBuffer raw;
+      bool overflowed{false};
+    };
+    std::deque<PendingSegment> pendingSegments_;
   };
 
   // Transmitter
