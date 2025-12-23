@@ -350,6 +350,7 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::SONY { uint16_t address; uint16_t command; uint8_t bits; };`  
     - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::payload::SONY& out);`（`bits`は12/15/20のみ）  
     - `bool esp32ir::Transmitter::sendSONY(const esp32ir::payload::SONY& p);` / `bool esp32ir::Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`（bitsは12/15/20のみ）
+    - 注意: SONYフレームが連続して届く場合、現状のデコーダは最初の1フレームだけをデコードし、後続のリピートは無視する。理想的には前回の受信時刻などを用いたリピート判定を実装するべき。
   - AEHA(家電協)  
     - `struct esp32ir::payload::AEHA { uint16_t address; uint32_t data; uint8_t nbits; };`  
     - `bool esp32ir::decodeAEHA(const esp32ir::RxResult&, esp32ir::payload::AEHA&);`  

@@ -348,6 +348,7 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::SONY { uint16_t address; uint16_t command; uint8_t bits; };`  
     - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::payload::SONY& out);` (`bits` is only 12/15/20)  
     - `bool esp32ir::Transmitter::sendSONY(const esp32ir::payload::SONY& p);` / `bool esp32ir::Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);` (bits only 12/15/20; gap uses helper recommendation, else 40ms)
+    - Note: When multiple SONY frames arrive back-to-back, the current decoder only consumes the first frame in the burst and ignores repeats. Proper repeat handling (e.g., by looking at inter-frame timing and previous decode) is left to future improvement.
   - AEHA  
     - `struct esp32ir::payload::AEHA { uint16_t address; uint32_t data; uint8_t nbits; };`  
     - `bool esp32ir::decodeAEHA(const esp32ir::RxResult&, esp32ir::payload::AEHA&);`  
