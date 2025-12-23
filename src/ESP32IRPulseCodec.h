@@ -51,6 +51,20 @@ namespace esp32ir
     FujitsuAC,
   };
 
+  // Forward declare split policy for presets
+  enum class RxSplitPolicy : uint8_t;
+
+  struct RxParamPreset
+  {
+    uint32_t frameGapUs;
+    uint32_t hardGapUs;
+    uint32_t minFrameUs;
+    uint32_t maxFrameUs;
+    uint16_t minEdges;
+    uint16_t frameCountMax;
+    esp32ir::RxSplitPolicy splitPolicy;
+  };
+
   // Rx status
   enum class RxStatus : uint8_t
   {
@@ -58,6 +72,19 @@ namespace esp32ir
     RAW_ONLY,
     OVERFLOW,
   };
+
+  namespace proto_const
+  {
+    extern const RxParamPreset kNECParams;
+    extern const RxParamPreset kSonyParams;
+    extern const RxParamPreset kAEHAParams;
+    extern const RxParamPreset kPanasonicParams;
+    extern const RxParamPreset kJVCParams;
+    extern const RxParamPreset kLgGroupParams;
+    extern const RxParamPreset kRC5Params;
+    extern const RxParamPreset kRC6Params;
+    extern const RxParamPreset kACParams;
+  }
 
   namespace util
   {

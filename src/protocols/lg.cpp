@@ -5,6 +5,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kLgGroupParams{40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool decodeLG(const esp32ir::RxResult &in, esp32ir::payload::LG &out)
     {
         out = {};

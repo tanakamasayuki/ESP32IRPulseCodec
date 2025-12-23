@@ -7,6 +7,19 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        // NEC frame/space gap heuristics for splitting; kept here to avoid duplication.
+        const RxParamPreset kNECParams{
+            35000,  // frameGapUs: slightly below nominal 40ms to catch jittered gaps
+            50000,  // hardGapUs
+            8000,   // minFrameUs
+            120000, // maxFrameUs
+            10,     // minEdges
+            0,      // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool buildNECTxBitstream(uint16_t address, uint8_t command, std::vector<uint8_t> &out)
     {
         out.clear();

@@ -7,6 +7,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kSonyParams{30000, 50000, 4000, 80000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     namespace
     {
         constexpr uint16_t kTUs = 5;

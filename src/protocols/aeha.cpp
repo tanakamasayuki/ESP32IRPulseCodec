@@ -7,6 +7,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kAEHAParams{30000, 45000, 4000, 100000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     namespace
     {
         constexpr uint16_t kTUs = 5;

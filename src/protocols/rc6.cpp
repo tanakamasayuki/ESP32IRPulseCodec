@@ -7,6 +7,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kRC6Params{25000, 40000, 3000, 70000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool decodeRC6(const esp32ir::RxResult &in, esp32ir::payload::RC6 &out)
     {
         out = {};

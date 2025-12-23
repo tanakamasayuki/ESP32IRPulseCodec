@@ -5,6 +5,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kJVCParams{35000, 50000, 6000, 90000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
     {
         out = {};

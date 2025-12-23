@@ -6,6 +6,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kPanasonicParams{30000, 45000, 6000, 90000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out)
     {
         out = {};

@@ -5,6 +5,11 @@
 namespace esp32ir
 {
 
+    namespace proto_const
+    {
+        const RxParamPreset kRC5Params{25000, 40000, 3000, 60000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+    }
+
     bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out)
     {
         out = {};

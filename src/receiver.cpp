@@ -219,33 +219,58 @@ namespace esp32ir
             case esp32ir::Protocol::Samsung:
             case esp32ir::Protocol::Apple:
             {
-                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+                const auto &p = esp32ir::proto_const::kNECParams;
+                return {p.frameGapUs, p.hardGapUs, p.minFrameUs, p.maxFrameUs, p.minEdges, p.frameCountMax, p.splitPolicy};
             }
             case esp32ir::Protocol::SONY:
-                return {30000, 50000, 4000, 80000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kSonyParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::AEHA:
-                return {30000, 45000, 4000, 100000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kAEHAParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::Panasonic:
-                return {30000, 45000, 6000, 90000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kPanasonicParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::JVC:
-                return {35000, 50000, 6000, 90000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kJVCParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::LG:
             case esp32ir::Protocol::Denon:
             case esp32ir::Protocol::Toshiba:
             case esp32ir::Protocol::Mitsubishi:
             case esp32ir::Protocol::Hitachi:
             case esp32ir::Protocol::Pioneer:
-                return {40000, 50000, 8000, 120000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kLgGroupParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::RC5:
-                return {25000, 40000, 3000, 60000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kRC5Params;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::RC6:
-                return {25000, 40000, 3000, 70000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+            {
+                const auto &rp = esp32ir::proto_const::kRC6Params;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::PanasonicAC:
             case esp32ir::Protocol::MitsubishiAC:
             case esp32ir::Protocol::ToshibaAC:
             case esp32ir::Protocol::DaikinAC:
             case esp32ir::Protocol::FujitsuAC:
-                return {60000, 80000, 8000, 200000, 10, 4, esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME};
+            {
+                const auto &rp = esp32ir::proto_const::kACParams;
+                return {rp.frameGapUs, rp.hardGapUs, rp.minFrameUs, rp.maxFrameUs, rp.minEdges, rp.frameCountMax, rp.splitPolicy};
+            }
             case esp32ir::Protocol::RAW:
                 return defaultParams(true);
             default:
@@ -649,6 +674,81 @@ namespace esp32ir
             }
             return outFrames.size() <= params.frameCountMax;
         }
+
+        bool splitITPSByGap(const esp32ir::ITPSBuffer &buf, uint32_t gapUs, esp32ir::ITPSBuffer &firstOut, esp32ir::ITPSBuffer &secondOut)
+        {
+            if (buf.frameCount() == 0 || gapUs == 0)
+            {
+                return false;
+            }
+            const auto &f = buf.frame(0);
+            if (!f.seq || f.len == 0 || f.T_us == 0)
+            {
+                return false;
+            }
+            uint32_t maxSpaceUs = 0;
+            size_t maxStart = 0;
+            size_t maxLen = 0;
+            uint32_t runUs = 0;
+            size_t runStart = 0;
+            for (uint16_t i = 0; i < f.len; ++i)
+            {
+                int v = f.seq[i];
+                if (v < 0)
+                {
+                    if (runUs == 0)
+                        runStart = i;
+                    runUs += static_cast<uint32_t>((-v) * f.T_us);
+                }
+                else
+                {
+                    if (runUs > maxSpaceUs)
+                    {
+                        maxSpaceUs = runUs;
+                        maxStart = runStart;
+                        maxLen = i - runStart;
+                    }
+                    runUs = 0;
+                }
+            }
+            if (runUs > maxSpaceUs)
+            {
+                maxSpaceUs = runUs;
+                maxStart = runStart;
+                maxLen = f.len - runStart;
+            }
+            if (maxSpaceUs < gapUs || maxLen == 0)
+            {
+                return false;
+            }
+            if (maxStart == 0 || (maxStart + maxLen) >= f.len)
+            {
+                return false;
+            }
+            std::vector<int8_t> seq1;
+            seq1.reserve(f.len);
+            for (size_t i = 0; i < maxStart; ++i)
+            {
+                seq1.push_back(f.seq[i]);
+            }
+            std::vector<int8_t> seq2;
+            seq2.reserve(f.len - maxStart - maxLen);
+            for (size_t i = maxStart + maxLen; i < f.len; ++i)
+            {
+                seq2.push_back(f.seq[i]);
+            }
+            if (seq1.empty() || seq2.empty())
+            {
+                return false;
+            }
+            firstOut.clear();
+            secondOut.clear();
+            esp32ir::ITPSFrame f1{f.T_us, static_cast<uint16_t>(seq1.size()), seq1.data(), 0};
+            esp32ir::ITPSFrame f2{f.T_us, static_cast<uint16_t>(seq2.size()), seq2.data(), 0};
+            firstOut.addFrame(f1);
+            secondOut.addFrame(f2);
+            return true;
+        }
     } // namespace
 
     bool Receiver::decode(const esp32ir::ITPSBuffer &buf, esp32ir::RxResult &out, bool overflowed)
@@ -672,7 +772,7 @@ namespace esp32ir
             return fillRaw(esp32ir::RxStatus::RAW_ONLY);
         }
 
-        auto fillDecoded = [&](esp32ir::Protocol proto, const void *payload, size_t len) -> bool
+        auto fillDecoded = [&](esp32ir::Protocol proto, const void *payload, size_t len, const esp32ir::ITPSBuffer *rawPtr = nullptr) -> bool
         {
             out.payloadStorage.assign(reinterpret_cast<const uint8_t *>(payload),
                                       reinterpret_cast<const uint8_t *>(payload) + len);
@@ -681,7 +781,7 @@ namespace esp32ir
             out.status = esp32ir::RxStatus::DECODED;
             if (useRawPlusKnown_)
             {
-                out.raw = buf;
+                out.raw = rawPtr ? *rawPtr : buf;
             }
             else
             {
@@ -707,7 +807,16 @@ namespace esp32ir
                 esp32ir::payload::NEC p{};
                 if (esp32ir::decodeNEC(temp, p))
                 {
-                    return fillDecoded(proto, &p, sizeof(p));
+                    esp32ir::ITPSBuffer firstBuf;
+                    esp32ir::ITPSBuffer secondBuf;
+                    const esp32ir::ITPSBuffer *rawPtr = &buf;
+                    uint32_t protoGap = recommendedParamsForProtocol(proto).frameGapUs;
+                    if (protoGap > 0 && splitITPSByGap(buf, protoGap, firstBuf, secondBuf))
+                    {
+                        rawPtr = &firstBuf;
+                        pendingSegments_.push_back({std::move(secondBuf), overflowed});
+                    }
+                    return fillDecoded(proto, &p, sizeof(p), rawPtr);
                 }
                 break;
             }
@@ -1002,7 +1111,8 @@ namespace esp32ir
                  static_cast<unsigned>(gapToleranceUs),
                  static_cast<unsigned>(hardGapToleranceUs),
                  splitPolicyName(params.splitPolicy));
-        auto totalTimeUs = [&](const std::vector<int8_t> &s) -> uint32_t {
+        auto totalTimeUs = [&](const std::vector<int8_t> &s) -> uint32_t
+        {
             uint32_t total = 0;
             for (int v : s)
             {
