@@ -538,3 +538,53 @@ void loop() { delay(1000); }
 - **Protocol restriction**: `addProtocol(NEC)` limits decode to NEC (RAW prioritized if selected). `useKnownWithoutAC()` targets known protocols except AC. With no specification, decode all known protocols in KNOWN_ONLY mode (RAW requires explicit selection).
 - **Queue behavior**: If the queue is empty, `poll` returns false. On overflow, older entries are dropped and the next result indicates `status=OVERFLOW`.
 - **RAW resend**: ITPSBuffer from RX can be sent directly via `send(raw)`. If inversion is needed, use `invertOutput`; ITPS stays unchanged.
+
+---
+
+## 18. Capture JSON Format (samples/assets)
+- Purpose: portable capture format for tests/assets. `version` is the **format/schema** version (not waveform/protocol version).
+- Recommended top-level fields:
+  - `version`: e.g., `"0.1"`
+  - `device`: `{ vendor, model, remote? }` (fill manually)
+  - `protocol`: e.g., `NEC`, `DaikinAC`; may stay `RAW` if undecoded
+  - `status`: optional `DECODED` | `RAW_ONLY` | `OVERFLOW` (can be inferred: `frameBytes` present ⇒ decoded)
+  - `timestampMs`: optional capture time (for ordering)
+  - `capture`:
+    - `durationsUs`: Mark/Space durations (µs, signed) for one frame (RAW source of truth)
+    - `itps`: ITPS frames array `{ "T_us", "flags", "seq":[...] }` (all RAW frames)
+  - `expected` (optional, for tests):
+    - `protocol`: expected protocol name
+    - `frameBytes`: expected decoded bytes (decimal array)
+    - `payload`: decoded payload object, either keyed by protocol name or flat  
+      - keyed example: `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`  
+      - flat example: `{ "address": 0, "command": 162, "repeat": false }` (matched to detected protocol)
+    - `irremote`: optional IRremoteESP8266 view `{ "code": "0x...", "bits": 32 }` (currently NEC only; MSB-first as printed by IRremoteESP8266)
+  - `notes`: free text
+- Usage tips:
+  - Use `durationsUs` and `itps` as primary replay sources; treat `frameBytes` as optional helper when decode succeeds.
+  - One capture per file under `assets/<protocol>/...json`; fill TODO fields manually after capture.
+  - `durationsUs` uses signed microseconds (`+`=Mark, `-`=Space) to align with ITPS and simplify reconstruction.
+
+### 18.1 JSON example (NEC, decoded)
+```json
+{
+  "version": "0.1",
+  "device": { "vendor": "Example", "model": "TV-A1", "remote": "RM123" },
+  "protocol": "NEC",
+  "status": "DECODED",
+  "timestampMs": 12345,
+  "capture": {
+    "durationsUs": [9000,-4500,560,-560,560,-560,560,-1690,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560,-560,560],
+    "itps": [
+      { "T_us": 5, "flags": 0, "seq": [1800,-900,112,-112,112,-112,112,-338,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112,-112,112] }
+    ]
+  },
+  "expected": {
+    "protocol": "NEC",
+    "frameBytes": [0, 255, 162, 93],
+    "payload": { "address": 0, "command": 162, "repeat": false },
+    "irremote": { "code": "0x01FE48B7", "bits": 32 }
+  },
+  "notes": "Example NEC capture; replace device info as needed."
+}
+```
