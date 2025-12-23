@@ -24,7 +24,6 @@ namespace esp32ir
     namespace
     {
         constexpr uint16_t kTUs = 10;
-        constexpr const char *kTag = "ESP32IRPulseCodec";
         constexpr uint32_t kStartMarkUs = 2400;
         constexpr uint32_t kStartSpaceUs = 600;
         constexpr uint32_t kBitSpaceUs = 600;
@@ -67,27 +66,17 @@ namespace esp32ir
     {
         out = {};
         if (decodeMessage(in, esp32ir::Protocol::SONY, out))
-        {
-            ESP_LOGD(kTag, "decodeSONY: decodeMessage fast path succeeded (bits=%u addr=%u cmd=%u)",
-                     static_cast<unsigned>(out.bits), static_cast<unsigned>(out.address), static_cast<unsigned>(out.command));
             return true;
-        }
-        // try 12/15/20 variants
         std::vector<esp32ir::Pulse> pulses;
         if (!esp32ir::collectPulses(in.raw, pulses))
         {
-            ESP_LOGD(kTag, "decodeSONY: collectPulses failed");
             return false;
         }
         // Try longer formats first to avoid misclassifying 15/20-bit frames as 12-bit.
         for (uint8_t bits : {20, 15, 12})
         {
             if (pulses.size() < 2 + bits * 2)
-            {
-                ESP_LOGD(kTag, "decodeSONY: bits=%u insufficient pulses (%u needed, got %u)",
-                         static_cast<unsigned>(bits), static_cast<unsigned>(2 + bits * 2), static_cast<unsigned>(pulses.size()));
                 continue;
-            }
             size_t idx = 0;
             auto ok = [&](bool mark, uint32_t target, uint32_t tol) -> bool
             {
@@ -101,23 +90,17 @@ namespace esp32ir
             };
             idx = 0;
             if (!ok(true, kStartMarkUs, 25) || !ok(false, kStartSpaceUs, 35))
-            {
-                ESP_LOGD(kTag, "decodeSONY: bits=%u start mismatch", static_cast<unsigned>(bits));
                 continue;
-            }
             uint32_t data = 0;
             bool okBits = true;
-            auto markOk = [&](uint32_t us) {
+            auto markOk = [&](uint32_t us)
+            {
                 return esp32ir::inRange(us, kBitMark0Us, 35) || esp32ir::inRange(us, kBitMark1Us, 35);
             };
             for (uint8_t i = 0; i < bits; ++i)
             {
                 if (idx >= pulses.size() || !markOk(pulses[idx].us) || !pulses[idx].mark)
                 {
-                    ESP_LOGD(kTag, "decodeSONY: bits=%u bit%u mark invalid (idx=%u len=%u mark=%d)",
-                             static_cast<unsigned>(bits), static_cast<unsigned>(i), static_cast<unsigned>(idx),
-                             idx < pulses.size() ? static_cast<unsigned>(pulses[idx].us) : 0,
-                             idx < pulses.size() ? static_cast<int>(pulses[idx].mark) : -1);
                     okBits = false;
                     break;
                 }
@@ -127,8 +110,6 @@ namespace esp32ir
                 {
                     if (i != bits - 1)
                     {
-                        ESP_LOGD(kTag, "decodeSONY: bits=%u bit%u space missing (idx=%u)", static_cast<unsigned>(bits),
-                                 static_cast<unsigned>(i), static_cast<unsigned>(idx));
                         okBits = false;
                         break;
                     }
@@ -140,9 +121,6 @@ namespace esp32ir
                 bool finalGapOk = (i == bits - 1) && !spacePulse.mark && spacePulse.us >= kBitSpaceUs;
                 if (spacePulse.mark || (!spaceOk && !finalGapOk))
                 {
-                    ESP_LOGD(kTag, "decodeSONY: bits=%u bit%u space invalid (idx=%u len=%u mark=%d)",
-                             static_cast<unsigned>(bits), static_cast<unsigned>(i), static_cast<unsigned>(idx),
-                             static_cast<unsigned>(spacePulse.us), static_cast<int>(spacePulse.mark));
                     okBits = false;
                     break;
                 }
@@ -152,18 +130,12 @@ namespace esp32ir
                 ++idx;
             }
             if (!okBits)
-            {
-                ESP_LOGD(kTag, "decodeSONY: bits=%u failed mid-bits", static_cast<unsigned>(bits));
                 continue;
-            }
             out.address = static_cast<uint16_t>(data >> 7);
             out.command = static_cast<uint16_t>(data & 0x7F);
             out.bits = bits;
-            ESP_LOGD(kTag, "decodeSONY: matched bits=%u addr=%u cmd=%u", static_cast<unsigned>(bits),
-                     static_cast<unsigned>(out.address), static_cast<unsigned>(out.command));
             return true;
         }
-        ESP_LOGD(kTag, "decodeSONY: no variant matched");
         return false;
     }
     bool Transmitter::sendSONY(const esp32ir::payload::SONY &p)
