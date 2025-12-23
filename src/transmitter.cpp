@@ -12,6 +12,7 @@ namespace esp32ir
 
         constexpr uint32_t kRmtResolutionHz = 1000000; // 1us tick
         constexpr uint32_t kRmtDurationMax = 32767;
+        constexpr rmt_clock_source_t kRmtClockSource = RMT_CLK_SRC_REF_TICK;
 
         void pushSymbol(std::vector<rmt_symbol_word_t> &items, bool level, uint32_t durationUs)
         {
@@ -178,7 +179,7 @@ namespace esp32ir
         }
         rmt_tx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(txPin_),
-            .clk_src = RMT_CLK_SRC_DEFAULT,
+            .clk_src = kRmtClockSource,
             .resolution_hz = kRmtResolutionHz,
             .mem_block_symbols = 64,
             .trans_queue_depth = 4,

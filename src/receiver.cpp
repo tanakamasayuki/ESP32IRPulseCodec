@@ -9,6 +9,9 @@ namespace esp32ir
     namespace
     {
         constexpr const char *kTag = "ESP32IRPulseCodec";
+        constexpr uint32_t kRmtRefClockHz = 1000000; // REF_TICK
+        constexpr uint32_t kRmtMaxDivider = 256;
+        constexpr uint32_t kRmtMinResolutionHz = (kRmtRefClockHz + kRmtMaxDivider - 1) / kRmtMaxDivider;
 
         const char *splitPolicyName(esp32ir::RxSplitPolicy policy)
         {
@@ -293,11 +296,23 @@ namespace esp32ir
             return false;
         }
         rxOverflowed_ = false;
-        // Match RMT resolution to quantizeT_ (T_us) to minimize timing error.
-        uint32_t resolutionHz = 1000000u / std::max<uint16_t>(1, quantizeT_);
+        // Match RMT resolution to quantizeT_ (T_us) to minimize timing error, while keeping divider in range.
+        uint32_t resolutionHz = kRmtRefClockHz / std::max<uint16_t>(1, quantizeT_);
+        if (resolutionHz < kRmtMinResolutionHz)
+        {
+            resolutionHz = kRmtMinResolutionHz;
+            uint16_t adjustedQuantize = static_cast<uint16_t>((kRmtRefClockHz + resolutionHz - 1) / resolutionHz);
+            if (adjustedQuantize == 0)
+                adjustedQuantize = 1;
+            if (adjustedQuantize != quantizeT_)
+            {
+                ESP_LOGW(kTag, "RX quantizeT adjusted to %u us to satisfy RMT divider", static_cast<unsigned>(adjustedQuantize));
+            }
+            quantizeT_ = adjustedQuantize;
+        }
         rmt_rx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(rxPin_),
-            .clk_src = RMT_CLK_SRC_DEFAULT,
+            .clk_src = RMT_CLK_SRC_REF_TICK,
             .resolution_hz = resolutionHz,
             .mem_block_symbols = 64,
             .intr_priority = 0,
