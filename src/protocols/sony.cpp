@@ -11,8 +11,8 @@ namespace esp32ir
     {
         // SONY gap heuristics for splitting (matches recommended params in receiver)
         const RxParamPreset kSonyParams{
-            20000, // frameGapUs
-            30000, // hardGapUs
+            30000, // frameGapUs
+            50000, // hardGapUs
             4000,  // minFrameUs
             80000, // maxFrameUs
             8,     // minEdges
