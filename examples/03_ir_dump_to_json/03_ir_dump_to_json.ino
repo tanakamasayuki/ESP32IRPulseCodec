@@ -58,6 +58,21 @@ static std::string bytesHex(const std::vector<uint8_t> &bytes)
   return out;
 }
 
+// en: Convert bitstream bytes (LSB-first order) to MSB-first packed bytes using bitCount
+// ja: LSB-firstのビット列をbitCountに従ってMSB-firstで詰め直す
+static std::vector<uint8_t> toMsbFirst(const std::vector<uint8_t> &lsbBytes, uint16_t bitCount)
+{
+  std::vector<uint8_t> out((bitCount + 7) / 8, 0);
+  for (uint16_t i = 0; i < bitCount; ++i)
+  {
+    uint8_t bit = (lsbBytes[i / 8] >> (i % 8)) & 0x1;
+    uint16_t dstIndex = i / 8;
+    uint8_t dstPos = 7 - (i % 8);
+    out[dstIndex] |= static_cast<uint8_t>(bit << dstPos);
+  }
+  return out;
+}
+
 // en: Dump ITPS frames as JSON array
 // ja: ITPSフレームをJSON配列として出力
 static void printITPS(const esp32ir::ITPSBuffer &raw)
@@ -251,6 +266,7 @@ void loop()
     uint16_t txBitCount = 0;
     esp32ir::ProtocolMessage msg{r.protocol, r.message.data, r.message.length, r.message.flags};
     esp32ir::buildTxBitstream(msg, txBytes, txBitCount);
+    std::vector<uint8_t> txBytesMsb = toMsbFirst(txBytes, txBitCount);
 
     Serial.println("  \"expected\":{");
     Serial.print("    \"protocol\":\"");
@@ -262,7 +278,7 @@ void loop()
 
     std::string decodedText = std::string("protocol=") + esp32ir::util::protocolToString(r.protocol);
     decodedText += ",ProtocolMessage=" + protocolMessageHex(r.message);
-    decodedText += ",TxBitstream(lsb-first)=" + bytesHex(txBytes);
+    decodedText += ",TxBitstream(msb-first)=" + bytesHex(txBytesMsb);
 
     Serial.print("    \"payload\":{");
     switch (r.protocol)
@@ -345,9 +361,7 @@ void loop()
     Serial.println("    ,");
     Serial.print("    \"decodedText\":\"");
     Serial.print(decodedText.c_str());
-    Serial.println("\",");
-    Serial.println("    \"notes\":\"TODO: fill device/protocol details manually\"");
-    Serial.println("  },");
+    Serial.println("\"},");
   }
   Serial.println("  \"notes\":\"Fill in capabilities/intents manually if needed.\"");
   Serial.println("}");
