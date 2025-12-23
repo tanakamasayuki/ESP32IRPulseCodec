@@ -31,6 +31,7 @@
 - **ITPS**：正規化済み中間フォーマット（`SPEC_ITPS.ja.md`）
 - **ITPSFrame / ITPSBuffer**：ITPSのフレーム／フレーム配列
 - **ProtocolMessage**：プロトコル共通の論理メッセージ（`Protocol` + 生データバイト列）
+- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル規定の送信順に並べたビット列（ビット順/エンディアン/パリティ適用後、ITPS化直前の形）
 - **Protocol**：`esp32ir::Protocol`（NEC/SONY等）
 - **ProtocolPayload構造体**：`esp32ir::payload::<Protocol>`（デコード結果/送信パラメータ）
 - **HAL**：ESP32固有層（RMT、GPIO、キャリア、反転）
@@ -232,6 +233,7 @@ struct ProtocolMessage {
 ```
 
 - プロトコル固有のPayload構造体は `esp32ir::payload::<Protocol>` に用意する（例：`payload::NEC`）。受信時はデコードヘルパ（`decodeNEC` 等）で `ProtocolMessage` から `payload::<Protocol>` へ変換し、送信時は送信ヘルパ（`sendNEC` 等）が `payload::<Protocol>` から `ProtocolMessage`（→ITPS）を組み立てる。
+- **TxBitstream（送信ビットストリーム）**：`ProtocolMessage` をプロトコル定義のオンワイヤ順（LSB/MSB、パリティ/CRC適用済み）に並べ直したビット列。ITPS生成前にエンコーダが内部で組み立てる段階を指す。
 
 ---
 

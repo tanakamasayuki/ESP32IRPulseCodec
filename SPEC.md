@@ -31,6 +31,7 @@
 - **ITPS**: Normalized intermediate format (`SPEC_ITPS.md`)
 - **ITPSFrame / ITPSBuffer**: ITPS frame / frame array
 - **ProtocolMessage**: Protocol-agnostic logical message (`Protocol` + raw byte array)
+- **TxBitstream**: Protocol-ordered on-wire bitstream derived from `ProtocolMessage` (bit order/endian/parity applied before ITPS)
 - **Protocol**: `esp32ir::Protocol` (NEC/SONY etc.)
 - **ProtocolPayload struct**: `esp32ir::payload::<Protocol>` (decoded result / TX parameters)
 - **HAL**: ESP32-specific layer (RMT, GPIO, carrier, inversion)
@@ -232,6 +233,7 @@ struct ProtocolMessage {
 ```
 
 - Protocol-specific payload structs live in `esp32ir::payload::<Protocol>` (e.g., `payload::NEC`). On RX, use decode helpers (`decodeNEC`, etc.) to convert ProtocolMessage → `payload::<Protocol>`. On TX, send helpers (`Transmitter::sendNEC`, etc.) build ProtocolMessage → ITPS from `payload::<Protocol>`.
+- **TxBitstream**: bit sequence reordered into the protocol’s on-wire shift order (LSB/MSB, parity/CRC applied) derived from `ProtocolMessage`; encoder builds this internally before generating ITPS.
 
 ---
 
