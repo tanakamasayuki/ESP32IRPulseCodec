@@ -357,8 +357,7 @@ void loop()
       Serial.print("\"_note\":\"payload decode not supported\"");
       break;
     }
-    Serial.println("}");
-    Serial.println("    ,");
+    Serial.println("},");
     Serial.print("    \"decodedText\":\"");
     Serial.print(decodedText.c_str());
     Serial.println("\"},");
