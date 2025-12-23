@@ -170,11 +170,15 @@ void setup()
 {
   Serial.begin(115200);
   delay(500);
+}
 
+void loop()
+{
   Serial.println(F("# assets replay start"));
+  Serial.println();
 
   esp32ir::Receiver decoder;
-  decoder.useRawPlusKnown(); // keep raw alongside decoded for tests
+  decoder.useRawPlusKnown(); // en: keep raw alongside decoded for tests / ja: デコード済みと共にrawも保持
 
   size_t total = 0;
   size_t passed = 0;
@@ -203,12 +207,13 @@ void setup()
 
     // en: configure decoder protocols (limit when protocol specified)
     // ja: 指定プロトコルがある場合はデコード対象を限定
-    decoder.clearProtocols(); // en/ja: try all protocols; do not restrict by JSON proto
+    decoder.clearProtocols(); // en: try all protocols; do not restrict by JSON proto / ja: 全プロトコル試す。JSONのprotoで制限しない。
 
     esp32ir::RxResult result{};
     decoder.decode(buf, result, false);
 
-    // decode payload based on result.protocol
+    // en: decode payload based on result.protocol
+    // ja: result.protocolに基づいてペイロードをデコード
     bool payloadDecoded = false;
     esp32ir::payload::NEC nec{};
     esp32ir::payload::SONY sony{};
@@ -379,7 +384,8 @@ void setup()
       cJSON *expPayload = nullptr;
       if (payloadObj && actualProtoStr)
       {
-        // if payload is nested under protocol name, pick that; otherwise treat payload object as-is
+        // en: if payload is nested under protocol name, pick that; otherwise treat payload object as-is
+        // ja: ペイロードがプロトコル名の下にネストされている場合はそれを選び、それ以外はペイロードオブジェクトをそのまま扱う
         cJSON *maybe = cJSON_GetObjectItemCaseSensitive(payloadObj, actualProtoStr);
         expPayload = cJSON_IsObject(maybe) ? maybe : payloadObj;
       }
@@ -426,7 +432,8 @@ void setup()
             }
             return false;
           };
-          // print known fields in generic way
+          // en: print known fields in generic way
+          // ja: 既知のフィールドを一般的な方法で表示
           printNum("address");
           printNum("command");
           printNum("data");
@@ -445,7 +452,8 @@ void setup()
         ok = false;
         Serial.println(F("FAIL: protocol mismatch"));
       }
-      // messageBytes check (ProtocolMessage bytes, logical order)
+      // en: messageBytes check (ProtocolMessage bytes, logical order)
+      // ja: messageBytesのチェック（ProtocolMessageのバイト列、論理順）
       if (!expBytes.empty())
       {
         if (expBytes.size() != result.payloadStorage.size() ||
@@ -455,7 +463,8 @@ void setup()
           Serial.println(F("FAIL: messageBytes mismatch"));
         }
       }
-      // payload check (protocol-specific, if expected is provided)
+      // en: payload check (protocol-specific, if expected is provided)
+      // ja: ペイロードのチェック（プロトコル固有、期待値が提供されている場合）
       if (payloadObj && cJSON_IsObject(payloadObj))
       {
         auto getNum = [](cJSON *o, const char *k, int &out) -> bool
@@ -656,7 +665,8 @@ void setup()
               break;
             }
             default:
-              // AC and others not decoded here yet
+              // en: AC and others not decoded here yet
+              // ja: ACやその他はまだデコードされていません
               break;
             }
           }
@@ -683,6 +693,9 @@ void setup()
   Serial.print(F(" / "));
   Serial.print(total);
   Serial.println(F(" passed"));
-}
 
-void loop() {}
+  // en: end of replay
+  // ja: リプレイ終了
+  while (true)
+    delay(1);
+}
