@@ -41,7 +41,7 @@ namespace esp32ir
     }
     bool Transmitter::sendJVC(const esp32ir::payload::JVC &p)
     {
-        constexpr uint16_t kTUs = 5;
+        constexpr uint16_t kTUs = 10;
         constexpr uint32_t kHdrMarkUs = 8400;
         constexpr uint32_t kHdrSpaceUs = 4200;
         constexpr uint32_t kBitMarkUs = 525;

@@ -22,7 +22,7 @@ namespace esp32ir
 
     namespace
     {
-        constexpr uint16_t kTUs = 5;
+        constexpr uint16_t kTUs = 10;
         constexpr uint32_t kUnitUs = 425; // AEHA base unit
         constexpr uint32_t kHdrMarkUs = kUnitUs * 8;
         constexpr uint32_t kHdrSpaceUs = kUnitUs * 4;

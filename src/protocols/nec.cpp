@@ -39,7 +39,7 @@ namespace esp32ir
 
     namespace
     {
-        constexpr uint16_t kTUs = 5; // default quantization
+        constexpr uint16_t kTUs = 10; // default quantization
         constexpr uint32_t kHdrMarkUs = 9000;
         constexpr uint32_t kHdrSpaceUs = 4500;
         constexpr uint32_t kBitMarkUs = 560;

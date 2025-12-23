@@ -28,7 +28,7 @@ namespace esp32ir
     }
     bool Transmitter::sendSamsung(const esp32ir::payload::Samsung &p)
     {
-        constexpr uint16_t kTUs = 5;
+        constexpr uint16_t kTUs = 10;
         constexpr uint32_t kHdrMarkUs = 4500;
         constexpr uint32_t kHdrSpaceUs = 4500;
         constexpr uint32_t kBitMarkUs = 560;

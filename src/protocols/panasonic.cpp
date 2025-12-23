@@ -44,7 +44,7 @@ namespace esp32ir
     }
     bool Transmitter::sendPanasonic(const esp32ir::payload::Panasonic &p)
     {
-        constexpr uint16_t kTUs = 5;
+        constexpr uint16_t kTUs = 10;
         constexpr uint32_t kHdrMarkUs = 3500;
         constexpr uint32_t kHdrSpaceUs = 1750;
         constexpr uint32_t kBitMarkUs = 502;

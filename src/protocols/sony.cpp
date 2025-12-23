@@ -22,7 +22,7 @@ namespace esp32ir
 
     namespace
     {
-        constexpr uint16_t kTUs = 5;
+        constexpr uint16_t kTUs = 10;
         constexpr uint32_t kStartMarkUs = 2400;
         constexpr uint32_t kStartSpaceUs = 600;
         constexpr uint32_t kBitSpaceUs = 600;
