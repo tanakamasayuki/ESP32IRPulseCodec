@@ -547,21 +547,21 @@ void loop() { delay(1000); }
   - `version`: e.g., `"0.1"`
   - `device`: `{ vendor, model, remote? }` (fill manually)
   - `protocol`: e.g., `NEC`, `DaikinAC`; may stay `RAW` if undecoded
-  - `status`: optional `DECODED` | `RAW_ONLY` | `OVERFLOW` (can be inferred: `frameBytes` present ⇒ decoded)
+- `status`: optional `DECODED` | `RAW_ONLY` | `OVERFLOW` (can be inferred: `messageBytes` present ⇒ decoded)
   - `timestampMs`: optional capture time (for ordering)
   - `capture`:
     - `durationsUs`: Mark/Space durations (µs, signed) for one frame (RAW source of truth)
     - `itps`: ITPS frames array `{ "T_us", "flags", "seq":[...] }` (all RAW frames)
   - `expected` (optional, for tests):
     - `protocol`: expected protocol name
-    - `frameBytes`: expected decoded bytes (decimal array)
+    - `messageBytes`: expected ProtocolMessage bytes (decimal array, logical order)
     - `payload`: decoded payload object, either keyed by protocol name or flat  
       - keyed example: `{ "NEC": { "address": 0, "command": 162, "repeat": false } }`  
       - flat example: `{ "address": 0, "command": 162, "repeat": false }` (matched to detected protocol)
     - `irremote`: optional IRremoteESP8266 view `{ "code": "0x...", "bits": 32 }` (currently NEC only; MSB-first as printed by IRremoteESP8266)
   - `notes`: free text
 - Usage tips:
-  - Use `durationsUs` and `itps` as primary replay sources; treat `frameBytes` as optional helper when decode succeeds.
+  - Use `durationsUs` and `itps` as primary replay sources; treat `messageBytes` as optional helper when decode succeeds.
   - One capture per file under `assets/<protocol>/...json`; fill TODO fields manually after capture.
   - `durationsUs` uses signed microseconds (`+`=Mark, `-`=Space) to align with ITPS and simplify reconstruction.
 
@@ -581,7 +581,7 @@ void loop() { delay(1000); }
   },
   "expected": {
     "protocol": "NEC",
-    "frameBytes": [0, 255, 162, 93],
+    "messageBytes": [0, 255, 162, 93],
     "payload": { "address": 0, "command": 162, "repeat": false },
     "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },

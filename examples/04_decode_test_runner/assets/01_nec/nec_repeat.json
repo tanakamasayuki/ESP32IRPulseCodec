@@ -45,7 +45,7 @@
   },
   "expected": {
     "protocol": "NEC",
-    "frameBytes": [
+    "messageBytes": [
       0,
       0,
       0,

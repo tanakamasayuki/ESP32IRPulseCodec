@@ -35,12 +35,16 @@ static std::string getStringField(cJSON *obj, const char *key)
   return {};
 }
 
-// en: parse frameBytes array (decimal) if present
-// ja: frameBytes 配列（10進）をパース
-static std::vector<uint8_t> parseFrameBytes(cJSON *capture)
+// en: parse messageBytes array (ProtocolMessage bytes, decimal). Accepts legacy frameBytes for backward compatibility.
+// ja: messageBytes 配列（ProtocolMessageのバイト列、10進）をパース。後方互換のため frameBytes も受け付ける。
+static std::vector<uint8_t> parseMessageBytes(cJSON *capture)
 {
   std::vector<uint8_t> bytes;
-  cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "frameBytes");
+  cJSON *arr = cJSON_GetObjectItemCaseSensitive(capture, "messageBytes");
+  if (!cJSON_IsArray(arr))
+  {
+    arr = cJSON_GetObjectItemCaseSensitive(capture, "frameBytes"); // legacy
+  }
   if (!cJSON_IsArray(arr))
     return bytes;
   cJSON *it = nullptr;
@@ -95,7 +99,8 @@ static esp32ir::ITPSBuffer buildITPS(cJSON *capture)
   }
 
   cJSON *itpsArr = cJSON_GetObjectItemCaseSensitive(capture, "itps");
-  auto quantizeSeq = [](const std::vector<int32_t> &usList, uint16_t T_us) {
+  auto quantizeSeq = [](const std::vector<int32_t> &usList, uint16_t T_us)
+  {
     std::vector<int8_t> seq;
     for (int32_t us : usList)
     {
@@ -194,7 +199,6 @@ void setup()
     }
 
     cJSON *capture = cJSON_GetObjectItemCaseSensitive(root, "capture");
-    std::vector<uint8_t> frameBytes = capture ? parseFrameBytes(capture) : std::vector<uint8_t>{};
     esp32ir::ITPSBuffer buf = capture ? buildITPS(capture) : esp32ir::ITPSBuffer{};
 
     // en: configure decoder protocols (limit when protocol specified)
@@ -288,7 +292,7 @@ void setup()
     if (!result.payloadStorage.empty())
     {
       std::string fb = bytesToString(result.payloadStorage);
-      Serial.printf("frameBytes=[%s]\n", fb.c_str());
+      Serial.printf("messageBytes=[%s]\n", fb.c_str());
     }
     if (payloadDecoded)
     {
@@ -369,9 +373,9 @@ void setup()
       // en: show expected info for visibility
       // ja: 想定値を事前に表示
       std::string expProto = getStringField(expected, "protocol");
-      std::vector<uint8_t> expBytes = parseFrameBytes(expected);
+      std::vector<uint8_t> expBytes = parseMessageBytes(expected);
       cJSON *payloadObj = cJSON_GetObjectItemCaseSensitive(expected, "payload");
-    const char *actualProtoStr = esp32ir::util::protocolToString(result.protocol);
+      const char *actualProtoStr = esp32ir::util::protocolToString(result.protocol);
       cJSON *expPayload = nullptr;
       if (payloadObj && actualProtoStr)
       {
@@ -394,7 +398,7 @@ void setup()
           std::string fb = bytesToString(expBytes);
           if (!first)
             Serial.print(F(", "));
-          Serial.printf("frameBytes=[%s]", fb.c_str());
+          Serial.printf("messageBytes=[%s]", fb.c_str());
           first = false;
         }
         if (expPayload && cJSON_IsObject(expPayload))
@@ -441,14 +445,14 @@ void setup()
         ok = false;
         Serial.println(F("FAIL: protocol mismatch"));
       }
-      // frameBytes check
+      // messageBytes check (ProtocolMessage bytes, logical order)
       if (!expBytes.empty())
       {
         if (expBytes.size() != result.payloadStorage.size() ||
             !std::equal(expBytes.begin(), expBytes.end(), result.payloadStorage.begin()))
         {
           ok = false;
-          Serial.println(F("FAIL: frameBytes mismatch"));
+          Serial.println(F("FAIL: messageBytes mismatch"));
         }
       }
       // payload check (protocol-specific, if expected is provided)

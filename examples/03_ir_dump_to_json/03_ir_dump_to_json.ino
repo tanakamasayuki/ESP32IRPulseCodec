@@ -6,9 +6,9 @@
 // ja: 受信インスタンス（市販IR受信モジュールは反転出力が多い）
 esp32ir::Receiver rx(32, /*invert=*/true);
 
-// en: Print decoded frame bytes as decimal array
-// ja: デコード済みバイト列を10進配列で出力
-static void printFrameBytes(const esp32ir::ProtocolMessage &msg)
+// en: Print decoded ProtocolMessage bytes (logical order) as decimal array
+// ja: ProtocolMessage のバイト列（論理順）を10進配列で出力
+static void printMessageBytes(const esp32ir::ProtocolMessage &msg)
 {
   Serial.print("[");
   for (uint16_t i = 0; i < msg.length; ++i)
@@ -247,8 +247,8 @@ void loop()
     Serial.print("    \"protocol\":\"");
     Serial.print(esp32ir::util::protocolToString(r.protocol));
     Serial.println("\", ");
-    Serial.print("    \"frameBytes\":");
-    printFrameBytes(r.message);
+    Serial.print("    \"messageBytes\":");
+    printMessageBytes(r.message);
     Serial.println(", ");
     Serial.print("    \"payload\":{");
     switch (r.protocol)

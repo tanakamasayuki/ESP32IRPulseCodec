@@ -549,21 +549,21 @@ void loop() { delay(1000); }
   - `version`：例 `"0.1"`
   - `device`：`{ vendor, model, remote? }`（手で埋める）
   - `protocol`：例 `NEC`, `DaikinAC`。未デコードなら `RAW` でもよい
-  - `status`：任意。`DECODED` | `RAW_ONLY` | `OVERFLOW`（`frameBytes` があればデコード済みとみなせる）
+- `status`：任意。`DECODED` | `RAW_ONLY` | `OVERFLOW`（`messageBytes` があればデコード済みとみなせる）
   - `timestampMs`：任意（捕捉時刻/順序が必要なとき）
   - `capture`：
     - `durationsUs`：1フレーム分の Mark/Space 長[µs]（符号付き、RAWのソース）
     - `itps`：ITPSフレーム配列 `{ "T_us", "flags", "seq":[...] }`（全フレームのRAW）
   - `expected`（任意、テスト用）：
     - `protocol`：期待プロトコル名
-    - `frameBytes`：期待バイト列（10進配列）
+    - `messageBytes`：ProtocolMessage の論理順バイト列（10進配列）
     - `payload`：デコード結果オブジェクト。プロトコル名でネストでもフラットでもよい  
       - 例（ネスト）：`{ "NEC": { "address": 0, "command": 162, "repeat": false } }`  
       - 例（フラット）：`{ "address": 0, "command": 162, "repeat": false }`（検出したプロトコルに合わせて突き合わせ）
     - `irremote`：IRremoteESP8266互換 `{ "code": "0x...", "bits": 32 }`（現状NECのみ。MSB順でIRremoteESP8266表示に合わせる）
   - `notes`：任意メモ
 - 運用のヒント：
-  - 再送/検証には `durationsUs` と `itps` を主に使い、`frameBytes` はデコード成功時の補助として扱う。
+  - 再送/検証には `durationsUs` と `itps` を主に使い、`messageBytes` はデコード成功時の補助として扱う。
   - 1キャプチャ1ファイルを `assets/<protocol>/...json` に置き、TODO項目は取得後に手で埋める。
   - `durationsUs` は符号付きマイクロ秒（`+`=Mark, `-`=Space）でITPSと整合させ、復元を簡易にする。
 
@@ -583,7 +583,7 @@ void loop() { delay(1000); }
   },
   "expected": {
     "protocol": "NEC",
-    "frameBytes": [0, 255, 162, 93],
+    "messageBytes": [0, 255, 162, 93],
     "payload": { "address": 0, "command": 162, "repeat": false },
     "irremote": { "code": "0x01FE48B7", "bits": 32 }
   },
