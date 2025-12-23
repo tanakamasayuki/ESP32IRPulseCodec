@@ -79,7 +79,8 @@ namespace esp32ir
             ESP_LOGD(kTag, "decodeSONY: collectPulses failed");
             return false;
         }
-        for (uint8_t bits : {12, 15, 20})
+        // Try longer formats first to avoid misclassifying 15/20-bit frames as 12-bit.
+        for (uint8_t bits : {20, 15, 12})
         {
             if (pulses.size() < 2 + bits * 2)
             {
