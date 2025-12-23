@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstdio>
+#include <functional>
 
 // en: Serial-controlled IR transmitter that can send all supported non-AC protocols using flat helpers (sendNEC, sendSONY, ...).
 // ja: シリアル経由でコマンドを受け取り、sendNEC/sendSONYなどのバラ引数版ヘルパーで全対応プロトコル（AC除外）を送信するサンプル。
@@ -125,8 +126,7 @@ static std::string hex(uint32_t v, uint8_t width)
   return std::string(buf);
 }
 
-template <typename Func>
-static bool sendLoop(const char *protoName, const SendOptions &opts, Func sendOnce, const std::string &detail)
+static bool sendLoop(const char *protoName, const SendOptions &opts, const std::function<bool()> &sendOnce, const std::string &detail)
 {
   for (uint16_t i = 0; i < opts.count; ++i)
   {
