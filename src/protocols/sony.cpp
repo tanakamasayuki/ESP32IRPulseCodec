@@ -25,7 +25,7 @@ namespace esp32ir
             itps_encode::appendPulse(seq, false, us, kTUs);
         }
 
-        esp32ir::ITPSBuffer buildSONY(uint16_t address, uint16_t command, uint8_t bits)
+        esp32ir::ITPSBuffer buildSONYFromTxBits(const std::vector<uint8_t> &txBytes, uint16_t bitCount)
         {
             std::vector<int8_t> seq;
             seq.reserve(128);
@@ -33,10 +33,9 @@ namespace esp32ir
             appendMark(seq, kStartMarkUs);
             appendSpace(seq, kStartSpaceUs);
 
-            uint32_t payload = static_cast<uint32_t>(command) | (static_cast<uint32_t>(address) << 7);
-            for (uint8_t i = 0; i < bits; ++i)
+            for (uint16_t i = 0; i < bitCount; ++i)
             {
-                bool one = (payload >> i) & 0x1;
+                bool one = (txBytes[i / 8] >> (i % 8)) & 0x1;
                 appendMark(seq, one ? kBitMark1Us : kBitMark0Us);
                 appendSpace(seq, kBitSpaceUs);
             }
@@ -119,7 +118,12 @@ namespace esp32ir
             ESP_LOGE("ESP32IRPulseCodec", "SONY bits must be 12/15/20 (got %u)", static_cast<unsigned>(bits));
             return false;
         }
-        return sendWithGap(buildSONY(p.address, p.command, bits), recommendedGapUs(esp32ir::Protocol::SONY));
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::SONY, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
+            return false;
+        return sendWithGap(buildSONYFromTxBits(txBytes, bitCount), recommendedGapUs(esp32ir::Protocol::SONY));
     }
     bool Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits)
     {

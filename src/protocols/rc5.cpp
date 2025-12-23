@@ -87,21 +87,18 @@ namespace esp32ir
 
     bool Transmitter::sendRC5(const esp32ir::payload::RC5 &p)
     {
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::RC5, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
+            return false;
+
         std::vector<int8_t> seq;
         seq.reserve(32);
-        // Start bits 1,1 then toggle, then 5 address bits (0), 6 command bits (MSB first)
-        appendBit(seq, true);
-        appendBit(seq, true);
-        appendBit(seq, p.toggle);
-        uint8_t address = 0;
-        for (int i = 4; i >= 0; --i)
+        for (uint16_t i = 0; i < bitCount; ++i)
         {
-            appendBit(seq, (address >> i) & 0x1);
-        }
-        uint16_t cmd = p.command & 0x3F;
-        for (int i = 5; i >= 0; --i)
-        {
-            appendBit(seq, (cmd >> i) & 0x1);
+            bool bit = (txBytes[i / 8] >> (i % 8)) & 0x1;
+            appendBit(seq, bit);
         }
         esp32ir::ITPSFrame frame{kTUs, static_cast<uint16_t>(seq.size()), seq.data(), 0};
         esp32ir::ITPSBuffer buf;

@@ -7,6 +7,23 @@
 namespace esp32ir
 {
 
+    bool buildNECTxBitstream(uint16_t address, uint8_t command, std::vector<uint8_t> &out)
+    {
+        out.clear();
+        out.reserve(4);
+        uint8_t addrLo = static_cast<uint8_t>(address & 0xFF);
+        uint8_t addrHi = static_cast<uint8_t>((address >> 8) & 0xFF);
+        if (address <= 0xFF)
+        {
+            addrHi = static_cast<uint8_t>(~addrLo); // NEC 8-bit address: fill complement
+        }
+        out.push_back(addrLo);
+        out.push_back(addrHi);
+        out.push_back(command);
+        out.push_back(static_cast<uint8_t>(~command));
+        return true;
+    }
+
     namespace
     {
         constexpr uint16_t kTUs = 5; // default quantization
@@ -32,6 +49,15 @@ namespace esp32ir
         {
             appendMark(seq, kBitMarkUs);
             appendSpace(seq, one ? kOneSpaceUs : kZeroSpaceUs);
+        }
+
+        void appendBitstream(std::vector<int8_t> &seq, const std::vector<uint8_t> &txBytes, uint16_t bitCount)
+        {
+            for (uint16_t bit = 0; bit < bitCount; ++bit)
+            {
+                uint8_t b = txBytes[bit / 8];
+                appendBit(seq, (b >> (bit % 8)) & 0x1); // LSB-first per byte
+            }
         }
 
         bool decodeNecRaw(const esp32ir::RxResult &in, bool &isRepeat, uint64_t &dataOut)
@@ -100,7 +126,7 @@ namespace esp32ir
             return true;
         }
 
-        esp32ir::ITPSBuffer buildNECFrame(uint16_t address, uint8_t command)
+        esp32ir::ITPSBuffer buildNECFrame(const std::vector<uint8_t> &txBytes, uint16_t bitCount)
         {
             std::vector<int8_t> seq;
             seq.reserve(256);
@@ -108,23 +134,7 @@ namespace esp32ir
             appendMark(seq, kHdrMarkUs);
             appendSpace(seq, kHdrSpaceUs);
 
-            // NEC32: addr low, addr high, cmd, ~cmd (LSB first)
-            uint8_t addrLo = static_cast<uint8_t>(address & 0xFF);
-            uint8_t addrHi = static_cast<uint8_t>((address >> 8) & 0xFF);
-            // If caller passes 8-bit address (common NEC), auto-fill inverted high byte.
-            if (address <= 0xFF)
-            {
-                addrHi = static_cast<uint8_t>(~addrLo);
-            }
-            uint32_t data = static_cast<uint32_t>(addrLo);
-            data |= static_cast<uint32_t>(addrHi) << 8;
-            data |= static_cast<uint32_t>(command) << 16;
-            data |= static_cast<uint32_t>(~command & 0xFF) << 24;
-
-            for (uint8_t bit = 0; bit < 32; ++bit)
-            {
-                appendBit(seq, (data >> bit) & 0x1);
-            }
+            appendBitstream(seq, txBytes, bitCount);
             appendMark(seq, kBitMarkUs); // stop bit
 
             esp32ir::ITPSFrame frame{kTUs, static_cast<uint16_t>(seq.size()), seq.data(), 0};
@@ -192,7 +202,15 @@ namespace esp32ir
         {
             return sendWithGap(buildNECRepeat(), recommendedGapUs(esp32ir::Protocol::NEC));
         }
-        return sendWithGap(buildNECFrame(p.address, p.command), recommendedGapUs(esp32ir::Protocol::NEC));
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::NEC, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
+        {
+            ESP_LOGE("ESP32IRPulseCodec", "NEC tx bitstream build failed");
+            return false;
+        }
+        return sendWithGap(buildNECFrame(txBytes, bitCount), recommendedGapUs(esp32ir::Protocol::NEC));
     }
 
     bool Transmitter::sendNEC(uint16_t address, uint8_t command, bool repeat)

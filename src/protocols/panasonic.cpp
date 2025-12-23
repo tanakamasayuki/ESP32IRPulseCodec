@@ -38,14 +38,13 @@ namespace esp32ir
         constexpr uint32_t kZeroSpaceUs = 424;
         constexpr uint32_t kOneSpaceUs = 1244;
 
-        if (p.nbits == 0 || p.nbits > 32)
-        {
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::Panasonic, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
             return false;
-        }
-        uint64_t data = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.data) << 16);
-        uint8_t totalBits = static_cast<uint8_t>(16 + p.nbits);
-        esp32ir::ITPSBuffer buf = nec_like::build(kTUs, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs,
-                                                  kZeroSpaceUs, kOneSpaceUs, data, totalBits, true);
+        esp32ir::ITPSBuffer buf = nec_like::buildFromTxBytes(kTUs, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs,
+                                                             kZeroSpaceUs, kOneSpaceUs, txBytes, static_cast<uint8_t>(bitCount), true);
         return sendWithGap(buf, recommendedGapUs(esp32ir::Protocol::Panasonic));
     }
     bool Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits)

@@ -26,7 +26,7 @@ namespace esp32ir
             itps_encode::appendPulse(seq, false, us, kTUs);
         }
 
-        esp32ir::ITPSBuffer buildAEHA(uint16_t address, uint32_t data, uint8_t nbits)
+        esp32ir::ITPSBuffer buildAEHAFromTxBits(const std::vector<uint8_t> &txBytes, uint16_t bitCount)
         {
             std::vector<int8_t> seq;
             seq.reserve(256);
@@ -34,11 +34,9 @@ namespace esp32ir
             appendMark(seq, kHdrMarkUs);
             appendSpace(seq, kHdrSpaceUs);
 
-            uint64_t payload = static_cast<uint64_t>(address) | (static_cast<uint64_t>(data) << 16);
-            uint8_t totalBits = static_cast<uint8_t>(16 + nbits);
-            for (uint8_t i = 0; i < totalBits; ++i)
+            for (uint16_t i = 0; i < bitCount; ++i)
             {
-                bool one = (payload >> i) & 0x1;
+                bool one = (txBytes[i / 8] >> (i % 8)) & 0x1;
                 appendMark(seq, kBitMarkUs);
                 appendSpace(seq, one ? kOneSpaceUs : kZeroSpaceUs);
             }
@@ -109,7 +107,12 @@ namespace esp32ir
             ESP_LOGE("ESP32IRPulseCodec", "AEHA nbits must be 1..32 (got %u)", static_cast<unsigned>(p.nbits));
             return false;
         }
-        return sendWithGap(buildAEHA(p.address, p.data, p.nbits), recommendedGapUs(esp32ir::Protocol::AEHA));
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::AEHA, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
+            return false;
+        return sendWithGap(buildAEHAFromTxBits(txBytes, bitCount), recommendedGapUs(esp32ir::Protocol::AEHA));
     }
     bool Transmitter::sendAEHA(uint16_t address, uint32_t data, uint8_t nbits)
     {

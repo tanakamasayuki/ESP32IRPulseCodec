@@ -223,6 +223,10 @@ namespace esp32ir
     uint32_t flags;
   };
 
+  // Build TxBitstream (protocol-defined on-wire byte/bit order) from ProtocolMessage.
+  // Returns false if protocol/length is unsupported.
+  bool buildTxBitstream(const esp32ir::ProtocolMessage &message, std::vector<uint8_t> &out, uint16_t &bitCount);
+
   struct RxResult
   {
     esp32ir::RxStatus status;

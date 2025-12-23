@@ -44,6 +44,20 @@ static std::string protocolMessageHex(const esp32ir::ProtocolMessage &msg)
   return out;
 }
 
+// en: convert raw bytes vector to comma-separated hex string
+// ja: バイト配列をカンマ区切りHEX文字列に変換
+static std::string bytesHex(const std::vector<uint8_t> &bytes)
+{
+  std::string out;
+  for (size_t i = 0; i < bytes.size(); ++i)
+  {
+    if (i)
+      out += ",";
+    out += toHex(bytes[i], 2);
+  }
+  return out;
+}
+
 // en: Dump ITPS frames as JSON array
 // ja: ITPSフレームをJSON配列として出力
 static void printITPS(const esp32ir::ITPSBuffer &raw)
@@ -233,6 +247,11 @@ void loop()
   Serial.println("  },");
   if (decoded)
   {
+    std::vector<uint8_t> txBytes;
+    uint16_t txBitCount = 0;
+    esp32ir::ProtocolMessage msg{r.protocol, r.message.data, r.message.length, r.message.flags};
+    esp32ir::buildTxBitstream(msg, txBytes, txBitCount);
+
     Serial.println("  \"expected\":{");
     Serial.print("    \"protocol\":\"");
     Serial.print(esp32ir::util::protocolToString(r.protocol));
@@ -243,7 +262,7 @@ void loop()
 
     std::string decodedText = std::string("protocol=") + esp32ir::util::protocolToString(r.protocol);
     decodedText += ",ProtocolMessage=" + protocolMessageHex(r.message);
-    decodedText += ",TxBitstream(lsb-first)=" + protocolMessageHex(r.message); // on-wire shift order
+    decodedText += ",TxBitstream(lsb-first)=" + bytesHex(txBytes);
 
     Serial.print("    \"payload\":{");
     switch (r.protocol)

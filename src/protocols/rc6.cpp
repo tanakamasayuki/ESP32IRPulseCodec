@@ -91,25 +91,31 @@ namespace esp32ir
 
     bool Transmitter::sendRC6(const esp32ir::payload::RC6 &p)
     {
+        std::vector<uint8_t> txBytes;
+        uint16_t bitCount = 0;
+        esp32ir::ProtocolMessage msg{esp32ir::Protocol::RC6, reinterpret_cast<const uint8_t *>(&p), static_cast<uint16_t>(sizeof(p)), 0};
+        if (!esp32ir::buildTxBitstream(msg, txBytes, bitCount) || bitCount == 0)
+            return false;
+
         std::vector<int8_t> seq;
         seq.reserve(64);
         // Leader 2T mark, 2T space
         itps_encode::appendPulse(seq, true, kTUs * 2, kTUs);
         itps_encode::appendPulse(seq, false, kTUs * 2, kTUs);
         // Start bit (always 1) with double width Manchester
-        itps_encode::appendPulse(seq, true, kTUs * 2, kTUs);
-        itps_encode::appendPulse(seq, false, kTUs * 2, kTUs);
-
-        uint32_t mode = p.mode & 0x7; // 3 bits
-        for (int i = 2; i >= 0; --i)
+        // TxBitstream bit0 is the start bit
+        for (uint16_t i = 0; i < bitCount; ++i)
         {
-            appendBit(seq, (mode >> i) & 0x1);
-        }
-        appendBit(seq, p.toggle);
-        uint32_t cmd = p.command & 0xFFFF;
-        for (int i = 15; i >= 0; --i)
-        {
-            appendBit(seq, (cmd >> i) & 0x1);
+            bool bit = (txBytes[i / 8] >> (i % 8)) & 0x1;
+            if (i == 0)
+            {
+                itps_encode::appendPulse(seq, true, kTUs * 2, kTUs);
+                itps_encode::appendPulse(seq, false, kTUs * 2, kTUs);
+            }
+            else
+            {
+                appendBit(seq, bit);
+            }
         }
         esp32ir::ITPSFrame frame{kTUs, static_cast<uint16_t>(seq.size()), seq.data(), 0};
         esp32ir::ITPSBuffer buf;

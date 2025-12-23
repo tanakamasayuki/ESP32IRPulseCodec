@@ -95,5 +95,27 @@ namespace esp32ir
             outData = data;
             return true;
         }
+
+        inline esp32ir::ITPSBuffer buildFromTxBytes(uint16_t T_us,
+                                                    uint32_t headerMarkUs,
+                                                    uint32_t headerSpaceUs,
+                                                    uint32_t bitMarkUs,
+                                                    uint32_t zeroSpaceUs,
+                                                    uint32_t oneSpaceUs,
+                                                    const std::vector<uint8_t> &txBytes,
+                                                    uint8_t bits,
+                                                    bool trailingMark = true)
+        {
+            if (bits == 0 || bits > 64)
+                return esp32ir::ITPSBuffer{};
+            uint64_t data = 0;
+            for (uint8_t i = 0; i < bits; ++i)
+            {
+                uint8_t b = txBytes[i / 8];
+                if ((b >> (i % 8)) & 0x1)
+                    data |= (uint64_t{1} << i);
+            }
+            return build(T_us, headerMarkUs, headerSpaceUs, bitMarkUs, zeroSpaceUs, oneSpaceUs, data, bits, trailingMark);
+        }
     } // namespace nec_like
 } // namespace esp32ir
