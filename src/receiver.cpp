@@ -893,6 +893,8 @@ namespace esp32ir
         std::vector<std::vector<int8_t>> framesData;
         std::vector<int8_t> current;
         uint32_t currentTimeUs = 0;
+        uint32_t spaceRunUs = 0;
+        size_t spaceRunStartIndex = 0;
         auto flush = [&](bool &overflowFlag)
         {
             if (!current.empty())
@@ -912,8 +914,21 @@ namespace esp32ir
             uint32_t durUs = static_cast<uint32_t>((v < 0 ? -v : v) * quantizeT_);
             bool isSpace = v < 0;
 
+            if (isSpace)
+            {
+                if (spaceRunUs == 0)
+                {
+                    spaceRunStartIndex = current.size();
+                }
+                spaceRunUs += durUs;
+            }
+            else
+            {
+                spaceRunUs = 0;
+            }
+
             bool forceSplit = false;
-            if (isSpace && durUs >= params.hardGapUs)
+            if (isSpace && spaceRunUs >= params.hardGapUs)
             {
                 forceSplit = true;
             }
@@ -929,18 +944,36 @@ namespace esp32ir
                     current.push_back(static_cast<int8_t>(v));
                     currentTimeUs += durUs;
                 }
+                else
+                {
+                    // drop the accumulated gap from the frame
+                    if (current.size() > spaceRunStartIndex)
+                    {
+                        current.resize(spaceRunStartIndex);
+                    }
+                    if (currentTimeUs > spaceRunUs)
+                    {
+                        currentTimeUs -= spaceRunUs;
+                    }
+                    else
+                    {
+                        currentTimeUs = 0;
+                    }
+                }
                 flush(overflowed);
+                spaceRunUs = 0;
                 continue;
             }
 
             if (current.empty() && isSpace)
             {
+                spaceRunUs = 0;
                 continue;
             }
             current.push_back(static_cast<int8_t>(v));
             currentTimeUs += durUs;
 
-            if (isSpace && durUs >= params.frameGapUs)
+            if (isSpace && spaceRunUs >= params.frameGapUs)
             {
                 if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
                 {
@@ -948,9 +981,22 @@ namespace esp32ir
                 }
                 else
                 {
-                    current.pop_back(); // drop gap
+                    // drop the accumulated gap from the frame
+                    if (current.size() >= spaceRunStartIndex)
+                    {
+                        current.resize(spaceRunStartIndex);
+                    }
+                    if (currentTimeUs > spaceRunUs)
+                    {
+                        currentTimeUs -= spaceRunUs;
+                    }
+                    else
+                    {
+                        currentTimeUs = 0;
+                    }
                     flush(overflowed);
                 }
+                spaceRunUs = 0;
             }
         }
         flush(overflowed);
