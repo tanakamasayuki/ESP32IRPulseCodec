@@ -99,7 +99,7 @@ AC学習や未知プロトコルの再送に利用する。反転が必要なら
   - `splitPolicy`：`DROP_GAP`（デコード向け、ギャップをフレームに含めない） / `KEEP_GAP_IN_FRAME`（RAW向け）。
   - `frameCountMax` 超過時は `OVERFLOW` として通知し、取得できたRAWを返す。
   - ITPS 化では SPEC_ITPS 準拠で正規化（Mark開始・`seq[i]` は0禁止かつ `1..127/-1..-127` の範囲、長区間は ±127 分割、不要分割は除去）し、反転は扱わない。
-- `T_us` は全フレーム共通の量子化値とし、既定は 10us を想定（前段で調整）。
+- `T_us` は全フレーム共通の量子化値とし、既定は 10us を想定（前段で調整）。受信時は `T_us` に合わせて RMT の分解能（`resolution_hz`）を `1e6 / T_us` に設定し、ハードのカウントと ITPS 量子化を一致させる。
 - パラメータの決め方
   - 各プロトコルは推奨値（例：`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`）を持ち、受信開始時に有効プロトコルから自動マージしてデフォルトを生成する。
   - マージ例（推奨）：

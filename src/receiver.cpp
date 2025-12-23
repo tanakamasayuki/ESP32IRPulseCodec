@@ -293,10 +293,12 @@ namespace esp32ir
             return false;
         }
         rxOverflowed_ = false;
+        // Match RMT resolution to quantizeT_ (T_us) to minimize timing error.
+        rmt_resolution_hz_t resolutionHz = static_cast<rmt_resolution_hz_t>(1000000u / std::max<uint16_t>(1, quantizeT_));
         rmt_rx_channel_config_t config = {
             .gpio_num = static_cast<gpio_num_t>(rxPin_),
             .clk_src = RMT_CLK_SRC_DEFAULT,
-            .resolution_hz = 1000000,
+            .resolution_hz = resolutionHz,
             .mem_block_symbols = 64,
             .intr_priority = 0,
             .flags = {
@@ -824,12 +826,14 @@ namespace esp32ir
             {
                 // invertInput_ is already applied by RMT hardware (flags.invert_in).
                 bool mark = sym.level0 != 0;
-                pushSeq(seq, mark, sym.duration0, quantizeT_);
+                uint32_t durUs = static_cast<uint32_t>(sym.duration0) * static_cast<uint32_t>(quantizeT_);
+                pushSeq(seq, mark, durUs, quantizeT_);
             }
             if (sym.duration1)
             {
                 bool mark = sym.level1 != 0;
-                pushSeq(seq, mark, sym.duration1, quantizeT_);
+                uint32_t durUs = static_cast<uint32_t>(sym.duration1) * static_cast<uint32_t>(quantizeT_);
+                pushSeq(seq, mark, durUs, quantizeT_);
             }
         }
         // restart reception

@@ -91,7 +91,7 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
 - Modes
   - **KNOWN_ONLY** (default): Decode using enabled protocols. RAW is attached only when `useRawPlusKnown()` is selected.
   - **RAW_ONLY** (`useRawOnly()`): Do not decode; return ITPS.
-  - **RAW_PLUS_KNOWN** (`useRawPlusKnown()`): Try decode and keep RAW even on success.
+- **RAW_PLUS_KNOWN** (`useRawPlusKnown()`): Try decode and keep RAW even on success.
 - Split/robustness
   - Use `frameGapUs` / `hardGapUs` to split frames. Space longer than `hardGapUs` forces a split.
   - If `maxFrameUs` would be exceeded, force split at a Space boundary to avoid dropping data.
@@ -99,7 +99,7 @@ Used for AC learning or unknown protocol replay. If inversion is needed, handle 
   - `splitPolicy`: `DROP_GAP` (for decoding, do not include gap) / `KEEP_GAP_IN_FRAME` (for RAW).
   - If `frameCountMax` is exceeded, notify as `OVERFLOW` and still return whatever RAW was captured.
   - ITPS normalization follows SPEC_ITPS: starts with Mark, `seq[i]` never 0, range `1..127/-1..-127`, long segments split at ±127, unnecessary splits removed, polarity not inverted.
-- `T_us` is common across frames; default assumption 10us (adjust earlier if needed).
+- `T_us` is common across frames; default assumption 10us (adjust earlier if needed). RX時は `T_us` に合わせて RMT の分解能（resolution_hz）を 1e6/`T_us` に設定し、ハードのカウント精度と ITPS 量子化を一致させる。
 - Parameter selection
   - Each protocol has recommended params (`frameGapUs/hardGapUs/minFrameUs/maxFrameUs/minEdges/splitPolicy`). On begin, merge recommendations from enabled protocols to form defaults.
   - Merge guideline:
