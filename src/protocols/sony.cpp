@@ -28,6 +28,7 @@ namespace esp32ir
         constexpr uint32_t kBitSpaceUs = 600;
         constexpr uint32_t kBitMark0Us = 600;
         constexpr uint32_t kBitMark1Us = 1200;
+        constexpr uint32_t kBitThresholdUs = (kBitMark0Us + kBitMark1Us) / 2;
 
         void appendMark(std::vector<int8_t> &seq, uint32_t us)
         {
@@ -91,12 +92,12 @@ namespace esp32ir
                 return true;
             };
             idx = 0;
-            if (!ok(true, 2400, 25) || !ok(false, 600, 35))
+            if (!ok(true, kStartMarkUs, 25) || !ok(false, kStartSpaceUs, 35))
                 continue;
             uint32_t data = 0;
             bool okBits = true;
             auto markOk = [&](uint32_t us) {
-                return esp32ir::inRange(us, 600, 35) || esp32ir::inRange(us, 1200, 35);
+                return esp32ir::inRange(us, kBitMark0Us, 35) || esp32ir::inRange(us, kBitMark1Us, 35);
             };
             for (uint8_t i = 0; i < bits; ++i)
             {
@@ -107,12 +108,12 @@ namespace esp32ir
                 }
                 uint32_t markLen = pulses[idx].us;
                 ++idx;
-                if (idx >= pulses.size() || pulses[idx].mark || !esp32ir::inRange(pulses[idx].us, 600, 35))
+                if (idx >= pulses.size() || pulses[idx].mark || !esp32ir::inRange(pulses[idx].us, kBitSpaceUs, 35))
                 {
                     okBits = false;
                     break;
                 }
-                bool one = markLen > 900;
+                bool one = markLen > kBitThresholdUs;
                 if (one)
                     data |= (1u << i);
                 ++idx;
