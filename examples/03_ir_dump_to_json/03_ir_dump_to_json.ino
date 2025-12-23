@@ -111,7 +111,7 @@ static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
   }
   const auto &f = raw.frame(0);
   Serial.print("[");
-  int32_t accCounts = 0; // accumulate same-polarity counts to undo ±127 splits
+  int32_t accCounts = 0; // en: accumulate same-polarity counts to undo ±127 splits / ja: 同じ極性のカウントを累積して±127分割を元に戻す
   int prevSign = 0;
   uint16_t printed = 0;
   for (uint16_t i = 0; i < f.len; ++i)
@@ -128,7 +128,7 @@ static void printDurationsUs(const esp32ir::ITPSBuffer &raw)
       Serial.print(durUs);
       accCounts = 0;
     }
-    accCounts += (c > 0) ? c : -c; // store as positive counts
+    accCounts += (c > 0) ? c : -c; // en: store as positive counts / ja: 正のカウントとして保持
     prevSign = sign;
   }
   if (accCounts != 0)
