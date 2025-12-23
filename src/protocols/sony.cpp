@@ -95,9 +95,12 @@ namespace esp32ir
                 continue;
             uint32_t data = 0;
             bool okBits = true;
+            auto markOk = [&](uint32_t us) {
+                return esp32ir::inRange(us, 600, 35) || esp32ir::inRange(us, 1200, 35);
+            };
             for (uint8_t i = 0; i < bits; ++i)
             {
-                if (idx >= pulses.size() || !esp32ir::inRange(pulses[idx].us, 600, 35) || !pulses[idx].mark)
+                if (idx >= pulses.size() || !markOk(pulses[idx].us) || !pulses[idx].mark)
                 {
                     okBits = false;
                     break;
