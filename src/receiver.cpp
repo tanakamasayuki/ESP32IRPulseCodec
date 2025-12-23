@@ -378,10 +378,12 @@ namespace esp32ir
         uint32_t maxSymbolUs = std::max(effFrameGapUs_, effHardGapUs_);
         if (maxSymbolUs == 0)
             maxSymbolUs = 20000; // fallback to default hardGap
-        const uint64_t kRmtMaxNs = 65000000ULL; // RMT limit < 65.535ms
+        // Hardware tick upper limit scales with resolution; base is ~65.5ms at 1us ticks.
+        const uint64_t kRmtBaseMaxNs = 65000000ULL; // at 1us resolution
         uint64_t desiredMaxNs = static_cast<uint64_t>(maxSymbolUs) * 1000ULL;
-        if (desiredMaxNs > kRmtMaxNs)
-            desiredMaxNs = kRmtMaxNs;
+        uint64_t scaledMaxNs = kRmtBaseMaxNs * std::max<uint16_t>(1, quantizeT_);
+        if (desiredMaxNs > scaledMaxNs)
+            desiredMaxNs = scaledMaxNs;
         rxBuffer_.resize(512);
         rxConfig_.signal_range_min_ns = 1000;
         rxConfig_.signal_range_max_ns = desiredMaxNs;
