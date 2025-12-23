@@ -1105,37 +1105,13 @@ namespace esp32ir
         // Allow a small tolerance when deciding gaps to cope with measurement jitter.
         const uint32_t gapToleranceUs = params.frameGapUs ? std::max<uint32_t>(quantizeT_, params.frameGapUs / 20) : quantizeT_;
         const uint32_t hardGapToleranceUs = params.hardGapUs ? std::max<uint32_t>(quantizeT_, params.hardGapUs / 20) : quantizeT_;
-        ESP_LOGD(kTag, "RX split params frameGapUs=%u hardGapUs=%u tol=%u/%u splitPolicy=%s",
-                 static_cast<unsigned>(params.frameGapUs),
-                 static_cast<unsigned>(params.hardGapUs),
-                 static_cast<unsigned>(gapToleranceUs),
-                 static_cast<unsigned>(hardGapToleranceUs),
-                 splitPolicyName(params.splitPolicy));
-        auto totalTimeUs = [&](const std::vector<int8_t> &s) -> uint32_t
-        {
-            uint32_t total = 0;
-            for (int v : s)
-            {
-                int mag = v < 0 ? -v : v;
-                total += static_cast<uint32_t>(mag) * static_cast<uint32_t>(quantizeT_);
-            }
-            return total;
-        };
         auto flush = [&](bool &overflowFlag, bool allowShort)
         {
             if (!current.empty())
             {
-                size_t before = framesData.size();
                 if (!appendFrameIfValid(current, quantizeT_, params, framesData, allowShort))
                 {
                     overflowFlag = true;
-                }
-                if (framesData.size() > before)
-                {
-                    ESP_LOGD(kTag, "RX frame appended edges=%u time_us=%u allowShort=%d",
-                             static_cast<unsigned>(framesData.back().size()),
-                             static_cast<unsigned>(totalTimeUs(framesData.back())),
-                             allowShort ? 1 : 0);
                 }
                 current.clear();
                 currentTimeUs = 0;
@@ -1177,14 +1153,6 @@ namespace esp32ir
 
             if (forceSplit && !current.empty())
             {
-                ESP_LOGD(kTag, "RX split by %s: spaceRunUs=%u durUs=%u frameGapUs=%u hardGapUs=%u currEdges=%u currTimeUs=%u",
-                         (params.hardGapUs > 0 && (spaceRunUs + hardGapToleranceUs) >= params.hardGapUs) ? "hardGap" : "maxFrame",
-                         static_cast<unsigned>(spaceRunUs),
-                         static_cast<unsigned>(durUs),
-                         static_cast<unsigned>(params.frameGapUs),
-                         static_cast<unsigned>(params.hardGapUs),
-                         static_cast<unsigned>(current.size()),
-                         static_cast<unsigned>(currentTimeUs));
                 if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
                 {
                     current.push_back(static_cast<int8_t>(v));
@@ -1221,12 +1189,6 @@ namespace esp32ir
 
             if (isSpace && params.frameGapUs > 0 && (spaceRunUs + gapToleranceUs) >= params.frameGapUs)
             {
-                ESP_LOGD(kTag, "RX gap flush: spaceRunUs=%u frameGapUs=%u tol=%u edges=%u timeUs=%u",
-                         static_cast<unsigned>(spaceRunUs),
-                         static_cast<unsigned>(params.frameGapUs),
-                         static_cast<unsigned>(gapToleranceUs),
-                         static_cast<unsigned>(current.size()),
-                         static_cast<unsigned>(currentTimeUs));
                 if (params.splitPolicy == esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME)
                 {
                     flush(overflowed, /*allowShort=*/true);
@@ -1252,13 +1214,6 @@ namespace esp32ir
             }
         }
         bool allowShortFinal = (current.size() < params.minEdges) && (currentTimeUs >= params.minFrameUs);
-        ESP_LOGD(kTag, "RX split loop end edges=%u timeUs=%u maxSpaceRunUs=%u frameGapUs=%u hardGapUs=%u allowShortFinal=%d",
-                 static_cast<unsigned>(current.size()),
-                 static_cast<unsigned>(currentTimeUs),
-                 static_cast<unsigned>(maxSpaceRunUs),
-                 static_cast<unsigned>(params.frameGapUs),
-                 static_cast<unsigned>(params.hardGapUs),
-                 allowShortFinal ? 1 : 0);
         flush(overflowed, /*allowShort=*/allowShortFinal);
 
         if (framesData.empty())
@@ -1286,7 +1241,6 @@ namespace esp32ir
             }
             return false;
         }
-        ESP_LOGD(kTag, "RX segmented frames=%u pending_before=%u", static_cast<unsigned>(newSegments.size()), static_cast<unsigned>(pendingSegments_.size()));
         PendingSegment first = std::move(newSegments.front());
         for (size_t i = 1; i < newSegments.size(); ++i)
         {
