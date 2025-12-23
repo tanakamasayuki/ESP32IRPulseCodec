@@ -9,7 +9,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kSonyParams{30000, 50000, 4000, 80000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+        // SONY gap heuristics for splitting (matches recommended params in receiver)
+        const RxParamPreset kSonyParams{
+            30000, // frameGapUs
+            50000, // hardGapUs
+            4000,  // minFrameUs
+            80000, // maxFrameUs
+            8,     // minEdges
+            0,     // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
     }
 
     namespace

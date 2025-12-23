@@ -7,7 +7,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kACParams{60000, 80000, 8000, 200000, 10, 4, esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME};
+        // AC family gap heuristics for splitting
+        const RxParamPreset kACParams{
+            60000,  // frameGapUs
+            80000,  // hardGapUs
+            8000,   // minFrameUs
+            200000, // maxFrameUs
+            10,     // minEdges
+            4,      // frameCountMax
+            esp32ir::RxSplitPolicy::KEEP_GAP_IN_FRAME};
     }
 
     bool decodeMitsubishi(const esp32ir::RxResult &in, esp32ir::payload::Mitsubishi &out)

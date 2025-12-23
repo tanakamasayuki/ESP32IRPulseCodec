@@ -7,7 +7,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kJVCParams{35000, 50000, 6000, 90000, 10, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+        // JVC gap heuristics for splitting (matches recommended params in receiver)
+        const RxParamPreset kJVCParams{
+            35000, // frameGapUs
+            50000, // hardGapUs
+            6000,  // minFrameUs
+            90000, // maxFrameUs
+            10,    // minEdges
+            0,     // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
     }
 
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)

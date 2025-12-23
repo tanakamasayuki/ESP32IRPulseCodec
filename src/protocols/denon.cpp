@@ -7,7 +7,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kRC5Params{25000, 40000, 3000, 60000, 12, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+        // RC5 (used by Denon) gap heuristics for splitting
+        const RxParamPreset kRC5Params{
+            25000, // frameGapUs
+            40000, // hardGapUs
+            3000,  // minFrameUs
+            60000, // maxFrameUs
+            12,    // minEdges
+            0,     // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
     }
 
     bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out)

@@ -9,7 +9,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kAEHAParams{30000, 45000, 4000, 100000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+        // AEHA gap heuristics for splitting (matches recommended params in receiver)
+        const RxParamPreset kAEHAParams{
+            30000,  // frameGapUs
+            45000,  // hardGapUs
+            4000,   // minFrameUs
+            100000, // maxFrameUs
+            8,      // minEdges
+            0,      // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
     }
 
     namespace

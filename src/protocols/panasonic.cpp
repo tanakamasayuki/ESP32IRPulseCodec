@@ -8,7 +8,15 @@ namespace esp32ir
 
     namespace proto_const
     {
-        const RxParamPreset kPanasonicParams{30000, 45000, 6000, 90000, 8, 0, esp32ir::RxSplitPolicy::DROP_GAP};
+        // Panasonic gap heuristics for splitting (matches recommended params in receiver)
+        const RxParamPreset kPanasonicParams{
+            30000, // frameGapUs
+            45000, // hardGapUs
+            6000,  // minFrameUs
+            90000, // maxFrameUs
+            8,     // minEdges
+            0,     // frameCountMax
+            esp32ir::RxSplitPolicy::DROP_GAP};
     }
 
     bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out)
