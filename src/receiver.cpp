@@ -339,39 +339,6 @@ namespace esp32ir
             rxChannel_ = nullptr;
             return false;
         }
-        rxBuffer_.resize(512);
-        rxConfig_.signal_range_min_ns = 1000;
-        rxConfig_.signal_range_max_ns = 65000000; // RMT limit < 65.535ms
-        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
-        {
-            ESP_LOGE(kTag, "RX begin failed: rmt_receive");
-            vQueueDelete(rxQueue_);
-            rxQueue_ = nullptr;
-            rmt_del_channel(rxChannel_);
-            rxChannel_ = nullptr;
-            return false;
-        }
-
-        if (!useRawOnly_)
-        {
-            if (protocols_.empty())
-            {
-                protocols_ = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
-            }
-            else if (useKnownNoAC_)
-            {
-                std::vector<esp32ir::Protocol> filtered;
-                for (auto p : protocols_)
-                {
-                    if (!isACProtocol(p))
-                    {
-                        dedupAppend(filtered, p);
-                    }
-                }
-                protocols_.swap(filtered);
-            }
-        }
-
         // Resolve effective RX parameters once at begin (per spec).
         RxParams params = defaultParams(useRawOnly_ || useRawPlusKnown_);
         if (!useRawOnly_)
@@ -404,6 +371,47 @@ namespace esp32ir
         effMinEdges_ = params.minEdges;
         effFrameCountMax_ = params.frameCountMax;
         effSplitPolicy_ = params.splitPolicy;
+
+        // RMT symbol range: set max to the longest expected mark/space among merged params (capped by RMT limit).
+        uint32_t maxSymbolUs = std::max(effFrameGapUs_, effHardGapUs_);
+        if (maxSymbolUs == 0)
+            maxSymbolUs = 20000; // fallback to default hardGap
+        const uint64_t kRmtMaxNs = 65000000ULL; // RMT limit < 65.535ms
+        uint64_t desiredMaxNs = static_cast<uint64_t>(maxSymbolUs) * 1000ULL;
+        if (desiredMaxNs > kRmtMaxNs)
+            desiredMaxNs = kRmtMaxNs;
+        rxBuffer_.resize(512);
+        rxConfig_.signal_range_min_ns = 1000;
+        rxConfig_.signal_range_max_ns = desiredMaxNs;
+        if (rmt_receive(rxChannel_, rxBuffer_.data(), rxBuffer_.size() * sizeof(rmt_symbol_word_t), &rxConfig_) != ESP_OK)
+        {
+            ESP_LOGE(kTag, "RX begin failed: rmt_receive");
+            vQueueDelete(rxQueue_);
+            rxQueue_ = nullptr;
+            rmt_del_channel(rxChannel_);
+            rxChannel_ = nullptr;
+            return false;
+        }
+
+        if (!useRawOnly_)
+        {
+            if (protocols_.empty())
+            {
+                protocols_ = useKnownNoAC_ ? knownWithoutAC() : allKnownProtocols();
+            }
+            else if (useKnownNoAC_)
+            {
+                std::vector<esp32ir::Protocol> filtered;
+                for (auto p : protocols_)
+                {
+                    if (!isACProtocol(p))
+                    {
+                        dedupAppend(filtered, p);
+                    }
+                }
+                protocols_.swap(filtered);
+            }
+        }
 
         const char *modeStr = useRawOnly_ ? "RAW_ONLY" : (useRawPlusKnown_ ? "RAW_PLUS_KNOWN" : (useKnownNoAC_ ? "KNOWN_NO_AC" : "KNOWN_ONLY"));
         ESP_LOGD(kTag, "RX init version=%s pin=%d invert=%s T_us=%u mode=%s frameGapUs=%u hardGapUs=%u minFrameUs=%u maxFrameUs=%u minEdges=%u frameCountMax=%u splitPolicy=%s protocols=%u",
