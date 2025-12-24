@@ -321,7 +321,7 @@ void loop()
                       pana.address, pana.address, static_cast<unsigned long>(pana.data), pana.nbits);
         break;
       case esp32ir::Protocol::JVC:
-        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%04X(%u) bits=%u\n",
+        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%02X(%u) bits=%u\n",
                       jvc.address, jvc.address, jvc.command, jvc.command, jvc.bits);
         break;
       case esp32ir::Protocol::Samsung:

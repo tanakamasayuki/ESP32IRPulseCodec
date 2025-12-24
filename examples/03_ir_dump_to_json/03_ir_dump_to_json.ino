@@ -304,8 +304,9 @@ void loop()
                      ",bits=" + std::to_string(pana.nbits);
       break;
     case esp32ir::Protocol::JVC:
-      Serial.printf("\"address\":%u,\"command\":%u", jvc.address, jvc.command);
-      decodedText += ",address=" + toHex(jvc.address, 4) + ",command=" + toHex(jvc.command, 4);
+      Serial.printf("\"address\":%u,\"command\":%u,\"bits\":%u", jvc.address, jvc.command, jvc.bits);
+      decodedText += ",address=" + toHex(jvc.address, 4) + ",command=" + toHex(jvc.command, 2) +
+                     ",bits=" + std::to_string(jvc.bits);
       break;
     case esp32ir::Protocol::Samsung:
       Serial.printf("\"address\":%u,\"command\":%u", samsung.address, samsung.command);

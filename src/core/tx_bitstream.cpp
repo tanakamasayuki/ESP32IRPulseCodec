@@ -99,7 +99,11 @@ namespace esp32ir
             uint64_t payload = 0;
             if (bits == 32)
             {
-                payload = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.command) << 16);
+                uint8_t cmd = p.command;
+                uint8_t inv = static_cast<uint8_t>(~cmd);
+                payload = static_cast<uint64_t>(p.address) |
+                          (static_cast<uint64_t>(cmd) << 16) |
+                          (static_cast<uint64_t>(inv) << 24);
             }
             else // 24-bit: 16-bit address + 8-bit command
             {

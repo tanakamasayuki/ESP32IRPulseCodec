@@ -35,7 +35,7 @@
 - `SONY <address> <command> <bits>` （bits は 12/15/20）
 - `AEHA <address16> <data> <nbits>` （nbits=1..32）
 - `PANA | PANASONIC <address16> <data> <nbits>` （nbits=1..32）
-- `JVC <address16> <command16> [bits]`（`bits`=24または32、省略時32）
+- `JVC <address16> <command8> [bits]`（`bits`=24または32、省略時32）。32bitモードではコマンドの反転バイトを自動付与します。
 - `SAMSUNG <address16> <command16>`
 - `LG <address16> <command16>`
 - `DENON <address16> <command16> [repeat]`

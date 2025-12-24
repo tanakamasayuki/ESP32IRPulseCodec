@@ -340,7 +340,7 @@ bool send(const esp32ir::ProtocolMessage& message);
   - NEC: `[addr_lo, addr_hi, cmd, repeat]`
   - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=12/15/20)
   - AEHA / Panasonic: `[addr_lo, addr_hi, data(4 bytes little-endian), nbits]`
-  - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=24 or 32; cmd upper byte ignored when 24bit)
+  - JVC: `[addr_lo, addr_hi, cmd, bits]` (`bits`=24 or 32; in 32bit mode the inverted cmd byte is added internally on TX and verified on RX)
   - Samsung / LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]` (per struct fields; see headers)
   - RC5: `[cmd_lo, cmd_hi, toggle]`
   - RC6: `[cmd_lo, cmd_hi, mode, toggle]`

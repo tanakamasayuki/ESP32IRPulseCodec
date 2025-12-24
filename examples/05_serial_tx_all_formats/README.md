@@ -35,7 +35,7 @@ Serial-driven IR TX console that uses the flat helper methods (`sendNEC`, `sendS
 - `SONY <address> <command> <bits>` (bits = 12/15/20)
 - `AEHA <address16> <data> <nbits>` (nbits=1..32)
 - `PANA | PANASONIC <address16> <data> <nbits>` (nbits=1..32)
-- `JVC <address16> <command16> [bits]` (`bits`=24 or 32; default 32)
+- `JVC <address16> <command8> [bits]` (`bits`=24 or 32; default 32). 32bit mode sends cmd + inverted cmd automatically.
 - `SAMSUNG <address16> <command16>`
 - `LG <address16> <command16>`
 - `DENON <address16> <command16> [repeat]`

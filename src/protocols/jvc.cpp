@@ -43,19 +43,23 @@ namespace esp32ir
             if (bits == 32)
             {
                 out.address = static_cast<uint16_t>(data & 0xFFFF);
-                out.command = static_cast<uint16_t>(data >> 16);
+                uint8_t cmd = static_cast<uint8_t>((data >> 16) & 0xFF);
+                uint8_t inv = static_cast<uint8_t>((data >> 24) & 0xFF);
+                if ((cmd ^ inv) != 0xFF)
+                    return false;
+                out.command = cmd;
             }
             else if (bits == 24)
             {
                 out.address = static_cast<uint16_t>(data & 0xFFFF);
-                out.command = static_cast<uint16_t>((data >> 16) & 0xFF);
+                out.command = static_cast<uint8_t>((data >> 16) & 0xFF);
             }
             else
             {
                 return false;
             }
             out.bits = bits;
-            ESP_LOGD(kTag, "decodeJVC: decoded %ubits addr=0x%04X cmd=0x%04X",
+            ESP_LOGD(kTag, "decodeJVC: decoded %ubits addr=0x%04X cmd=0x%02X",
                      static_cast<unsigned>(bits),
                      static_cast<unsigned>(out.address),
                      static_cast<unsigned>(out.command));
@@ -94,7 +98,7 @@ namespace esp32ir
                                                              kZeroSpaceUs, kOneSpaceUs, txBytes, static_cast<uint8_t>(bitCount), true);
         return sendWithGap(buf, recommendedGapUs(esp32ir::Protocol::JVC));
     }
-    bool Transmitter::sendJVC(uint16_t address, uint16_t command, uint8_t bits)
+    bool Transmitter::sendJVC(uint16_t address, uint8_t command, uint8_t bits)
     {
         esp32ir::payload::JVC p{address, command, bits};
         return sendJVC(p);
