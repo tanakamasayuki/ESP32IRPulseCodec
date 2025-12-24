@@ -320,6 +320,7 @@ bool send(const esp32ir::ProtocolMessage& message);
 | Panasonic/Kaseikaden      | `esp32ir::payload::Panasonic`    | `esp32ir::decodePanasonic`      | `tx.sendPanasonic(struct/args)`            | ▲    |
 | JVC                       | `esp32ir::payload::JVC`          | `esp32ir::decodeJVC`            | `tx.sendJVC(struct/args)`                  | ▲    |
 | Samsung                   | `esp32ir::payload::Samsung`      | `esp32ir::decodeSamsung`        | `tx.sendSamsung(struct/args)`              | ▲    |
+| Samsung36 (36bit)         | `esp32ir::payload::Samsung36`    | `esp32ir::decodeSamsung36`      | `tx.sendSamsung36(struct/args)`            | △    |
 | LG                        | `esp32ir::payload::LG`           | `esp32ir::decodeLG`             | `tx.sendLG(struct/args)`                   | ▲    |
 | Denon/Sharp               | `esp32ir::payload::Denon`        | `esp32ir::decodeDenon`          | `tx.sendDenon(struct/args)`                | ▲    |
 | RC5                       | `esp32ir::payload::RC5`          | `esp32ir::decodeRC5`            | `tx.sendRC5(struct/args)`                  | ▲    |
@@ -343,7 +344,9 @@ bool send(const esp32ir::ProtocolMessage& message);
   - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]`（bits=12/15/20）
   - AEHA / Panasonic: `[addr_lo, addr_hi, data(4byte LE), nbits]`
   - JVC: `[addr_lo, addr_hi, cmd, bits]`（bits=24/32。32bit時はコマンドの反転バイトをTXが自動付与し、RXで検証）
-  - Samsung / LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]`（構造体のフィールド順に従う）
+  - Samsung（32bit）: `[addr_lo, addr_hi, cmd_lo, cmd_hi]`
+  - Samsung36（36bitニブル、計画中）: `[raw(8byte LE), bits]`（`bits` は 36 固定。`raw` 下位36bitをLSBファーストで9ニブルとして送信。nibble[8] が nibble[0..7] の簡易チェックサム（XORなど）となる例が多いが機器依存）
+  - LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]`（構造体のフィールド順に従う）
   - RC5: `[cmd_lo, cmd_hi, toggle]`
   - RC6: `[cmd_lo, cmd_hi, mode, toggle]`
   - Apple: `[addr_lo, addr_hi, cmd]`（コマンド反転はTX側で付与）
@@ -379,6 +382,11 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::Samsung { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeSamsung(const esp32ir::RxResult&, esp32ir::payload::Samsung&);`  
     - `bool esp32ir::Transmitter::sendSamsung(const esp32ir::payload::Samsung&);` / `bool esp32ir::Transmitter::sendSamsung(uint16_t address, uint16_t command);`
+  - Samsung36（NECライク36bit、ニブル指向・計画中）  
+    - `struct esp32ir::payload::Samsung36 { uint64_t raw; uint8_t bits; }; // bits=36、生データは下位36bitを使用`  
+    - `bool esp32ir::decodeSamsung36(const esp32ir::RxResult&, esp32ir::payload::Samsung36&);`  
+    - `bool esp32ir::Transmitter::sendSamsung36(const esp32ir::payload::Samsung36&);` / `bool esp32ir::Transmitter::sendSamsung36(uint64_t raw);`  
+    - 備考: 意味付けは機器依存。`raw` を LSBファーストの9ニブルとして扱う。nibble[8] が nibble[0..7] の簡易チェックサム（XOR など）となる例が多いが保証しない。解析してからフィールド解釈すること。
   - LG  
     - `struct esp32ir::payload::LG { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeLG(const esp32ir::RxResult&, esp32ir::payload::LG&);`  
@@ -434,7 +442,7 @@ bool send(const esp32ir::ProtocolMessage& message);
 - フレーム末尾の Space を最低 `gapUs` 確保してから送信完了とみなす。
 - RAW/ProtocolMessage を直接 `send` する場合は、現在設定されている `gapUs` を適用する。
 - 参考推奨値（`setGapUs` 未設定時にヘルパーが使う目安値）  
-  - NEC / Samsung / Apple / Denon / LG / JVC: 40ms  
+  - NEC / Samsung / Samsung36 / Apple / Denon / LG / JVC: 40ms  
   - SONY: 45ms  
   - AEHA / Panasonic / Pioneer / Toshiba / Mitsubishi / Hitachi: 35ms  
   - RC5 / RC6: 30ms  
