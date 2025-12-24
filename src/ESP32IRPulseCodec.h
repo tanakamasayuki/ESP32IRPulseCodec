@@ -22,6 +22,10 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
+#ifndef ESP32IR_PACKED
+#define ESP32IR_PACKED __attribute__((packed))
+#endif
+
 namespace esp32ir
 {
 
@@ -267,101 +271,101 @@ namespace esp32ir
 
   namespace payload
   {
-    struct NEC
+    struct ESP32IR_PACKED NEC
     {
       uint16_t address;
       uint8_t command;
       bool repeat;
     };
 
-    struct SONY
+    struct ESP32IR_PACKED SONY
     {
       uint16_t address;
       uint16_t command;
       uint8_t bits;
     };
 
-    struct AEHA
+    struct ESP32IR_PACKED AEHA
     {
       uint16_t address;
       uint32_t data;
       uint8_t nbits;
     };
 
-    struct Panasonic
+    struct ESP32IR_PACKED Panasonic
     {
       uint16_t address;
       uint32_t data;
       uint8_t nbits;
     };
 
-    struct JVC
+    struct ESP32IR_PACKED JVC
     {
       uint16_t address;
       uint8_t command;
       uint8_t bits; // 24 or 32
     };
 
-    struct Samsung
+    struct ESP32IR_PACKED Samsung
     {
       uint16_t address;
       uint16_t command;
     };
 
-    struct LG
+    struct ESP32IR_PACKED LG
     {
       uint16_t address;
       uint16_t command;
     };
 
-    struct Denon
+    struct ESP32IR_PACKED Denon
     {
       uint16_t address;
       uint16_t command;
       bool repeat;
     };
 
-    struct RC5
+    struct ESP32IR_PACKED RC5
     {
       uint16_t command;
       bool toggle;
     };
 
-    struct RC6
+    struct ESP32IR_PACKED RC6
     {
       uint32_t command;
       uint8_t mode;
       bool toggle;
     };
 
-    struct Apple
+    struct ESP32IR_PACKED Apple
     {
       uint16_t address;
       uint8_t command;
     };
 
-    struct Pioneer
+    struct ESP32IR_PACKED Pioneer
     {
       uint16_t address;
       uint16_t command;
       uint8_t extra;
     };
 
-    struct Toshiba
+    struct ESP32IR_PACKED Toshiba
     {
       uint16_t address;
       uint16_t command;
       uint8_t extra;
     };
 
-    struct Mitsubishi
+    struct ESP32IR_PACKED Mitsubishi
     {
       uint16_t address;
       uint16_t command;
       uint8_t extra;
     };
 
-    struct Hitachi
+    struct ESP32IR_PACKED Hitachi
     {
       uint16_t address;
       uint16_t command;
