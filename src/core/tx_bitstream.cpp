@@ -99,11 +99,8 @@ namespace esp32ir
             uint64_t payload = 0;
             if (bits == 32)
             {
-                uint8_t cmd = p.command;
-                uint8_t inv = static_cast<uint8_t>(~cmd);
                 payload = static_cast<uint64_t>(p.address) |
-                          (static_cast<uint64_t>(cmd) << 16) |
-                          (static_cast<uint64_t>(inv) << 24);
+                          (static_cast<uint64_t>(p.command) << 16);
             }
             else // 24-bit: 16-bit address + 8-bit command
             {
@@ -125,6 +122,22 @@ namespace esp32ir
             bitIndex = 0;
             constexpr uint8_t kBits = 32;
             for (uint8_t i = 0; i < kBits; ++i)
+                addBit((payload >> i) & 0x1);
+            bitCount = bitIndex;
+            return true;
+        }
+        case esp32ir::Protocol::Samsung36:
+        {
+            if (message.length != sizeof(esp32ir::payload::Samsung36) || message.data == nullptr)
+                return false;
+            esp32ir::payload::Samsung36 p{};
+            std::memcpy(&p, message.data, sizeof(p));
+            uint8_t bits = p.bits ? p.bits : 36;
+            if (bits != 36)
+                return false;
+            uint64_t payload = p.raw & ((1ULL << bits) - 1);
+            bitIndex = 0;
+            for (uint8_t i = 0; i < bits; ++i)
                 addBit((payload >> i) & 0x1);
             bitCount = bitIndex;
             return true;

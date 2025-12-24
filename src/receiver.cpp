@@ -127,6 +127,7 @@ namespace esp32ir
                 esp32ir::Protocol::Panasonic,
                 esp32ir::Protocol::JVC,
                 esp32ir::Protocol::Samsung,
+                esp32ir::Protocol::Samsung36,
                 esp32ir::Protocol::LG,
                 esp32ir::Protocol::Denon,
                 esp32ir::Protocol::RC5,
@@ -217,6 +218,7 @@ namespace esp32ir
             {
             case esp32ir::Protocol::NEC:
             case esp32ir::Protocol::Samsung:
+            case esp32ir::Protocol::Samsung36:
             case esp32ir::Protocol::Apple:
             {
                 const auto &p = esp32ir::proto_const::kNECParams;
@@ -864,6 +866,15 @@ namespace esp32ir
             {
                 esp32ir::payload::Samsung p{};
                 if (esp32ir::decodeSamsung(temp, p))
+                {
+                    return fillDecoded(proto, &p, sizeof(p));
+                }
+                break;
+            }
+            case esp32ir::Protocol::Samsung36:
+            {
+                esp32ir::payload::Samsung36 p{};
+                if (esp32ir::decodeSamsung36(temp, p))
                 {
                     return fillDecoded(proto, &p, sizeof(p));
                 }

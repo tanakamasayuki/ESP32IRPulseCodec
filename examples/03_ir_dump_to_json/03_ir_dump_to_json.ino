@@ -23,10 +23,10 @@ static void printMessageBytes(const esp32ir::ProtocolMessage &msg)
 
 // en: format hex with 0x prefix
 // ja: 0x付きの16進文字列を生成
-static std::string toHex(uint32_t v, int width)
+static std::string toHex(uint64_t v, int width)
 {
   char buf[16];
-  snprintf(buf, sizeof(buf), "0x%0*X", width, static_cast<unsigned>(v));
+  snprintf(buf, sizeof(buf), "0x%0*llX", width, static_cast<unsigned long long>(v));
   return std::string(buf);
 }
 
@@ -175,6 +175,7 @@ void loop()
   esp32ir::payload::Panasonic pana{};
   esp32ir::payload::JVC jvc{};
   esp32ir::payload::Samsung samsung{};
+  esp32ir::payload::Samsung36 samsung36{};
   esp32ir::payload::LG lg{};
   esp32ir::payload::Denon denon{};
   esp32ir::payload::RC5 rc5{};
@@ -208,6 +209,9 @@ void loop()
       break;
     case esp32ir::Protocol::Samsung:
       decoded = esp32ir::decodeSamsung(r, samsung);
+      break;
+    case esp32ir::Protocol::Samsung36:
+      decoded = esp32ir::decodeSamsung36(r, samsung36);
       break;
     case esp32ir::Protocol::LG:
       decoded = esp32ir::decodeLG(r, lg);
@@ -305,12 +309,16 @@ void loop()
       break;
     case esp32ir::Protocol::JVC:
       Serial.printf("\"address\":%u,\"command\":%u,\"bits\":%u", jvc.address, jvc.command, jvc.bits);
-      decodedText += ",address=" + toHex(jvc.address, 4) + ",command=" + toHex(jvc.command, 2) +
+      decodedText += ",address=" + toHex(jvc.address, 4) + ",command=" + toHex(jvc.command, 4) +
                      ",bits=" + std::to_string(jvc.bits);
       break;
     case esp32ir::Protocol::Samsung:
       Serial.printf("\"address\":%u,\"command\":%u", samsung.address, samsung.command);
       decodedText += ",address=" + toHex(samsung.address, 4) + ",command=" + toHex(samsung.command, 4);
+      break;
+    case esp32ir::Protocol::Samsung36:
+      Serial.printf("\"raw\":%llu,\"bits\":%u", static_cast<unsigned long long>(samsung36.raw), samsung36.bits);
+      decodedText += ",raw=" + toHex(static_cast<uint64_t>(samsung36.raw), 9) + ",bits=" + std::to_string(samsung36.bits);
       break;
     case esp32ir::Protocol::LG:
       Serial.printf("\"address\":%u,\"command\":%u", lg.address, lg.command);

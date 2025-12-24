@@ -39,6 +39,7 @@ namespace esp32ir
     Panasonic,
     JVC,
     Samsung,
+    Samsung36,
     LG,
     Denon,
     RC5,
@@ -112,6 +113,8 @@ namespace esp32ir
         return "JVC";
       case Protocol::Samsung:
         return "Samsung";
+      case Protocol::Samsung36:
+        return "Samsung36";
       case Protocol::LG:
         return "LG";
       case Protocol::Denon:
@@ -163,6 +166,8 @@ namespace esp32ir
         return Protocol::JVC;
       if (s == "Samsung")
         return Protocol::Samsung;
+      if (s == "Samsung36")
+        return Protocol::Samsung36;
       if (s == "LG")
         return Protocol::LG;
       if (s == "Denon")
@@ -302,7 +307,7 @@ namespace esp32ir
     struct ESP32IR_PACKED JVC
     {
       uint16_t address;
-      uint8_t command;
+      uint16_t command;
       uint8_t bits; // 24 or 32
     };
 
@@ -310,6 +315,12 @@ namespace esp32ir
     {
       uint16_t address;
       uint16_t command;
+    };
+
+    struct ESP32IR_PACKED Samsung36
+    {
+      uint64_t raw;
+      uint8_t bits; // expected 36
     };
 
     struct ESP32IR_PACKED LG
@@ -632,9 +643,11 @@ namespace esp32ir
     bool sendPanasonic(const esp32ir::payload::Panasonic &p);
     bool sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);
     bool sendJVC(const esp32ir::payload::JVC &p);
-    bool sendJVC(uint16_t address, uint8_t command, uint8_t bits = 32);
+    bool sendJVC(uint16_t address, uint16_t command, uint8_t bits = 32);
     bool sendSamsung(const esp32ir::payload::Samsung &p);
     bool sendSamsung(uint16_t address, uint16_t command);
+    bool sendSamsung36(const esp32ir::payload::Samsung36 &p);
+    bool sendSamsung36(uint64_t raw, uint8_t bits = 36);
     bool sendLG(const esp32ir::payload::LG &p);
     bool sendLG(uint16_t address, uint16_t command);
     bool sendDenon(const esp32ir::payload::Denon &p);
@@ -683,6 +696,7 @@ namespace esp32ir
   bool decodePanasonic(const esp32ir::RxResult &in, esp32ir::payload::Panasonic &out);
   bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out);
   bool decodeSamsung(const esp32ir::RxResult &in, esp32ir::payload::Samsung &out);
+  bool decodeSamsung36(const esp32ir::RxResult &in, esp32ir::payload::Samsung36 &out);
   bool decodeLG(const esp32ir::RxResult &in, esp32ir::payload::LG &out);
   bool decodeDenon(const esp32ir::RxResult &in, esp32ir::payload::Denon &out);
   bool decodeRC5(const esp32ir::RxResult &in, esp32ir::payload::RC5 &out);

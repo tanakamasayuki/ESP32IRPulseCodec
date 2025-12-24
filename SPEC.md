@@ -318,7 +318,7 @@ bool send(const esp32ir::ProtocolMessage& message);
 | Panasonic/Kaseikaden     | `esp32ir::payload::Panasonic`      | `esp32ir::decodePanasonic`      | `tx.sendPanasonic(struct/args)`            | ▲      |
 | JVC                      | `esp32ir::payload::JVC`            | `esp32ir::decodeJVC`            | `tx.sendJVC(struct/args)`                  | ▲      |
 | Samsung                  | `esp32ir::payload::Samsung`        | `esp32ir::decodeSamsung`        | `tx.sendSamsung(struct/args)`              | ▲      |
-| Samsung36 (36bit)        | `esp32ir::payload::Samsung36`      | `esp32ir::decodeSamsung36`      | `tx.sendSamsung36(struct/args)`            | △      |
+| Samsung36 (36bit)        | `esp32ir::payload::Samsung36`      | `esp32ir::decodeSamsung36`      | `tx.sendSamsung36(struct/args)`            | ▲      |
 | LG                       | `esp32ir::payload::LG`             | `esp32ir::decodeLG`             | `tx.sendLG(struct/args)`                   | ▲      |
 | Denon/Sharp              | `esp32ir::payload::Denon`          | `esp32ir::decodeDenon`          | `tx.sendDenon(struct/args)`                | ▲      |
 | RC5                      | `esp32ir::payload::RC5`            | `esp32ir::decodeRC5`            | `tx.sendRC5(struct/args)`                  | ▲      |
@@ -343,7 +343,7 @@ bool send(const esp32ir::ProtocolMessage& message);
   - AEHA / Panasonic: `[addr_lo, addr_hi, data(4 bytes little-endian), nbits]`
   - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=24 or 32. `cmd` is a 16-bit raw field serialized as two bytes; 24bit mode uses only the low byte on wire, 32bit mode uses both bytes LSB-first. Many remotes use `cmd` + `~cmd` for the two bytes, but it is not guaranteed. Caller should supply the desired 16-bit pattern.)
   - Samsung (32-bit): `[addr_lo, addr_hi, cmd_lo, cmd_hi]` (current impl treats `command` as 16 raw bits; many devices use 8-bit command with the high byte as `~cmd`—caller must provide the desired 16-bit pattern)
-  - Samsung36 (36-bit nibble, planned): `[raw(8 bytes LE), bits]` (`bits` must be 36; lower 36 bits of `raw` are sent LSB-first as 9 nibbles; nibble[8] is often a checksum of nibble[0..7] but device-dependent)
+  - Samsung36 (36-bit nibble): `[raw(8 bytes LE), bits]` (`bits` must be 36; lower 36 bits of `raw` are sent LSB-first as 9 nibbles; nibble[8] is often a checksum of nibble[0..7] but device-dependent)
   - LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]` (per struct fields; see headers)
   - RC5: `[cmd_lo, cmd_hi, toggle]`
   - RC6: `[cmd_lo, cmd_hi, mode, toggle]`
@@ -379,7 +379,7 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::Samsung { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeSamsung(const esp32ir::RxResult&, esp32ir::payload::Samsung&);`  
     - `bool esp32ir::Transmitter::sendSamsung(const esp32ir::payload::Samsung&);` / `bool esp32ir::Transmitter::sendSamsung(uint16_t address, uint16_t command);`
-  - Samsung36 (NEC-like 36bit, nibble-oriented; planned)  
+  - Samsung36 (NEC-like 36bit, nibble-oriented)  
     - `struct esp32ir::payload::Samsung36 { uint64_t raw; uint8_t bits; }; // bits=36, lower 36 bits of raw used on wire`  
     - `bool esp32ir::decodeSamsung36(const esp32ir::RxResult&, esp32ir::payload::Samsung36&);`  
     - `bool esp32ir::Transmitter::sendSamsung36(const esp32ir::payload::Samsung36&);` / `bool esp32ir::Transmitter::sendSamsung36(uint64_t raw);`  

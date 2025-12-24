@@ -515,9 +515,9 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s parse failed\n", cmd.c_str());
       return true;
     }
-    if (cmd == "JVC" && command > 0xFF)
+    if (command > 0xFFFF)
     {
-      Serial.println("ERR JVC command must be 0..255");
+      Serial.println("ERR command must be 0..65535");
       return true;
     }
     if (cmd == "JVC" && toks.size() >= 4)
@@ -541,12 +541,12 @@ static bool handleProtocol(const std::vector<std::string> &toks)
     auto fn = [&]() -> bool
     {
       if (cmd == "JVC")
-        return tx.sendJVC(addr, static_cast<uint8_t>(command), jvcBits);
+        return tx.sendJVC(addr, static_cast<uint16_t>(command), jvcBits);
       if (cmd == "SAMSUNG")
         return tx.sendSamsung(addr, command);
       return tx.sendLG(addr, command);
     };
-    std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 2);
+    std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 4);
     if (cmd == "JVC")
       detail += " bits=" + std::to_string(jvcBits);
     sendLoop(cmd.c_str(), opts, fn, detail);

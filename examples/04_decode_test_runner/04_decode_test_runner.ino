@@ -221,6 +221,7 @@ void loop()
     esp32ir::payload::Panasonic pana{};
     esp32ir::payload::JVC jvc{};
     esp32ir::payload::Samsung samsung{};
+    esp32ir::payload::Samsung36 samsung36{};
     esp32ir::payload::LG lg{};
     esp32ir::payload::Denon denon{};
     esp32ir::payload::RC5 rc5{};
@@ -252,6 +253,9 @@ void loop()
         break;
       case esp32ir::Protocol::Samsung:
         payloadDecoded = esp32ir::decodeSamsung(result, samsung);
+        break;
+      case esp32ir::Protocol::Samsung36:
+        payloadDecoded = esp32ir::decodeSamsung36(result, samsung36);
         break;
       case esp32ir::Protocol::LG:
         payloadDecoded = esp32ir::decodeLG(result, lg);
@@ -321,12 +325,16 @@ void loop()
                       pana.address, pana.address, static_cast<unsigned long>(pana.data), pana.nbits);
         break;
       case esp32ir::Protocol::JVC:
-        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%02X(%u) bits=%u\n",
+        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%04X(%u) bits=%u\n",
                       jvc.address, jvc.address, jvc.command, jvc.command, jvc.bits);
         break;
       case esp32ir::Protocol::Samsung:
         Serial.printf("Samsung payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
                       samsung.address, samsung.address, samsung.command, samsung.command);
+        break;
+      case esp32ir::Protocol::Samsung36:
+        Serial.printf("Samsung36 payload: raw=0x%09llX bits=%u\n",
+                      static_cast<unsigned long long>(samsung36.raw & ((1ULL << 36) - 1)), samsung36.bits);
         break;
       case esp32ir::Protocol::LG:
         Serial.printf("LG payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
@@ -562,6 +570,21 @@ void loop()
               {
                 ok = false;
                 Serial.println(F("FAIL: Samsung payload mismatch"));
+              }
+              break;
+            }
+            case esp32ir::Protocol::Samsung36:
+            {
+              cJSON *vr = cJSON_GetObjectItemCaseSensitive(expPayload, "raw");
+              cJSON *vb = cJSON_GetObjectItemCaseSensitive(expPayload, "bits");
+              bool hr = cJSON_IsNumber(vr);
+              bool hb = cJSON_IsNumber(vb);
+              long long r = hr ? static_cast<long long>(vr->valuedouble) : 0;
+              int b = hb ? vb->valueint : 0;
+              if ((hr && static_cast<long long>(samsung36.raw) != r) || (hb && samsung36.bits != b))
+              {
+                ok = false;
+                Serial.println(F("FAIL: Samsung36 payload mismatch"));
               }
               break;
             }

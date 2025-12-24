@@ -95,6 +95,7 @@ namespace esp32ir
             {
             case esp32ir::Protocol::NEC:
             case esp32ir::Protocol::Samsung:
+            case esp32ir::Protocol::Samsung36:
             case esp32ir::Protocol::Apple:
             case esp32ir::Protocol::Denon:
             case esp32ir::Protocol::LG:
@@ -427,6 +428,18 @@ namespace esp32ir
             esp32ir::payload::Samsung p;
             std::memcpy(&p, message.data, sizeof(p));
             return sendSamsung(p);
+        }
+        case esp32ir::Protocol::Samsung36:
+        {
+            if (message.length != sizeof(esp32ir::payload::Samsung36))
+            {
+                ESP_LOGE(kTag, "TX send Samsung36 failed: size mismatch (got %u expected %u)",
+                         static_cast<unsigned>(message.length), static_cast<unsigned>(sizeof(esp32ir::payload::Samsung36)));
+                return false;
+            }
+            esp32ir::payload::Samsung36 p;
+            std::memcpy(&p, message.data, sizeof(p));
+            return sendSamsung36(p);
         }
         case esp32ir::Protocol::LG:
         {
