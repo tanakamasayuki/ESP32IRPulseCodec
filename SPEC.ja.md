@@ -338,6 +338,16 @@ bool send(const esp32ir::ProtocolMessage& message);
 
 ※ ACブランド別ヘルパは共通AC型を入力とし、上級/デバッグ用途。通常利用は `decodeAC` / `sendAC` の共通API経由。
 
+- プロトコルごとの `messageBytes` 配列フォーマット（`esp32ir::payload::<Protocol>` 構造体をリトルエンディアンでシリアライズ）
+  - NEC: `[addr_lo, addr_hi, cmd, repeat]`
+  - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]`（bits=12/15/20）
+  - AEHA / Panasonic: `[addr_lo, addr_hi, data(4byte LE), nbits]`
+  - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]`（bits=24/32、24bit時はcmd上位1byteのみ有効）
+  - Samsung / LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]`（構造体のフィールド順に従う）
+  - RC5: `[cmd_lo, cmd_hi, toggle]`
+  - RC6: `[cmd_lo, cmd_hi, mode, toggle]`
+  - Apple: `[addr_lo, addr_hi, cmd]`（コマンド反転はTX側で付与）
+
 - 構造体とヘルパー詳細
   - RAW  
     - ITPSBuffer をそのまま扱う。`useRawOnly`/`useRawPlusKnown` で有効化。  

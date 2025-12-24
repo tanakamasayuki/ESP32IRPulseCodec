@@ -336,6 +336,16 @@ bool send(const esp32ir::ProtocolMessage& message);
 
 ※ AC brand-specific helpers take the common AC types and are mainly for advanced/debug use. Typical usage should go through the common `decodeAC` / `sendAC` dispatch.
 
+- Protocol `messageBytes` layouts (little-endian fields as defined in `esp32ir::payload::<Protocol>`)
+  - NEC: `[addr_lo, addr_hi, cmd, repeat]`
+  - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=12/15/20)
+  - AEHA / Panasonic: `[addr_lo, addr_hi, data(4 bytes little-endian), nbits]`
+  - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=24 or 32; cmd upper byte ignored when 24bit)
+  - Samsung / LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]` (per struct fields; see headers)
+  - RC5: `[cmd_lo, cmd_hi, toggle]`
+  - RC6: `[cmd_lo, cmd_hi, mode, toggle]`
+  - Apple: `[addr_lo, addr_hi, cmd]` (cmd complement is derived for TX)
+
 - Structs and helper details
   - RAW  
     - Work with ITPSBuffer directly. Enable via `useRawOnly` / `useRawPlusKnown`.  
