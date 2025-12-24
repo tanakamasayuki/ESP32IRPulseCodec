@@ -350,7 +350,9 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `struct esp32ir::payload::SONY { uint16_t address; uint16_t command; uint8_t bits; };`  
     - `bool esp32ir::decodeSONY(const esp32ir::RxResult& in, esp32ir::payload::SONY& out);`（`bits`は12/15/20のみ）  
     - `bool esp32ir::Transmitter::sendSONY(const esp32ir::payload::SONY& p);` / `bool esp32ir::Transmitter::sendSONY(uint16_t address, uint16_t command, uint8_t bits=12);`（bitsは12/15/20のみ）
-    - 注意: SONYフレームが連続して届く場合、現状のデコーダは最初の1フレームだけをデコードし、後続のリピートは無視する。理想的には前回の受信時刻などを用いたリピート判定を実装するべき。
+    - 注意: SONYフレームはギャップで分割し、個別の受信として扱う。同じ信号が数回（例:3回）続けて届く前提なので、アプリ側でリピート処理を行うこと。
+      - 例: 直前フレームと payload（bits/address/command）が同じかつ一定時間内(目安20〜120ms)ならリピート扱いにする。
+      - 例: デバウンスとして「連続2回同じ信号のみ受理」、長押し判定として「同一フレームが一定間隔でN回以上」などのポリシーを実装する。
   - AEHA(家電協)  
     - `struct esp32ir::payload::AEHA { uint16_t address; uint32_t data; uint8_t nbits; };`  
     - `bool esp32ir::decodeAEHA(const esp32ir::RxResult&, esp32ir::payload::AEHA&);`  

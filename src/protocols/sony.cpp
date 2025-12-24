@@ -12,7 +12,7 @@ namespace esp32ir
     {
         // SONY gap heuristics for splitting (matches recommended params in receiver)
         const RxParamPreset kSonyParams{
-            30000, // frameGapUs
+            25000, // frameGapUs
             50000, // hardGapUs
             4000,  // minFrameUs
             80000, // maxFrameUs
@@ -75,7 +75,9 @@ namespace esp32ir
         // Try longer formats first to avoid misclassifying 15/20-bit frames as 12-bit.
         for (uint8_t bits : {20, 15, 12})
         {
-            if (pulses.size() < 2 + bits * 2)
+            // Allow trailing space of the last bit to be missing (one pulse shorter).
+            uint16_t minPulses = static_cast<uint16_t>(2 + bits * 2 - 1);
+            if (pulses.size() < minPulses)
                 continue;
             size_t idx = 0;
             auto ok = [&](bool mark, uint32_t target, uint32_t tol) -> bool

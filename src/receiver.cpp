@@ -686,11 +686,10 @@ namespace esp32ir
             {
                 return false;
             }
-            uint32_t maxSpaceUs = 0;
-            size_t maxStart = 0;
-            size_t maxLen = 0;
             uint32_t runUs = 0;
             size_t runStart = 0;
+            size_t gapStart = 0;
+            size_t gapLen = 0;
             for (uint16_t i = 0; i < f.len; ++i)
             {
                 int v = f.seq[i];
@@ -702,38 +701,34 @@ namespace esp32ir
                 }
                 else
                 {
-                    if (runUs > maxSpaceUs)
+                    if (runUs >= gapUs)
                     {
-                        maxSpaceUs = runUs;
-                        maxStart = runStart;
-                        maxLen = i - runStart;
+                        gapStart = runStart;
+                        gapLen = i - runStart;
+                        break; // pick first qualifying gap
                     }
                     runUs = 0;
                 }
             }
-            if (runUs > maxSpaceUs)
+            // handle trailing space run if no mark after it (still first qualifying)
+            if (gapLen == 0 && runUs >= gapUs)
             {
-                maxSpaceUs = runUs;
-                maxStart = runStart;
-                maxLen = f.len - runStart;
+                gapStart = runStart;
+                gapLen = f.len - runStart;
             }
-            if (maxSpaceUs < gapUs || maxLen == 0)
-            {
-                return false;
-            }
-            if (maxStart == 0 || (maxStart + maxLen) >= f.len)
+            if (gapLen == 0 || gapStart == 0 || (gapStart + gapLen) >= f.len)
             {
                 return false;
             }
             std::vector<int8_t> seq1;
             seq1.reserve(f.len);
-            for (size_t i = 0; i < maxStart; ++i)
+            for (size_t i = 0; i < gapStart; ++i)
             {
                 seq1.push_back(f.seq[i]);
             }
             std::vector<int8_t> seq2;
-            seq2.reserve(f.len - maxStart - maxLen);
-            for (size_t i = maxStart + maxLen; i < f.len; ++i)
+            seq2.reserve(f.len - gapStart - gapLen);
+            for (size_t i = gapStart + gapLen; i < f.len; ++i)
             {
                 seq2.push_back(f.seq[i]);
             }
@@ -825,7 +820,16 @@ namespace esp32ir
                 esp32ir::payload::SONY p{};
                 if (esp32ir::decodeSONY(temp, p))
                 {
-                    return fillDecoded(proto, &p, sizeof(p));
+                    esp32ir::ITPSBuffer firstBuf;
+                    esp32ir::ITPSBuffer secondBuf;
+                    const esp32ir::ITPSBuffer *rawPtr = &buf;
+                    uint32_t protoGap = recommendedParamsForProtocol(proto).frameGapUs;
+                    if (protoGap > 0 && splitITPSByGap(buf, protoGap, firstBuf, secondBuf))
+                    {
+                        rawPtr = &firstBuf;
+                        pendingSegments_.push_back({std::move(secondBuf), overflowed});
+                    }
+                    return fillDecoded(proto, &p, sizeof(p), rawPtr);
                 }
                 break;
             }
