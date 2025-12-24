@@ -1,6 +1,7 @@
 #include "ESP32IRPulseCodec.h"
 #include "core/message_utils.h"
 #include "nec_like.h"
+#include <esp_log.h>
 
 namespace esp32ir
 {
@@ -20,24 +21,52 @@ namespace esp32ir
 
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
     {
+        constexpr const char *kTag = "ESP32IRPulseCodec";
         out = {};
         if (decodeMessage(in, esp32ir::Protocol::JVC, out))
         {
+            ESP_LOGD(kTag, "decodeJVC: decodeMessage fast path succeeded addr=%u cmd=%u",
+                     static_cast<unsigned>(out.address), static_cast<unsigned>(out.command));
             return true;
         }
-        uint64_t data = 0;
         constexpr uint32_t kHdrMarkUs = 8400;
         constexpr uint32_t kHdrSpaceUs = 4200;
         constexpr uint32_t kBitMarkUs = 525;
         constexpr uint32_t kZeroSpaceUs = 525;
         constexpr uint32_t kOneSpaceUs = 1575;
-        if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, 32, data))
-        {
-            return false;
-        }
-        out.address = static_cast<uint16_t>(data & 0xFFFF);
-        out.command = static_cast<uint16_t>(data >> 16);
-        return true;
+
+        auto tryBits = [&](uint8_t bits) -> bool {
+            uint64_t data = 0;
+            if (!nec_like::decodeRaw(in, kHdrMarkUs, kHdrSpaceUs, kBitMarkUs, kZeroSpaceUs, kOneSpaceUs, bits, data))
+                return false;
+            if (bits == 32)
+            {
+                out.address = static_cast<uint16_t>(data & 0xFFFF);
+                out.command = static_cast<uint16_t>(data >> 16);
+            }
+            else if (bits == 24)
+            {
+                out.address = static_cast<uint16_t>(data & 0xFFFF);
+                out.command = static_cast<uint16_t>((data >> 16) & 0xFF);
+            }
+            else
+            {
+                return false;
+            }
+            ESP_LOGD(kTag, "decodeJVC: decoded %ubits addr=0x%04X cmd=0x%04X",
+                     static_cast<unsigned>(bits),
+                     static_cast<unsigned>(out.address),
+                     static_cast<unsigned>(out.command));
+            return true;
+        };
+
+        if (tryBits(32))
+            return true;
+        if (tryBits(24))
+            return true;
+
+        ESP_LOGD(kTag, "decodeJVC: nec_like::decodeRaw failed");
+        return false;
     }
     bool Transmitter::sendJVC(const esp32ir::payload::JVC &p)
     {
