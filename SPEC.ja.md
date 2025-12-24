@@ -343,8 +343,8 @@ bool send(const esp32ir::ProtocolMessage& message);
   - NEC: `[addr_lo, addr_hi, cmd, repeat]`
   - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]`（bits=12/15/20）
   - AEHA / Panasonic: `[addr_lo, addr_hi, data(4byte LE), nbits]`
-  - JVC: `[addr_lo, addr_hi, cmd, bits]`（bits=24/32。32bit時はコマンドの反転バイトをTXが自動付与し、RXで検証）
-  - Samsung（32bit）: `[addr_lo, addr_hi, cmd_lo, cmd_hi]`
+  - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]`（bits=24/32。`cmd` は16bit生値で2バイトにシリアライズされる。24bit時は下位8bitのみを送信し上位8bitは使われない。32bit時は2バイトをLSBファーストで送信。32bitでは`cmd`と`~cmd`の組み合わせが一般的だが機器依存。必要な16bitパターンは呼び出し側で用意すること）
+  - Samsung（32bit）: `[addr_lo, addr_hi, cmd_lo, cmd_hi]`（実装は`command`を16bit生値として扱う。一般的なリモコンでは下位8bitがコマンド、上位8bitが`~cmd`となる例が多いが、ライブラリ側で補完/検証は行わないため呼び出し側で必要な16bitパターンを渡すこと）
   - Samsung36（36bitニブル、計画中）: `[raw(8byte LE), bits]`（`bits` は 36 固定。`raw` 下位36bitをLSBファーストで9ニブルとして送信。nibble[8] が nibble[0..7] の簡易チェックサム（XORなど）となる例が多いが機器依存）
   - LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]`（構造体のフィールド順に従う）
   - RC5: `[cmd_lo, cmd_hi, toggle]`
@@ -376,6 +376,7 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `bool esp32ir::Transmitter::sendPanasonic(const esp32ir::payload::Panasonic&);` / `bool esp32ir::Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
   - JVC  
     - `struct esp32ir::payload::JVC { uint16_t address; uint16_t command; uint8_t bits; };`（bits=24/32、省略時32）  
+    - `command` は16bit生値。`bits=24`では下位8bitのみを使い、`bits=32`では16bit全体をLSBファーストで送信。32bitでは `[cmd, ~cmd]` が一般的だが機器によって異なるため、必要な2バイトを呼び出し側でそのまま渡すこと。  
     - `bool esp32ir::decodeJVC(const esp32ir::RxResult&, esp32ir::payload::JVC&);`  
     - `bool esp32ir::Transmitter::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::Transmitter::sendJVC(uint16_t address, uint16_t command, uint8_t bits=32);`
   - Samsung  

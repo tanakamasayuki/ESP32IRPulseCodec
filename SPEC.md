@@ -341,8 +341,8 @@ bool send(const esp32ir::ProtocolMessage& message);
   - NEC: `[addr_lo, addr_hi, cmd, repeat]`
   - SONY: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=12/15/20)
   - AEHA / Panasonic: `[addr_lo, addr_hi, data(4 bytes little-endian), nbits]`
-  - JVC: `[addr_lo, addr_hi, cmd, bits]` (`bits`=24 or 32; in 32bit mode the inverted cmd byte is added internally on TX and verified on RX)
-  - Samsung (32-bit): `[addr_lo, addr_hi, cmd_lo, cmd_hi]`
+  - JVC: `[addr_lo, addr_hi, cmd_lo, cmd_hi, bits]` (`bits`=24 or 32. `cmd` is a 16-bit raw field serialized as two bytes; 24bit mode uses only the low byte on wire, 32bit mode uses both bytes LSB-first. Many remotes use `cmd` + `~cmd` for the two bytes, but it is not guaranteed. Caller should supply the desired 16-bit pattern.)
+  - Samsung (32-bit): `[addr_lo, addr_hi, cmd_lo, cmd_hi]` (current impl treats `command` as 16 raw bits; many devices use 8-bit command with the high byte as `~cmd`—caller must provide the desired 16-bit pattern)
   - Samsung36 (36-bit nibble, planned): `[raw(8 bytes LE), bits]` (`bits` must be 36; lower 36 bits of `raw` are sent LSB-first as 9 nibbles; nibble[8] is often a checksum of nibble[0..7] but device-dependent)
   - LG / Denon / Toshiba / Mitsubishi / Hitachi / Pioneer: `[addr_lo, addr_hi, cmd_lo, cmd_hi, extra?, repeat?]` (per struct fields; see headers)
   - RC5: `[cmd_lo, cmd_hi, toggle]`
@@ -372,6 +372,7 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `bool esp32ir::Transmitter::sendPanasonic(const esp32ir::payload::Panasonic&);` / `bool esp32ir::Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
   - JVC  
     - `struct esp32ir::payload::JVC { uint16_t address; uint16_t command; uint8_t bits; }; // bits=24 or 32 (default 32)`  
+    - `command` is a raw 16-bit field. `bits=24` uses only the low byte; `bits=32` sends both bytes LSB-first. Many implementations use `[cmd, ~cmd]` for the two bytes in 32bit mode, but devices may differ. Caller should provide the exact 16-bit pattern required by the device.  
     - `bool esp32ir::decodeJVC(const esp32ir::RxResult&, esp32ir::payload::JVC&);`  
     - `bool esp32ir::Transmitter::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::Transmitter::sendJVC(uint16_t address, uint16_t command, uint8_t bits=32);`
   - Samsung  
