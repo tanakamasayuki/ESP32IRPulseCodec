@@ -21,12 +21,9 @@ namespace esp32ir
 
     bool decodeJVC(const esp32ir::RxResult &in, esp32ir::payload::JVC &out)
     {
-        constexpr const char *kTag = "ESP32IRPulseCodec";
         out = {};
         if (decodeMessage(in, esp32ir::Protocol::JVC, out))
         {
-            ESP_LOGD(kTag, "decodeJVC: decodeMessage fast path succeeded addr=%u cmd=%u",
-                     static_cast<unsigned>(out.address), static_cast<unsigned>(out.command));
             return true;
         }
         constexpr uint32_t kHdrMarkUs = 8400;
@@ -55,10 +52,6 @@ namespace esp32ir
                 return false;
             }
             out.bits = bits;
-            ESP_LOGD(kTag, "decodeJVC: decoded %ubits addr=0x%04X cmd=0x%04X",
-                     static_cast<unsigned>(bits),
-                     static_cast<unsigned>(out.address),
-                     static_cast<unsigned>(out.command));
             return true;
         };
 
@@ -66,8 +59,6 @@ namespace esp32ir
             return true;
         if (tryBits(24))
             return true;
-
-        ESP_LOGD(kTag, "decodeJVC: nec_like::decodeRaw failed");
         return false;
     }
     bool Transmitter::sendJVC(const esp32ir::payload::JVC &p)
