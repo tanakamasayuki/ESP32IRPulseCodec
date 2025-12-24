@@ -299,6 +299,7 @@ namespace esp32ir
     {
       uint16_t address;
       uint16_t command;
+      uint8_t bits; // 24 or 32
     };
 
     struct Samsung
@@ -627,7 +628,7 @@ namespace esp32ir
     bool sendPanasonic(const esp32ir::payload::Panasonic &p);
     bool sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);
     bool sendJVC(const esp32ir::payload::JVC &p);
-    bool sendJVC(uint16_t address, uint16_t command);
+    bool sendJVC(uint16_t address, uint16_t command, uint8_t bits = 32);
     bool sendSamsung(const esp32ir::payload::Samsung &p);
     bool sendSamsung(uint16_t address, uint16_t command);
     bool sendLG(const esp32ir::payload::LG &p);

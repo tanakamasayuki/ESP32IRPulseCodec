@@ -215,7 +215,7 @@ static void printHelp()
   Serial.println("           SONY addr cmd bits");
   Serial.println("           AEHA addr data nbits");
   Serial.println("           PANA|PANASONIC addr data nbits");
-  Serial.println("           JVC|SAMSUNG|LG|DENON addr cmd [repeat]");
+  Serial.println("           JVC|SAMSUNG|LG|DENON addr cmd [bits|repeat]");
   Serial.println("           RC5 cmd [toggle] | RC6 cmd mode [toggle]");
   Serial.println("           APPLE addr cmd | PIONEER/TOSHIBA/MITSUBISHI/HITACHI addr cmd [extra]");
 }
@@ -391,7 +391,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendNEC(addr, cmd8, repeat); };
+    auto fn = [&]()
+    { return tx.sendNEC(addr, cmd8, repeat); };
     std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(cmd8, 2) + " repeat=" + (repeat ? "true" : "false");
     sendLoop("NEC", opts, fn, detail);
     return true;
@@ -424,7 +425,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendSONY(addr, command, static_cast<uint8_t>(bits)); };
+    auto fn = [&]()
+    { return tx.sendSONY(addr, command, static_cast<uint8_t>(bits)); };
     std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 4) + " bits=" + std::to_string(bits);
     sendLoop("SONY", opts, fn, detail);
     return true;
@@ -457,7 +459,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendAEHA(addr, data, static_cast<uint8_t>(nbits)); };
+    auto fn = [&]()
+    { return tx.sendAEHA(addr, data, static_cast<uint8_t>(nbits)); };
     std::string detail = "addr=" + hex(addr, 4) + " data=" + hex(data, 8) + " nbits=" + std::to_string(nbits);
     sendLoop("AEHA", opts, fn, detail);
     return true;
@@ -490,7 +493,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendPanasonic(addr, data, static_cast<uint8_t>(nbits)); };
+    auto fn = [&]()
+    { return tx.sendPanasonic(addr, data, static_cast<uint8_t>(nbits)); };
     std::string detail = "addr=" + hex(addr, 4) + " data=" + hex(data, 8) + " nbits=" + std::to_string(nbits);
     sendLoop("PANA", opts, fn, detail);
     return true;
@@ -505,26 +509,41 @@ static bool handleProtocol(const std::vector<std::string> &toks)
     }
     uint16_t addr = 0;
     uint16_t command = 0;
+    uint8_t jvcBits = 32;
     if (!parseUint16(toks[1], addr) || !parseUint16(toks[2], command))
     {
       Serial.printf("ERR %s parse failed\n", cmd.c_str());
       return true;
     }
+    if (cmd == "JVC" && toks.size() >= 4)
+    {
+      unsigned long v = 0;
+      if (!parseUnsigned(toks[3], v) || (v != 24 && v != 32))
+      {
+        Serial.println("ERR JVC bits must be 24 or 32");
+        return true;
+      }
+      jvcBits = static_cast<uint8_t>(v);
+    }
     SendOptions opts;
     std::string err;
-    if (!parseSendOptions(toks, 3, opts, err))
+    size_t optStart = (cmd == "JVC" && toks.size() >= 4) ? 4 : 3;
+    if (!parseSendOptions(toks, optStart, opts, err))
     {
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() -> bool {
+    auto fn = [&]() -> bool
+    {
       if (cmd == "JVC")
-        return tx.sendJVC(addr, command);
+        return tx.sendJVC(addr, command, jvcBits);
       if (cmd == "SAMSUNG")
         return tx.sendSamsung(addr, command);
       return tx.sendLG(addr, command);
     };
     std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 4);
+    if (cmd == "JVC")
+      detail += " bits=" + std::to_string(jvcBits);
     sendLoop(cmd.c_str(), opts, fn, detail);
     return true;
   }
@@ -561,7 +580,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendDenon(addr, command, repeat); };
+    auto fn = [&]()
+    { return tx.sendDenon(addr, command, repeat); };
     std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 4) + " repeat=" + (repeat ? "true" : "false");
     sendLoop("DENON", opts, fn, detail);
     return true;
@@ -598,7 +618,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendRC5(command, toggle); };
+    auto fn = [&]()
+    { return tx.sendRC5(command, toggle); };
     std::string detail = "cmd=" + hex(command & 0x3F, 2) + " toggle=" + (toggle ? "true" : "false");
     sendLoop("RC5", opts, fn, detail);
     return true;
@@ -641,7 +662,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendRC6(command, static_cast<uint8_t>(mode), toggle); };
+    auto fn = [&]()
+    { return tx.sendRC6(command, static_cast<uint8_t>(mode), toggle); };
     std::string detail = "cmd=" + hex(command, 4) + " mode=" + std::to_string(mode) + " toggle=" + (toggle ? "true" : "false");
     sendLoop("RC6", opts, fn, detail);
     return true;
@@ -668,7 +690,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() { return tx.sendApple(addr, command); };
+    auto fn = [&]()
+    { return tx.sendApple(addr, command); };
     std::string detail = "addr=" + hex(addr, 4) + " cmd=" + hex(command, 2);
     sendLoop("APPLE", opts, fn, detail);
     return true;
@@ -706,7 +729,8 @@ static bool handleProtocol(const std::vector<std::string> &toks)
       Serial.printf("ERR %s\n", err.c_str());
       return true;
     }
-    auto fn = [&]() -> bool {
+    auto fn = [&]() -> bool
+    {
       if (cmd == "PIONEER")
         return tx.sendPioneer(addr, command, extra);
       if (cmd == "TOSHIBA")

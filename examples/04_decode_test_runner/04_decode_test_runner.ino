@@ -321,8 +321,8 @@ void loop()
                       pana.address, pana.address, static_cast<unsigned long>(pana.data), pana.nbits);
         break;
       case esp32ir::Protocol::JVC:
-        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
-                      jvc.address, jvc.address, jvc.command, jvc.command);
+        Serial.printf("JVC payload: addr=0x%04X(%u) cmd=0x%04X(%u) bits=%u\n",
+                      jvc.address, jvc.address, jvc.command, jvc.command, jvc.bits);
         break;
       case esp32ir::Protocol::Samsung:
         Serial.printf("Samsung payload: addr=0x%04X(%u) cmd=0x%04X(%u)\n",
@@ -545,9 +545,9 @@ void loop()
             }
             case esp32ir::Protocol::JVC:
             {
-              int a = 0, c = 0;
-              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c);
-              if ((ha && jvc.address != a) || (hc && jvc.command != c))
+              int a = 0, c = 0, b = 0;
+              bool ha = getNum(expPayload, "address", a), hc = getNum(expPayload, "command", c), hb = getNum(expPayload, "bits", b);
+              if ((ha && jvc.address != a) || (hc && jvc.command != c) || (hb && jvc.bits != b))
               {
                 ok = false;
                 Serial.println(F("FAIL: JVC payload mismatch"));

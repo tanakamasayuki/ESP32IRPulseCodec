@@ -93,10 +93,20 @@ namespace esp32ir
                 return false;
             esp32ir::payload::JVC p{};
             std::memcpy(&p, message.data, sizeof(p));
-            uint64_t payload = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.command) << 16);
+            uint8_t bits = p.bits ? p.bits : 32;
+            if (bits != 24 && bits != 32)
+                return false;
+            uint64_t payload = 0;
+            if (bits == 32)
+            {
+                payload = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.command) << 16);
+            }
+            else // 24-bit: 16-bit address + 8-bit command
+            {
+                payload = static_cast<uint64_t>(p.address) | (static_cast<uint64_t>(p.command & 0xFF) << 16);
+            }
             bitIndex = 0;
-            constexpr uint8_t kBits = 32;
-            for (uint8_t i = 0; i < kBits; ++i)
+            for (uint8_t i = 0; i < bits; ++i)
                 addBit((payload >> i) & 0x1);
             bitCount = bitIndex;
             return true;

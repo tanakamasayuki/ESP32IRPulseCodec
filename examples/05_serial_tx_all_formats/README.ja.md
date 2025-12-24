@@ -35,7 +35,7 @@
 - `SONY <address> <command> <bits>` （bits は 12/15/20）
 - `AEHA <address16> <data> <nbits>` （nbits=1..32）
 - `PANA | PANASONIC <address16> <data> <nbits>` （nbits=1..32）
-- `JVC <address16> <command16>`
+- `JVC <address16> <command16> [bits]`（`bits`=24または32、省略時32）
 - `SAMSUNG <address16> <command16>`
 - `LG <address16> <command16>`
 - `DENON <address16> <command16> [repeat]`

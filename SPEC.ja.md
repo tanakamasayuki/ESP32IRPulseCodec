@@ -362,9 +362,9 @@ bool send(const esp32ir::ProtocolMessage& message);
     - `bool esp32ir::decodePanasonic(const esp32ir::RxResult&, esp32ir::payload::Panasonic&);`  
     - `bool esp32ir::Transmitter::sendPanasonic(const esp32ir::payload::Panasonic&);` / `bool esp32ir::Transmitter::sendPanasonic(uint16_t address, uint32_t data, uint8_t nbits);`
   - JVC  
-    - `struct esp32ir::payload::JVC { uint16_t address; uint16_t command; };`  
+    - `struct esp32ir::payload::JVC { uint16_t address; uint16_t command; uint8_t bits; };`（bits=24/32、省略時32）  
     - `bool esp32ir::decodeJVC(const esp32ir::RxResult&, esp32ir::payload::JVC&);`  
-    - `bool esp32ir::Transmitter::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::Transmitter::sendJVC(uint16_t address, uint16_t command);`
+    - `bool esp32ir::Transmitter::sendJVC(const esp32ir::payload::JVC&);` / `bool esp32ir::Transmitter::sendJVC(uint16_t address, uint16_t command, uint8_t bits=32);`
   - Samsung  
     - `struct esp32ir::payload::Samsung { uint16_t address; uint16_t command; };`  
     - `bool esp32ir::decodeSamsung(const esp32ir::RxResult&, esp32ir::payload::Samsung&);`  
